@@ -1,0 +1,7 @@
+#include "mymd5.h"
+
+int main(void)
+{
+    mymd5_print("12345678901234567890123456789012345678901234567890123456"); // 49f193adce178490e34d1b3a4ec0064c
+    return 0;
+}

@@ -1,0 +1,60 @@
+#include <stdio.h>   // printf
+#include <stdlib.h>  // malloc, realloc, free
+#include <string.h>  // memcpy
+#include "mymd5.h"
+
+#define N 4
+#define M (N - 1)
+
+static const char dir[] = "UDLR";
+static const int dx[] = {0, 0, -1, 1};
+static const int dy[] = {-1, 1, 0, 0};
+static const size_t dirsize = sizeof dx / sizeof *dx;
+
+static char *salt, *shortestpath;
+static size_t saltlen, shortest = (size_t)-1, longest = 0;
+
+static void walk(int x, int y, size_t len, char *path)
+{
+    char hex[33];
+    if (x == M && y == M) {
+        if (len < shortest) {
+            shortest = len;
+            shortestpath = realloc(shortestpath, len + 1);
+            memcpy(shortestpath, path, len + 1);
+        }
+        if (len > longest)
+            longest = len;
+        return;
+    }
+    mymd5(path, hex);
+    for (size_t i = 0; i < dirsize; ++i) {
+        if (hex[i] > 'a') {
+            int nx = x + dx[i], ny = y + dy[i];
+            if (nx >= 0 && nx < N && ny >= 0 && ny < N) {
+                char *next = malloc(len + 2);
+                memcpy(next, path, len);
+                next[len] = dir[i];
+                next[len + 1] = '\0';
+                walk(nx, ny, len + 1, next);
+                free(next);
+            }
+        }
+    }
+}
+
+int main(int argc, char *argv[])
+{
+    if (argc != 2)
+        return 1;
+    saltlen = strlen(argv[1]);
+    salt = malloc(saltlen + 1);
+    memcpy(salt, argv[1], saltlen + 1);
+    walk(0, 0, saltlen, salt);
+    printf("Part 1: %s\n", shortestpath + saltlen);
+    printf("Part 2: %zu\n", longest - saltlen);
+
+    free(salt);
+    free(shortestpath);
+    return 0;
+}
