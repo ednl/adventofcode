@@ -18,9 +18,9 @@
 
 #define EXAMPLE 0
 #if EXAMPLE == 1
-#define NAME "example25.txt"
+#define NAME "../aocinput/2022-25-example.txt"
 #else
-#define NAME "input25.txt"
+#define NAME "../aocinput/2022-25-input.txt"
 #endif
 
 #define N (32)
