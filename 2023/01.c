@@ -5,55 +5,50 @@
  * By: E. Dronkert https://github.com/ednl
  */
 
-#include <stdio.h>   // fopen, fclose, getline, printf
-#include <stdlib.h>  // free
-#include <ctype.h>   // isdigit
-#include <string.h>  // strlen
+#include <stdio.h>    // fopen, fclose, getline, printf
+#include <stdlib.h>   // free
+#include <ctype.h>    // isdigit
+#include <string.h>   // strncmp
+#include <stdbool.h>  // bool
 
-static const char* name[] = {"zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"};
-static int namelen[10];
+typedef struct Digit {
+    int  val, len;
+    char name[2][8];
+} Digit;
 
-static int first(const char* const msg, const ssize_t len, const int part)
+static const Digit digit[] = {
+    {1, 3, {"one"  ,   "eno"}},
+    {6, 3, {"six"  ,   "xis"}},
+    {2, 3, {"two"  ,   "owt"}},
+    {5, 4, {"five" ,  "evif"}},
+    {4, 4, {"four" ,  "ruof"}},
+    {9, 4, {"nine" ,  "enin"}},
+    {8, 5, {"eight", "thgie"}},
+    {7, 5, {"seven", "neves"}},
+    {3, 5, {"three", "eerht"}},
+};
+
+static int firstdigit(const char* const msg, const int len, const bool words, const bool reversed)
 {
     for (int i = 0; i < len; ++i) {
         if (isdigit(msg[i]))
             return msg[i] - '0';
-        if (part == 2)
-            for (int digit = 1; digit <= 9; ++digit) {
-                int j = i, k = 0;
-                while (j < len && k < namelen[digit] && msg[j] == name[digit][k]) {
-                    ++j;
-                    ++k;
-                }
-                if (k == namelen[digit])
-                    return digit;
-            }
+        if (words)
+            for (int j = 0; j < (int)(sizeof digit / sizeof *digit); ++j)
+                if (!strncmp(&msg[i], digit[j].name[reversed], (size_t)digit[j].len))
+                    return digit[j].val;
     }
     return 0;
 }
 
-static int last(const char* const msg, const ssize_t len, const int part)
+static void rev(char* const s, const int len)
 {
-    for (int i = (int)len - 1; i >= 0; --i) {
-        if (isdigit(msg[i]))
-            return msg[i] - '0';
-        if (part == 2)
-            for (int digit = 1; digit <= 9; ++digit) {
-                int j = i, k = namelen[digit] - 1;
-                while (j >= 0 && k >= 0 && msg[j] == name[digit][k]) {
-                    --j;
-                    --k;
-                }
-                if (k == -1)
-                    return digit;
-            }
+    char *p = s, *q = s + len - 1;
+    while (p < q) {
+        char c = *p;
+        *p++ = *q;
+        *q-- = c;
     }
-    return 0;
-}
-
-static int calibration(const char* const msg, const ssize_t len, const int part)
-{
-    return first(msg, len, part) * 10 + last(msg, len, part);
 }
 
 int main(void)
@@ -62,17 +57,16 @@ int main(void)
     if (!f)
         return 1;
 
-    for (int i = 1; i <= 9; ++i)
-        namelen[i] = (int)strlen(name[i]);
-
-    int part1 = 0, part2 = 0;
+    int part1 = 0, part2 = 0, len;
     char* buf = NULL;
     size_t bufsz;
-    ssize_t len;
-    while ((len = getline(&buf, &bufsz, f)) > 1) {
+    while ((len = (int)getline(&buf, &bufsz, f)) > 1) {
         buf[--len] = '\0';  // remove newline
-        part1 += calibration(buf, len, 1);
-        part2 += calibration(buf, len, 2);
+        part1 += firstdigit(buf, len, 0, 0) * 10;
+        part2 += firstdigit(buf, len, 1, 0) * 10;
+        rev(buf, len);
+        part1 += firstdigit(buf, len, 0, 1);
+        part2 += firstdigit(buf, len, 1, 1);
     }
     fclose(f);
     free(buf);
