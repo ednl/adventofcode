@@ -9,7 +9,7 @@
 #include <stdlib.h>   // free
 #include <string.h>   // strtok
 
-// Limits per colour as posed by the puzzle
+// Limits per colour as imposed by the puzzle
 static const int rgblim[3] = {12, 13, 14};
 
 int main(void)
