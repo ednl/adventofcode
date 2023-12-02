@@ -8,11 +8,9 @@
 #include <stdio.h>    // fopen, fclose, getline, sscanf, printf
 #include <stdlib.h>   // free
 #include <string.h>   // strtok
-#include <stdbool.h>  // bool
 
-#define R 12
-#define G 13
-#define B 14
+// Limits per colour as posed by the puzzle
+static const int rgblim[3] = {12, 13, 14};
 
 int main(void)
 {
@@ -26,30 +24,25 @@ int main(void)
     int part1 = 0, part2 = 0, game = 0;
 
     while ((len = getline(&buf, &bufsz, f)) > 1) {
-        ++game;  // game numbers are consecutive & identical to line number
+        ++game;  // game numbers are consecutive & identical to line number, so no parsing
         char* token = buf;  // buf content will be destroyed but pointer is saved
-        while (*token++ != ':');  // one past ':' = skip the space
+        while (*token++ != ':');  // goes two past ':' = skip the space
         token = strtok(token, ",;");  // subsets don't matter, so tokenise at all separators
-        bool possible = token != NULL;  // part 1: is the game possible with R,G,B limits?
-        int maxrgb[3] = {0};  // part 2: maximum number of cubes per colour per game
-        while (token) {  // for part 1 only, this could have been a shortcut "token && possible"
+        int rgbmax[3] = {0};  // maximum number of cubes per colour per game
+        while (token) {
             int cubes;
             char colour;
-            if (sscanf(token, "%d %c", &cubes, &colour) == 2) {  // %d absorbs any leading space
+            if (sscanf(token, "%d %c", &cubes, &colour) == 2)  // %d absorbs leading space
                 switch (colour) {
-                    // for part 1 only with the above shortcut, it could have been "possible = cubes <= R;" etc.
-                    case 'r': possible = possible && cubes <= R; if (cubes > maxrgb[0]) maxrgb[0] = cubes; break;
-                    case 'g': possible = possible && cubes <= G; if (cubes > maxrgb[1]) maxrgb[1] = cubes; break;
-                    case 'b': possible = possible && cubes <= B; if (cubes > maxrgb[2]) maxrgb[2] = cubes; break;
-                    default : possible = false;
+                    case 'r': if (cubes > rgbmax[0]) rgbmax[0] = cubes; break;
+                    case 'g': if (cubes > rgbmax[1]) rgbmax[1] = cubes; break;
+                    case 'b': if (cubes > rgbmax[2]) rgbmax[2] = cubes; break;
                 }
-            } else
-                possible = false;
             token = strtok(NULL, ",;");  // next pair of number+colour
         }
-        if (possible)
+        if (rgbmax[0] <= rgblim[0] && rgbmax[1] <= rgblim[1] && rgbmax[2] <= rgblim[2])
             part1 += game;
-        part2 += maxrgb[0] * maxrgb[1] * maxrgb[2];
+        part2 += rgbmax[0] * rgbmax[1] * rgbmax[2];
     }
     fclose(f);
     free(buf);
