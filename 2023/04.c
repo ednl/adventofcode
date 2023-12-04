@@ -11,18 +11,19 @@
 #define EXAMPLE 0
 #if EXAMPLE == 1
 #define NAME "../aocinput/2023-04-example.txt"
-#define N    6
-#define WIN  5
-#define HAVE 8
+#define CARDS 6
+#define NWIN  5
+#define NHAVE 8
 #else
 #define NAME "../aocinput/2023-04-input.txt"
-#define N    202
-#define WIN   10
-#define HAVE  25
+#define CARDS 202
+#define NWIN   10
+#define NHAVE  25
 #endif
+#define N (NWIN + NHAVE)  // total amount of numbers on one card
 
-static int copies[N];
-static int win[WIN], have[HAVE];
+static int copies[CARDS];
+static int numbers[N];
 
 static int asc(const void *p, const void *q)
 {
@@ -33,41 +34,35 @@ static int asc(const void *p, const void *q)
     return 0;
 }
 
-// Matching number count = intersect(win,have).length
-static int match(void)
-{
-    int count = 0;
-    qsort(win, WIN, sizeof *win, asc);
-    qsort(have, HAVE, sizeof *have, asc);
-    for (int i = 0, j = 0; i < WIN && j < HAVE; ++i) {
-        while (j < HAVE && win[i] > have[j])
-            ++j;
-        if (j < HAVE && win[i] == have[j])
-            ++count;
-    }
-    return count;
-}
-
 int main(void)
 {
     FILE* f = fopen(NAME, "r");
     if (!f)
         return 1;
 
-    int part1 = 0, part2 = 0, n = 0, id;
-    while (n < N && fscanf(f, " Card %d:", &id) == 1) {
-        for (int i = 0; i < WIN; ++i)  // read winning numbers
-            fscanf(f, "%d", &win[i]);
-        fgetc(f); fgetc(f);  // skip " |"
-        for (int i = 0; i < HAVE; ++i)  // read numbers "you have"
-            fscanf(f, "%d", &have[i]);
-        const int m = match();  // matching number count = intersect(win,have).length
-        part1 += m ? (1 << (m - 1)) : 0;  // score from matching number count
-        part2 += ++copies[n];  // count original card as one more copy
-        const int k = n + m + 1;  // 1 past maximum index of extra copies to add
-        for (int i = n + 1; i < k && i < N; ++i)  // add extra copies
-            copies[i] += copies[n];
-        ++n;
+    int part1 = 0, part2 = 0, card = 0, id;  // card = zero-based index, id unused
+    while (card < CARDS && fscanf(f, " Card %d:", &id) == 1) {
+        for (int i = 0; i < NWIN; ++i)  // read winning numbers
+            fscanf(f, "%d", &numbers[i]);
+        fgetc(f); fgetc(f);             // skip " |" divider
+        for (int i = NWIN; i < N; ++i)  // read numbers "you have"
+            fscanf(f, "%d", &numbers[i]);
+
+        int match = 0;  // matching number count = intersect(win,have).length
+        qsort(numbers, N, sizeof *numbers, asc);
+        for (int i = 1; i < N; ++i)
+            if (numbers[i] == numbers[i - 1]) {
+                ++match;
+                ++i;  // can't have more than two consecutive matching numbers
+            }
+
+        part1 += match ? (1 << (match - 1)) : 0;  // score from matching number count
+        part2 += ++copies[card];  // count original card as one more copy
+
+        const int m = card + match + 1;  // 1 past maximum index of extra copies to add
+        for (int i = card + 1; i < m && i < CARDS; ++i)  // add extra copies
+            copies[i] += copies[card];
+        ++card;
     }
 
     printf("%d %d\n", part1, part2);  // example: 13 30, input: 24733 5422730
