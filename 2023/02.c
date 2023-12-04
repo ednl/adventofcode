@@ -26,7 +26,7 @@ int main(void)
     while ((len = getline(&buf, &bufsz, f)) > 1) {
         ++game;  // game numbers are consecutive & identical to line number, so no parsing
         char* token = buf;  // buf content will be destroyed but pointer is saved
-        while (*token++ != ':');  // goes two past ':' = skip the space
+        while (*token++ != ':');  // goes one past ':'
         token = strtok(token, ",;");  // subsets don't matter, so tokenise at all separators
         int rgbmax[3] = {0};  // maximum number of cubes per colour per game
         while (token) {
