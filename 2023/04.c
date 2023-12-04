@@ -8,23 +8,16 @@
 #include <stdio.h>    // fopen, fclose, fscanf, printf
 #include <stdlib.h>   // qsort
 
-#define EXAMPLE 0
-#if EXAMPLE == 1
-#define NAME "../aocinput/2023-04-example.txt"
-#define CARDS 6
-#define NWIN  5
-#define NHAVE 8
-#else
 #define NAME "../aocinput/2023-04-input.txt"
-#define CARDS 202
-#define NWIN   10
-#define NHAVE  25
-#endif
+#define CARDS 202         // number of lines (cards) in input
+#define NWIN   10         // winning numbers on one card
+#define NHAVE  25         // numbers "you have" on one card
 #define N (NWIN + NHAVE)  // total amount of numbers on one card
 
 static int copies[CARDS];
 static int numbers[N];
 
+// Sort int array ascending
 static int asc(const void *p, const void *q)
 {
     const int a = *(const int*)p;
@@ -56,7 +49,7 @@ int main(void)
                 ++i;  // can't have more than two consecutive matching numbers
             }
 
-        part1 += match ? (1 << (match - 1)) : 0;  // score from matching number count
+        part1 += match ? (1 << (match - 1)) : 0;  // score for current card
         part2 += ++copies[card];  // count original card as one more copy
 
         const int m = card + match + 1;  // 1 past maximum index of extra copies to add
@@ -65,6 +58,6 @@ int main(void)
         ++card;
     }
 
-    printf("%d %d\n", part1, part2);  // example: 13 30, input: 24733 5422730
+    printf("%d %d\n", part1, part2);  // 24733 5422730
     return 0;
 }
