@@ -5,7 +5,7 @@
  * By: E. Dronkert https://github.com/ednl
  */
 
-#include <stdio.h>    // fopen, fclose, fscanf, printf
+#include <stdio.h>    // fopen, fclose, printf
 #include <stdlib.h>   // qsort
 
 #define NAME "../aocinput/2023-04-input.txt"
@@ -27,19 +27,27 @@ static int asc(const void *p, const void *q)
     return 0;
 }
 
+// Convert 1 or 2 digits to number (' ' & 15 = 0, so leading space is fine)
+static inline int readnum(const char* s)
+{
+    return ((*s & 15) * 10) + (*(s + 1) & 15);
+}
+
 int main(void)
 {
     FILE* f = fopen(NAME, "r");
     if (!f)
         return 1;
 
-    int part1 = 0, part2 = 0, card = 0, id;  // card = zero-based index, id unused
-    while (card < CARDS && fscanf(f, " Card %d:", &id) == 1) {
-        for (int i = 0; i < NWIN; ++i)  // read winning numbers
-            fscanf(f, "%d", &numbers[i]);
-        fgetc(f); fgetc(f);             // skip " |" divider
-        for (int i = NWIN; i < N; ++i)  // read numbers "you have"
-            fscanf(f, "%d", &numbers[i]);
+    int part1 = 0, part2 = 0, card = 0;  // card = zero-based index
+    char buf[128];  // every line is 116 chars + '\n\0'
+    while (card < CARDS && fgets(buf, sizeof buf, f)) {  // read one line at a time
+        char* s = buf + 10;  // skip to first winning number
+        for (int i = 0; i < NWIN; ++i, s += 3)  // read winning numbers
+            numbers[i] = readnum(s);
+        s += 2;  // skip divider
+        for (int i = NWIN; i < N; ++i, s += 3)  // read numbers "you have"
+            numbers[i] = readnum(s);
 
         int match = 0;  // matching number count = intersect(win,have).length
         qsort(numbers, N, sizeof *numbers, asc);
@@ -57,6 +65,7 @@ int main(void)
             copies[i] += copies[card];
         ++card;
     }
+    fclose(f);
 
     printf("%d %d\n", part1, part2);  // 24733 5422730
     return 0;
