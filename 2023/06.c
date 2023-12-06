@@ -46,11 +46,12 @@ static int64_t ways2win(int raceid)
     const double f2 = floor(t_mid + width);  // (should really test value to fit in int64_t)
     int64_t button1 = (int64_t)f1;
     int64_t button2 = (int64_t)f2;
-    // Two impossible outcomes when t>0,d>0 (would also require different return statement)
+    if (button1 * (t - button1) == d) { ++button1; --button2; };  // remove integer roots
+    // Two impossible outcomes with t>0,d>0
     // if (button1 <= 0) button1 = 1;
     // if (button2 >= t) button2 = t - 1;
-    // Remove integer roots if necessary
-    return button1 * (t - button1) == d ? button2 - button1 - 1 : button2 - button1 + 1;
+    const int64_t len = button2 - button1 + 1;  // might be -1 for identical integer roots
+    return len > 0 ? len : 0;
 }
 
 int main(void)
