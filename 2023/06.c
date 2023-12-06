@@ -50,8 +50,9 @@ static int64_t ways2win(int raceid)
         ++button1;  // must travel greater than, not equal to race distance
         --button2;
     }
-    if (button1 < 1)  // impossible for t>0,d>0 but just for completeness
-        button1 = 1;
+    // Two impossible outcomes when t>0,d>0
+    // if (button1 <= 0) button1 = 1;
+    // if (button2 >= t) button2 = t - 1;
     const int64_t len = button2 - button1 + 1;
     return len > 0 ? len : 0;
 }
