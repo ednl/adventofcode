@@ -24,26 +24,36 @@
 
 static int64_t race[RACES][L];
 
+// Given: t = race time, d = race distance (t>0, d>0)
+// Find: x = button time => remaining time = t - x
+//   boat speed = v = x => travel = v.time = x(t - x)
+// Condition: travel > d
+// Find roots: travel = d
+// <=> x(t - x) = d
+//     x^2 - tx + d = 0
+//     x1,2 = (t +/- sqrt(t^2 - 4d)) / 2
+//     x1,2 = t/2 +/- sqrt((t/2)^2 - d)
 static int64_t ways2win(int raceid)
 {
     const int64_t t = race[raceid][T];
     const int64_t d = race[raceid][D];
-    const double sq = (double)t / 4 * t - d;
-    if (sq < 0)
-        return 0;
     const double t_mid = (double)t / 2;
+    const double sq = t_mid * t_mid - d;
+    if (sq < 0)  // no real solutions; doesn't happen in example or my input
+        return 0;
     const double width = sqrt(sq);
-    const double f1 =  ceil(t_mid - width);
-    const double f2 = floor(t_mid + width);
+    const double f1 =  ceil(t_mid - width);  // intermediate vars to avoid compiler warning
+    const double f2 = floor(t_mid + width);  // (should really test value to fit in int64_t)
     int64_t button1 = (int64_t)f1;
     int64_t button2 = (int64_t)f2;
-    if (button1 * (t - button1) == d) {
-        ++button1;
+    if (button1 * (t - button1) == d) {  // integer solutions?
+        ++button1;  // must travel greater than, not equal to race distance
         --button2;
     }
-    if (button1 <= 0)
+    if (button1 < 1)  // impossible for t>0,d>0 but just for completeness
         button1 = 1;
-    return button1 <= button2 ? button2 - button1 + 1 : 0;
+    const int64_t len = button2 - button1 + 1;
+    return len > 0 ? len : 0;
 }
 
 int main(void)
@@ -65,8 +75,7 @@ int main(void)
 
     // Part 2
     for (int i = 0; i < L; ++i)
-        for (int j = 1; j < RACES; ++j) {
-            // Collate into first race
+        for (int j = 1; j < RACES; ++j) {  // collate into first race
             int64_t mult = 10;
             while (mult <= race[j][i])
                 mult *= 10;
