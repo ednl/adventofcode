@@ -52,13 +52,13 @@ static int fc_desc(const void *p, const void *q)
 // Value [0..12] for faces
 //   [2..9,T,J,Q,K,A] (part 1)
 //   [J,2..9,T,Q,K,A] (part 2)
-static int facevalue(const char face, const bool part2)
+static int facevalue(const char face, const bool ispart2)
 {
     if (face <= '9')
-        return (face & 15) - (part2 ? 1 : 2);
+        return (face & 15) - 2 + ispart2;  // part 2: make room for J at the bottom
     switch (face) {
-        case 'T': return part2 ? 9 : 8;
-        case 'J': return part2 ? 0 : 9;
+        case 'T': return 8 + ispart2;   // part 1: T=8, part 2: T=9
+        case 'J': return 9 * !ispart2;  // part 1: J=9, part 2: J=0
         case 'Q': return 10;
         case 'K': return 11;
         case 'A': return 12;
@@ -74,20 +74,20 @@ static void analyze(Hand* const hand, const bool ispart2)
     for (int i = 0; i < FACES; ++i)
         histo[i].faceval = i;
 
-    // Set facesval, histogram of faces
+    // Set facesval, make histogram of faces
     int val = 0;
     for (int i = 0; i < CARDS; ++i) {
         const int v = facevalue(hand->face[i], ispart2);
         val = (val << 4) | v;
         histo[v].count++;
     }
-    hand->facesval = val;  // second sorting key for rank
+    hand->facesval = val;  // facesval is second sorting key for rank
 
     // Count jokers
     const int jokerval = facevalue('J', ispart2);
     const int jokers = histo[jokerval].count;  // not sorted yet
 
-    // Set type (first sorting key for rank)
+    // Set type (= first sorting key for rank)
     qsort(histo, FACES, sizeof *histo, fc_desc);
     Facecount* most = &histo[0];  // sorted, so histo[0] has the highest count
     Facecount* second = most + 1;
