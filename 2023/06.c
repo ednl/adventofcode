@@ -35,7 +35,7 @@ static int64_t race[RACES][L];
 //     x1,2 = t/2 +/- sqrt((t/2)^2 - d)
 static int64_t ways2win(int raceid)
 {
-    const int64_t t = race[raceid][T];
+    const int64_t t = race[raceid][T];  // local variables for convenience
     const int64_t d = race[raceid][D];
     const double t_mid = (double)t / 2;
     const double sq = t_mid * t_mid - d;
@@ -46,8 +46,8 @@ static int64_t ways2win(int raceid)
     const double f2 = floor(t_mid + width);  // (should really test value to fit in int64_t)
     int64_t button1 = (int64_t)f1;
     int64_t button2 = (int64_t)f2;
-    if (button1 * (t - button1) == d) { ++button1; --button2; };  // remove integer roots
-    // Two impossible outcomes with t>0,d>0
+    if (button1 * (t - button1) == d) { ++button1; --button2; }  // remove integer roots
+    // Two impossible cases because t>0,d>0
     // if (button1 <= 0) button1 = 1;
     // if (button2 >= t) button2 = t - 1;
     const int64_t len = button2 - button1 + 1;  // might be -1 for identical integer roots
