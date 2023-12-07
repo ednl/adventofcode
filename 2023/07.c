@@ -38,7 +38,7 @@ typedef struct hand {
     Type type;
 } Hand;
 
-// Histogram of faces in one hand
+// Histogram of card faces in one hand
 typedef struct facecount {
     int faceval, count;
 } Facecount;
@@ -46,7 +46,7 @@ typedef struct facecount {
 // Complete game with all hands
 static Hand game[HANDS];
 
-// Sort facecounts by count descending
+// Qsort helper: sort histogram by count descending
 static int fc_desc(const void *p, const void *q)
 {
     const int a = ((const Facecount*)p)->count;
@@ -56,7 +56,19 @@ static int fc_desc(const void *p, const void *q)
     return 0;
 }
 
-// Value [0..12] for 13 different faces =
+// Qsort helper: sort game of hands by type descending, facesval descending
+static int strength_desc(const void *p, const void *q)
+{
+    const Hand* a = (const Hand*)p;
+    const Hand* b = (const Hand*)q;
+    if (a->type > b->type) return -1;
+    if (a->type < b->type) return  1;
+    if (a->facesval > b->facesval) return -1;
+    if (a->facesval < b->facesval) return  1;
+    return 0;
+}
+
+// Value [0..12] for 13 different faces from:
 //   [2..9,T,J,Q,K,A] (part 1)
 //   [J,2..9,T,Q,K,A] (part 2)
 static int facevalue(const char face, const bool ispart2)
@@ -113,18 +125,6 @@ static void analyze(Hand* const hand, const bool ispart2)
         case 4: hand->type = FOURKIND; break;
         case 5: hand->type = FIVEKIND; break;
     }
-}
-
-// Sort hands by type descending, facesval descending
-static int strength_desc(const void *p, const void *q)
-{
-    const Hand* a = (const Hand*)p;
-    const Hand* b = (const Hand*)q;
-    if (a->type > b->type) return -1;
-    if (a->type < b->type) return  1;
-    if (a->facesval > b->facesval) return -1;
-    if (a->facesval < b->facesval) return  1;
-    return 0;
 }
 
 // By Grabthar, what a ... winnings
