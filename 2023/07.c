@@ -1,6 +1,6 @@
 /**
  * Advent of Code 2023
- * Day 7: ?
+ * Day 7: Camel Cards
  * https://adventofcode.com/2023/day/7
  * By: E. Dronkert https://github.com/ednl
  */
