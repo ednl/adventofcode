@@ -23,20 +23,27 @@
 #define CARDS 5
 #define FACES 13
 
+// All possible types of a hand of 5 cards, from lowest to highest
 typedef enum type {
     HIGHCARD, ONEPAIR, TWOPAIR, THREEKIND, FULLHOUSE, FOURKIND, FIVEKIND
 } Type;
 
+// All info for one hand
+// ::face and ::bid from input
+// ::type is first sorting key for hand strength
+// ::facesval is second sorting key for hand strength
 typedef struct hand {
     char face[CARDS + 3];  // +1 for \0, +2 for alignment
     int facesval, bid;
     Type type;
 } Hand;
 
+// Histogram of faces in one hand
 typedef struct facecount {
     int faceval, count;
 } Facecount;
 
+// Complete game with all hands
 static Hand game[HANDS];
 
 // Sort facecounts by count descending
@@ -49,13 +56,13 @@ static int fc_desc(const void *p, const void *q)
     return 0;
 }
 
-// Value [0..12] for faces
+// Value [0..12] for 13 different faces =
 //   [2..9,T,J,Q,K,A] (part 1)
 //   [J,2..9,T,Q,K,A] (part 2)
 static int facevalue(const char face, const bool ispart2)
 {
-    if (face <= '9')
-        return (face & 15) - 2 + ispart2;  // part 2: make room for J at the bottom
+    if (face <= '9')  // no check for face >= '2' because all faces are
+        return (face & 15) - 2 + ispart2;  // part 2: make room for J at bottom
     switch (face) {
         case 'T': return 8 + ispart2;   // part 1: T=8, part 2: T=9
         case 'J': return 9 * !ispart2;  // part 1: J=9, part 2: J=0
@@ -63,10 +70,10 @@ static int facevalue(const char face, const bool ispart2)
         case 'K': return 11;
         case 'A': return 12;
     }
-    return 0;
+    return 0;  // shouldn't reach this
 }
 
-// Set facesval and type for one hand (part 1)
+// Set facesval and type of a hand
 static void analyze(Hand* const hand, const bool ispart2)
 {
     // Init
@@ -81,13 +88,13 @@ static void analyze(Hand* const hand, const bool ispart2)
         val = (val << 4) | v;
         histo[v].count++;
     }
-    hand->facesval = val;  // facesval is second sorting key for rank
+    hand->facesval = val;  // facesval is second sorting key for hand strength
 
     // Count jokers
     const int jokerval = facevalue('J', ispart2);
-    const int jokers = histo[jokerval].count;  // not sorted yet
+    const int jokers = histo[jokerval].count;  // histogram not sorted yet
 
-    // Set type (= first sorting key for rank)
+    // Set type (= first sorting key for hand strength)
     qsort(histo, FACES, sizeof *histo, fc_desc);
     Facecount* most = &histo[0];  // sorted, so histo[0] has the highest count
     Facecount* second = most + 1;
@@ -100,7 +107,7 @@ static void analyze(Hand* const hand, const bool ispart2)
         most->count += jokers;  // best option is always to add all jokers to most
     }
     switch (most->count) {
-        case 1: hand->type = HIGHCARD; break;
+        case 1: hand->type = HIGHCARD; break;  // must re-init for part 2
         case 2: hand->type = second->count == 2 ? TWOPAIR : ONEPAIR; break;
         case 3: hand->type = second->count == 2 ? FULLHOUSE : THREEKIND; break;
         case 4: hand->type = FOURKIND; break;
@@ -109,7 +116,7 @@ static void analyze(Hand* const hand, const bool ispart2)
 }
 
 // Sort hands by type descending, facesval descending
-static int rank_desc(const void *p, const void *q)
+static int strength_desc(const void *p, const void *q)
 {
     const Hand* a = (const Hand*)p;
     const Hand* b = (const Hand*)q;
@@ -120,11 +127,12 @@ static int rank_desc(const void *p, const void *q)
     return 0;
 }
 
+// By Grabthar, what a ... winnings
 static int winnings(const bool ispart2)
 {
     for (int i = 0; i < HANDS; ++i)
         analyze(&game[i], ispart2);
-    qsort(game, HANDS, sizeof *game, rank_desc);
+    qsort(game, HANDS, sizeof *game, strength_desc);
 
     int score = 0;
     for (int i = 0; i < HANDS; ++i)
