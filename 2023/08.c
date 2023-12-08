@@ -84,7 +84,7 @@ static void printnode(int n)
 #endif
 
 // Binsearch in sorted node array for index i where node[i][0] == n
-static int index(const int n)
+static int nodeindex(const int n)
 {
     int l = 0, r = NODES - 1;
     if (n == node[l][0]) return l;
@@ -159,7 +159,7 @@ int main(void)
     // Transform next node names to index of node array
     for (int j = 1; j < 3; ++j)
         for (int i = 0; i < NODES; ++i)
-            node[i][j] = index(node[i][j]);
+            node[i][j] = nodeindex(node[i][j]);
 
     #ifdef DEBUG
     printf("\n");
