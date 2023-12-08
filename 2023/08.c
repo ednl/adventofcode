@@ -5,7 +5,7 @@
  * By: E. Dronkert https://github.com/ednl
  */
 
-#include <stdio.h>     // fopen, fclose, fgets, fscanf, printf
+#include <stdio.h>     // fopen, fclose, fgets, fgetc, printf, fputc, puts
 #include <stdlib.h>    // qsort
 #include <stdint.h>    // int64_t
 #include <inttypes.h>  // PRId64
