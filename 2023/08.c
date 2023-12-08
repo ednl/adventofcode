@@ -12,7 +12,7 @@
 
 #define EXAMPLE 0
 #if EXAMPLE
-    #define DEBUG 1
+    #define DEBUG
     #define STR_HELPER(x) #x
     #define STR(x) STR_HELPER(x)
     #define NAME "../aocinput/2023-08-example"STR(EXAMPLE)".txt"
@@ -27,7 +27,7 @@
         #define NODES 8
     #endif
 #else
-    #define DEBUG 0
+    // #define DEBUG  // uncomment or compile with -DDEBUG
     #define NAME "../aocinput/2023-08-input.txt"
     #define LR    293
     #define NODES 786
@@ -40,8 +40,7 @@ static int node[NODES][3];
 static int64_t gcd(int64_t a, int64_t b)
 {
 	int64_t t;
-	while (b)
-	{
+	while (b) {
 		t = b;
 		b = a % b;
 		a = t;
@@ -66,6 +65,7 @@ static int node_asc(const void *p, const void *q)
     return 0;
 }
 
+// Convert 3 chars to int ("hash value")
 static int str2int(const char* s)
 {
     int n = 0;
@@ -74,13 +74,12 @@ static int str2int(const char* s)
     return n;
 }
 
-#if DEBUG
-static char* int2str(int n)
+#ifdef DEBUG
+// Output int as 3 chars to stdout
+static void printnode(int n)
 {
-    static char s[4] = {0};
-    for (int i = 3; i > 0; n >>= 8)
-        s[--i] = (char)(n & 0xff);
-    return s;
+    for (int shift = 24; shift; )
+        fputc(n >> (shift -= 8) & 0xff, stdout);
 }
 #endif
 
@@ -101,12 +100,14 @@ static int index(const int n)
 }
 
 // Walk from node at index n to first node that ends in Z
+// For part 2, this only works because the first xxZ node always loops back to the starting point
+// otherwise you'd have to do loop detection.
 //   return: number of steps
 static int walk(int n)
 {
     const char* go = lr;  // start all searches from beginning of LR instructions
     int steps = 0;
-    while ((node[n][0] & 0xff) != 'Z') {
+    while ((node[n][0] & 0xff) != 'Z') {  // also works for part 1 because first xxZ node is ZZZ
         n = node[n][(int)*go];  // *go is 1 for L, 2 for R
         if (!*++go)             // next LR instruction, check for end
             go = lr;            // loop around
@@ -131,7 +132,7 @@ int main(void)
     }
     fclose(f);
 
-    #if DEBUG
+    #ifdef DEBUG
     printf("%s\n\n", lr);
     #endif
 
@@ -139,11 +140,15 @@ int main(void)
     for (int i = 0; i < LR; ++i)
         lr[i] = (char)(1 + (lr[i] >> 1 & 1));  // 'L'=0b1001100 => 1, 'R'=0b1010010 => 2
 
-    #if DEBUG
+    #ifdef DEBUG
     for (int i = 0; i < NODES; ++i) {
-        printf("%3d: %s = (", i, int2str(node[i][0]));
-        printf("%s", int2str(node[i][1]));
-        printf(",%s) -> %7d = (%7d,%7d)\n" , int2str(node[i][2]), node[i][0], node[i][1], node[i][2]);
+        printf("%3d: ", i);
+        printnode(node[i][0]);
+        printf(" = (");
+        printnode(node[i][1]);
+        fputc(',', stdout);
+        printnode(node[i][2]);
+        puts(")");
     }
     printf("\n");
     #endif
@@ -156,7 +161,7 @@ int main(void)
         for (int i = 0; i < NODES; ++i)
             node[i][j] = index(node[i][j]);
 
-    #if DEBUG
+    #ifdef DEBUG
     printf("\n");
     for (int i = 0; i < NODES; ++i)
         printf("%3d: %7d = (%3d,%3d)\n", i, node[i][0], node[i][1], node[i][2]);
@@ -166,13 +171,14 @@ int main(void)
     const int part1 = walk(0);  // node AAA is at index 0
     printf("Part 1: %d\n", part1);  // ex1: 2, ex2: 6, ex3: 2, input: 19631
 
-    int64_t part2 = part1;  // node AAA already determined in part 1
-    for (int i = 1; i < NODES; ++i)  // skip index 0
+    // Part 2
+    // For every xxA node, determine no. of steps to first xxZ node, then take LCM of those
+    int64_t part2 = part1;  // node AAA from part 1
+    for (int i = 1; i < NODES; ++i)  // skip node AAA at index 0
         if ((node[i][0] & 0xff) == 'A') {
-            const int len = walk(i);
-            part2 = lcm(part2, len);
-            #if DEBUG
-            printf("%d: len=%d lcm=%"PRId64"d\n", i, len, part2);
+            part2 = lcm(part2, walk(i));
+            #ifdef DEBUG
+            printf("%d: len=%d lcm=%"PRId64"\n", i, walk(i), part2);
             #endif
         }
 
