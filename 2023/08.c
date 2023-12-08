@@ -83,7 +83,9 @@ static void printnode(int n)
 }
 #endif
 
-// Binsearch in sorted node array for index i where node[i][0] == n
+// Binsearch in sorted node array for name n ("hash table")
+// All data is consistent, so a node will always be found
+// Return: node index i where node[i][0] == n
 static int nodeindex(const int n)
 {
     int l = 0, r = NODES - 1;
@@ -99,17 +101,18 @@ static int nodeindex(const int n)
     return -1;  // should not happen for this data
 }
 
-// Walk from node at index n to first node that ends in Z
-// For part 2, this only works because the first xxZ node always loops back to the starting point
-// otherwise you'd have to do loop detection.
-//   return: number of steps
-static int walk(int n)
+// Walk from node at index i to first node that ends in Z
+// For part 1, this works because the first xxZ node is ZZZ
+// For part 2, this is good enough because the first xxZ node always loops
+// back to the starting point; otherwise loop detection would be needed
+// Return: number of steps
+static int walk(int i)
 {
     const char* go = lr;  // start all searches from beginning of LR instructions
     int steps = 0;
-    while ((node[n][0] & 0xff) != 'Z') {  // also works for part 1 because first xxZ node is ZZZ
-        n = node[n][(int)*go];  // *go is 1 for L, 2 for R
-        if (!*++go)             // next LR instruction, check for end
+    while ((node[i][0] & 0xff) != 'Z') {
+        i = node[i][(int)*go];  // *go is 1 for L, 2 for R
+        if (!*++go)             // fetch next LR instruction, check for end
             go = lr;            // loop around
         ++steps;
     }
@@ -125,10 +128,10 @@ int main(void)
     fgetc(f); fgetc(f);  // empty line
     char buf[32];
     for (int i = 0; i < NODES; ++i) {
-        fgets(buf, sizeof buf, f);  // next node line
-        node[i][0] = str2int(buf);
-        node[i][1] = str2int(buf + 7);
-        node[i][2] = str2int(buf + 12);
+        fgets(buf, sizeof buf, f);       // read whole line
+        node[i][0] = str2int(buf);       // node name to number
+        node[i][1] = str2int(buf + 7);   // next L node name to number
+        node[i][2] = str2int(buf + 12);  // next R node name to number
     }
     fclose(f);
 
@@ -156,7 +159,7 @@ int main(void)
     // Sort nodes by node number (=node[][0])
     qsort(node, NODES, sizeof *node, node_asc);  // *node is an int[3] so size is 12
 
-    // Transform next node names to index of node array
+    // Transform next node numbers to index of node array
     for (int j = 1; j < 3; ++j)
         for (int i = 0; i < NODES; ++i)
             node[i][j] = nodeindex(node[i][j]);
