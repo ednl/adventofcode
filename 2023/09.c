@@ -26,10 +26,10 @@ int main(void)
         part1 += data[i][0][M - 1];           // last measurement
         part2 += data[i][0][0];               // first measurement
         for (int k = 1, s = -1; k < M; ++k, s = -s) {  // difference table except row 0
-            for (int j = 0; j < M - k; ++j)
+            for (int j = 0; j < M - k; ++j)   // differences, 1 fewer every row
                 data[i][k][j] = data[i][k - 1][j + 1] - data[i][k - 1][j];
             part1 += data[i][k][M - k - 1];   // last difference
-            part2 += s * data[i][k][0];       // first difference with alternating sign
+            part2 += data[i][k][0] * s;       // first difference, with alternating sign
         }
     }
 
