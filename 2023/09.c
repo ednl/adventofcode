@@ -22,14 +22,14 @@ int main(void)
     fclose(f);
 
     int part1 = 0, part2 = 0;
-    for (int i = 0; i < N; ++i) {             // sensors
-        part1 += data[i][0][M - 1];           // last measurement
-        part2 += data[i][0][0];               // first measurement
+    for (int i = 0; i < N; ++i) {            // sensors
+        part1 += data[i][0][M - 1];          // last measurement
+        part2 += data[i][0][0];              // first measurement
         for (int k = 1, s = -1; k < M; ++k, s = -s) {  // difference table except row 0
-            for (int j = 0; j < M - k; ++j)   // differences, 1 fewer every row
+            for (int j = 0; j < M - k; ++j)  // differences, 1 fewer every row
                 data[i][k][j] = data[i][k - 1][j + 1] - data[i][k - 1][j];
-            part1 += data[i][k][M - k - 1];   // last difference
-            part2 += data[i][k][0] * s;       // first difference, with alternating sign
+            part1 += data[i][k][M - k - 1];  // last difference
+            part2 += data[i][k][0] * s;      // first difference, with alternating sign
         }
     }
 
