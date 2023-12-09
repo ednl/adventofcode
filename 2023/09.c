@@ -40,7 +40,7 @@ int main(void)
             for (int k = 0; k < M - j - 1; ++k)  // leave last value untouched, then modify 1 fewer each iteration
                 diff[i][k] = diff[i][k + 1] - diff[i][k];
 
-    #if EXAMPLE || defined(DEBUG)
+#if EXAMPLE || defined(DEBUG)
     // Show reduced matrix, example:
     // 0 0 0 0 3 15
     // 0 0 0 1 6 21
@@ -50,7 +50,7 @@ int main(void)
             printf(" %d", diff[i][j]);
         printf("\n");
     }
-    #endif
+#endif
 
     // Sum all values of reduced matrix
     int sum = 0;
@@ -66,19 +66,19 @@ int main(void)
         for (int j = 0; j < M - 1; ++j)  // M-1 iterations
             for (int k = M - 1; k > j; --k)  // leave first value untouched, then modify 1 fewer each iteration
                 diff[i][k] = diff[i][k] - diff[i][k - 1];
-    #if EXAMPLE || defined(DEBUG)
 
+#if EXAMPLE || defined(DEBUG)
     // Show reduced matrix, example:
     // 0 3 0 0 0 0
     // 1 2 1 0 0 0
     // 10 3 0 2 0 0
-    // Sum: 10-3+0-2+0-0 = 5
+    // Sum: 0-3+0-0+0-0 + 1-2+1-0+0-0 + 10-3+0-2+0-0 = -3 + 0 + 5 = 2
     for (int i = 0; i < N; ++i) {
         for (int j = 0; j < M; ++j)
             printf(" %d", diff[i][j]);
         printf("\n");
     }
-    #endif
+#endif
 
     // Sum all values of reduced matrix by adding even columns and subtracting odd columns
     sum = 0;
