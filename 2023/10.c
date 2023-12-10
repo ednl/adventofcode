@@ -114,16 +114,12 @@ int main(void)
 
     const Vec start = startpos();  // my input: (118,102)
     char dir = startdir(start);
-    printf("   0: (%3d,%3d)=%c -> %c\n", start.x, start.y, getpipe(start), dir);
 
     Vec pos = start;
     int len = move(&pos, &dir);
-    printf("%4d: (%3d,%3d)=%c -> %c\n", len, pos.x, pos.y, getpipe(pos), dir);
-
-    while (!equal(pos, start) && move(&pos, &dir)) {
+    while (!equal(pos, start) && move(&pos, &dir))
         ++len;
-        printf("%4d: (%3d,%3d)=%c -> %c\n", len, pos.x, pos.y, getpipe(pos), dir);
-    }
-    printf("Part 1: %d\n", len / 2);
+
+    printf("Part 1: %d\n", len / 2);  // 7005
     return 0;
 }
