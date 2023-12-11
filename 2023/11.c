@@ -1,38 +1,94 @@
 /**
  * Advent of Code 2023
- * Day 11: ?
+ * Day 11: Cosmic Expansion
  * https://adventofcode.com/2023/day/11
  * By: E. Dronkert https://github.com/ednl
  */
 
-#include <stdio.h>    // fopen, fclose, fgets, printf
-#include <stdlib.h>   // malloc, free
-#include <string.h>   // memset, memcpy
-#include <stdbool.h>  // bool
+#include <stdio.h>     // fopen, fclose, fgets, printf
+#include <stdlib.h>    // malloc, free
+#include <stdint.h>    // int64_t
+#include <inttypes.h>  // PRId64
+#include <stdbool.h>   // bool
 
 #define EXAMPLE 0
 #if EXAMPLE
 #define NAME "../aocinput/2023-11-example.txt"
-#define N 10
+#define N 10   // rows and columns in image map
+#define M 100  // empty space expansion factor
 #else
 #define NAME "../aocinput/2023-11-input.txt"
-#define N 140
+#define N 140      // rows and columns in image map
+#define M 1000000  // empty space expansion factor
 #endif
 
+// Vector
 typedef struct vec {
-    int x, y;
+    int64_t x, y;
 } Vec;
 
-static char image[N][N + 2];
+// Galaxy map: each galaxy has an image position and expanded position
+typedef struct map {
+    Vec pos, exp;
+} Map;
 
-static int absi(const int a)
+// Space image from input.
+static char image[N][N + 2];  // +2: room for '\n\0'
+
+// Amount of expansion at every coordinate (gx,gy).
+//   stretch[gx].x = how many empty columns up to & incl. column index gx
+//   stretch[gy].y = how many empty rows up to & incl. row index gy
+static Vec stretch[N];
+
+// Add vectors (return new vector).
+static Vec add(const Vec v, const Vec w)
 {
-    return a < 0 ? -a : a;
+    return (Vec){v.x + w.x, v.y + w.y};
 }
 
-static int manh(const Vec a, const Vec b)
+// Add vectors (in-place using reference).
+static void add_r(Vec* v, const Vec w)
 {
-    return absi(a.x - b.x) + absi(a.y - b.y);
+    v->x += w.x;
+    v->y += w.y;
+}
+
+// Multiply vector with constant (return new vector).
+static Vec mul(const Vec v, const int64_t factor)
+{
+    return (Vec){v.x * factor, v.y * factor};
+}
+
+// Absolute value of integer constant.
+static int64_t absint(const int64_t n)
+{
+    return n < 0 ? -n : n;
+}
+
+// Manhattan distance between vectors.
+static int64_t manh(const Vec v, const Vec w)
+{
+    return absint(v.x - w.x) + absint(v.y - w.y);
+}
+
+// Expand one set of coordinates (factor=1: no expansion).
+// Use previously computed global stretch list.
+static Vec expand(const Vec pos, const int64_t factor)
+{
+    return add(pos, mul((Vec){stretch[pos.x].x, stretch[pos.y].y}, factor - 1));
+}
+
+// Sum of distances between every pair of galaxies in expanded space.
+static int64_t dist(Map* map, const size_t len, const int64_t expansionfactor)
+{
+    for (size_t i = 0; i < len; ++i)
+        map[i].exp = expand(map[i].pos, expansionfactor);
+
+    int64_t sum = 0;
+    for (size_t i = 0; i < len - 1; ++i)
+        for (size_t j = i + 1; j < len; ++j)  // every unique pair (i,j)=(j,i)
+            sum += manh(map[i].exp, map[j].exp);
+    return sum;
 }
 
 int main(void)
@@ -40,101 +96,70 @@ int main(void)
     FILE* f = fopen(NAME, "r");
     if (!f)
         return 1;
-    int galaxies = 0;
-    for (int i = 0; i < N; ++i) {
+    for (size_t i = 0; i < N; ++i)
         fgets(image[i], sizeof *image, f);
-        for (int j = 0; j < N; ++j)
-            galaxies += image[i][j] == '#';
-    }
     fclose(f);
-    printf("galaxies=%d\n", galaxies);
-
-    bool isempty[2][N] = {0};
-    int expand[2][N] = {0};
-    int addrows = 0, addcols = 0;
-    for (int i = 0; i < N; ++i) {
-        bool nogalaxy = true;
-        for (int j = 0; j < N; ++j)
-            if (image[i][j] == '#') {  // check all cols in this row
-                nogalaxy = false;
-                break;
-            }
-        if (nogalaxy) {
-            isempty[0][i] = true;
-            expand[0][addrows++] = i;
-        }
-
-        nogalaxy = true;
-        for (int j = 0; j < N; ++j)
-            if (image[j][i] == '#') {  // check all rows in this col
-                nogalaxy = false;
-                break;
-            }
-        if (nogalaxy) {
-            isempty[1][i] = true;
-            expand[1][addcols++] = i;
-        }
-    }
-    expand[0][addrows] = N;
-    expand[1][addcols] = N;
 
     #if EXAMPLE
-    printf("rows=%d ", addrows);
-    for (int i = 0; i < N; ++i)
-        printf("%c", isempty[0][i] ? '+' : '.');
-    for (int i = 0; i <= addrows; ++i)
-        printf(" %d", expand[0][i]);
-    printf("\ncols=%d ", addcols);
-    for (int i = 0; i < N; ++i)
-        printf("%c", isempty[1][i] ? '+' : '.');
-    for (int i = 0; i <= addcols; ++i)
-        printf(" %d", expand[1][i]);
+    for (size_t i = 0; i < N; ++i)
+        printf("%s", image[i]);
     printf("\n");
     #endif
 
-    int rows = addrows + N, cols = addcols + N;
-    int size = rows * cols;
-    char* universe = malloc((size_t)size);
-    memset(universe, '.', (size_t)size);
-    int r = 0;
-    for (int i = 0; i < N; ++i, ++r) {
-    // for (int i = 0; i < 1; ++i, ++r) {
-        if (isempty[0][i])  // empty row?
-            ++r;
-        int src = 0, dst = 0;
-        for (int j = 0; j <= addcols; ++j) {
-            const int len = expand[1][j] - src;
-            if (len)
-                memcpy(&universe[r * cols + dst], &image[i][src], (size_t)len);
-            // printf("img[%d][%3d] -> uni[%d][%3d] len=%d\n", i, src, r, dst, len);
-            src += len + 1;
-            dst += len + 2;
-        }
+    // Which rows/cols are empty space and will be expanded?
+    for (size_t i = 0; i < N; ++i) {  // rows or cols
+        // Check for empty rows[i].
+        bool empty = true;
+        for (size_t j = 0; j < N; ++j)
+            if (image[i][j] == '#') {  // all cols[j] in row[i]
+                empty = false;
+                break;
+            }
+        stretch[i].y = empty;  // 0 or 1
+        // Check for empty cols[i].
+        empty = true;
+        for (size_t j = 0; j < N; ++j)
+            if (image[j][i] == '#') {  // all rows[j] in col[i]
+                empty = false;
+                break;
+            }
+        stretch[i].x = empty;  // 0 or 1
     }
+
+    // Cumulative sum of stretch per row,col.
+    //   stretch[i].x = how many columns of empty space in image columns [0..i]
+    //   stretch[i].y = how many rows of empty space in image rows [0..i]
+    // So, for expansion factor 2, add 1x stretch[gx].x to galaxies with x-coordinate gx.
+    for (size_t i = 1; i < N; ++i)
+        add_r(&stretch[i], stretch[i - 1]);
+
     #if EXAMPLE
-    for (int i = 0; i < rows; ++i) {
-        for (int j = 0; j < cols; ++j)
-            printf("%c", universe[i * cols + j]);
-        printf("\n");
-    }
+    printf("cols ");
+    for (size_t i = 0; i < N; ++i)
+        printf(" %d", stretch[i].x);
+    printf("\nrows ");
+    for (size_t i = 0; i < N; ++i)
+        printf(" %d", stretch[i].y);
+    printf("\n\n");
     #endif
 
-    Vec* pos = malloc((size_t)galaxies * sizeof *pos);
-    int dist = 0;
-    int k = 0;
-    for (int i = 0; i < rows; ++i)
-        for (int j = 0; j < cols; ++j)
-            if (universe[i * cols + j] == '#')
-                pos[k++] = (Vec){j, i};
-    for (int i = 0; i < galaxies - 1; ++i)
-        for (int j = i + 1; j < galaxies; ++j)
-            dist += manh(pos[i], pos[j]);
-    printf("Part 1: %d\n", dist);  // ex: 374, input: ?
+    // Count galaxies
+    size_t count = 0;
+    for (size_t i = 0; i < N; ++i)
+        for (size_t j = 0; j < N; ++j)
+            count += image[i][j] == '#';
 
-    // int part2 = 0;
-    // printf("Part 2: %d\n", part2);  // ex: ?, input: ?
+    // Save image coordinates of galaxies to map
+    Map* galaxy = malloc(count * sizeof *galaxy);
+    size_t k = 0;
+    for (size_t i = 0; i < N; ++i)
+        for (size_t j = 0; j < N; ++j)
+            if (image[i][j] == '#')
+                galaxy[k++].pos = (Vec){(int64_t)j, (int64_t)i};
 
-    free(universe);
-    free(pos);
+    printf("Part 1: %"PRId64"\n", dist(galaxy, count, 2));  // ex:  374, input:      9608724
+    printf("Part 2: %"PRId64"\n", dist(galaxy, count, M));  // ex: 8410, input: 904633799472
+
+    free(galaxy);
     return 0;
 }
