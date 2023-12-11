@@ -3,6 +3,14 @@
  * Day 11: Cosmic Expansion
  * https://adventofcode.com/2023/day/11
  * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *    clang -std=gnu17 -Ofast -march-native 11.c ../startstoptimer.c
+ * Get minimum runtime:
+ *     m=50000;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
+ * Minimum runtime:
+ *     Apple M1 Mac Mini: 117 ns
+ *     Raspberry Pi 5 : ??? ns
  */
 
 #include <stdio.h>     // fopen, fclose, fgets, printf
@@ -10,6 +18,7 @@
 #include <stdint.h>    // int64_t
 #include <inttypes.h>  // PRId64
 #include <stdbool.h>   // bool
+#include "../startstoptimer.h"
 
 #define EXAMPLE 0
 #if EXAMPLE
@@ -102,6 +111,7 @@ static int64_t dist(Map* map, const size_t len, const int64_t expansionfactor)
 
 int main(void)
 {
+    starttimer();
     FILE* f = fopen(NAME, "r");
     if (!f)
         return 1;
@@ -171,5 +181,6 @@ int main(void)
     printf("Part 2: %"PRId64"\n", dist(galaxy, count, M));  // ex: 8410, input: 904633799472
 
     free(galaxy);
+    printf("Time: %.0f us\n", stoptimer_us());
     return 0;
 }
