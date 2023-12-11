@@ -1,14 +1,31 @@
+/**
+ * Advent of Code 2023
+ * Day 10: Pipe Maze
+ * https://adventofcode.com/2023/day/10
+ * By: E. Dronkert https://github.com/ednl
+ */
+
 #include <stdio.h>    // fopen, fclose, fgets, printf
 #include <stdbool.h>  // bool
+#include "../startstoptimer.h"  // compile: "clang -std=gnu17 -Ofast -march-native 10.c ../startstoptimer.c"
 
+#define EXAMPLE 0
+#if EXAMPLE
+#define NAME "../aocinput/2023-10-example.txt"
+#define W 20
+#define H 10
+#else
 #define NAME "../aocinput/2023-10-input.txt"
-#define N 140
+#define W 140
+#define H 140
+#endif
 
 typedef struct vec {
     int x, y;
 } Vec;
 
-static char field[N][N + 2];  // room for '\n\0'
+static char field[H][W + 2];  // room for '\n\0'
+static bool visited[H][W];
 
 static bool equal(const Vec a, const Vec b)
 {
@@ -27,11 +44,21 @@ static void setpipe(const Vec pos, const char pipe)
     field[pos.y][pos.x] = pipe;
 }
 
+static bool isloop(const Vec pos)
+{
+    return visited[pos.y][pos.x];
+}
+
+static void beenthere(const Vec pos)
+{
+    visited[pos.y][pos.x] = true;
+}
+
 // Find start ('S')
 static Vec startpos(void)
 {
-    for (int y = 0; y < N; ++y)
-        for (int x = 0; x < N; ++x)
+    for (int y = 0; y < H; ++y)
+        for (int x = 0; x < W; ++x)
             if (getpipe((Vec){x, y}) == 'S')
                 return (Vec){x, y};
     return (Vec){-1, -1};
@@ -53,18 +80,18 @@ static Vec nextpos(const Vec pos, const char dir)
 // Return: direction to start (NESW)
 static char startdir(const Vec pos)
 {
-    if (pos.x < 0 || pos.y < 0 || pos.x >= N || pos.y >= N || getpipe(pos) != 'S')
+    if (pos.x < 0 || pos.y < 0 || pos.x >= W || pos.y >= H || getpipe(pos) != 'S')
         return '\0';
-    int connections = 0;  // bits set for NESW (N = LSB, W = MSB)
+    int connections = 0;  // set bits for "can go from here to N/E/S/W" (N = LSB, W = MSB)
     if (pos.y > 0) {
         const char p = getpipe(nextpos(pos, 'N'));  // North
         if (p == '|' || p == '7' || p == 'F') connections |= (1 << 0);
     }
-    if (pos.x < N - 1) {
+    if (pos.x < W - 1) {
         const char p = getpipe(nextpos(pos, 'E'));  // East
         if (p == '-' || p == 'J' || p == '7') connections |= (1 << 1);
     }
-    if (pos.y < N - 1) {
+    if (pos.y < H - 1) {
         const char p = getpipe(nextpos(pos, 'S'));  // South
         if (p == '|' || p == 'J' || p == 'L') connections |= (1 << 2);
     }
@@ -105,21 +132,40 @@ static bool move(Vec* pos, char* dir)
 
 int main(void)
 {
+    starttimer();
     FILE* f = fopen(NAME, "r");
     if (!f)
         return 1;
-    for (int i = 0; i < N; ++i)
+    for (int i = 0; i < H; ++i)
         fgets(field[i], sizeof *field, f);
     fclose(f);
 
-    const Vec start = startpos();  // my input: (118,102)
-    char dir = startdir(start);
+    const Vec start = startpos();  // [118,102]
+    char dir = startdir(start);  // can go W,S -> pipe='7' -> dir=W or S
 
     Vec pos = start;
     int len = move(&pos, &dir);
-    while (!equal(pos, start) && move(&pos, &dir))
+    beenthere(pos);
+    while (!equal(pos, start) && move(&pos, &dir)) {
+        beenthere(pos);
         ++len;
-
+    }
     printf("Part 1: %d\n", len / 2);  // 7005
+
+    int count = 0;
+    for (int y = 0; y < H; ++y) {
+        bool inside = false;
+        for (int x = 0; x < W; ++x) {
+            const Vec p = (Vec){x, y};
+            const bool loop = isloop(p);
+            const char pipe = getpipe(p);
+            if (loop && (pipe == '|' || pipe == 'F' || pipe == '7'))
+                inside = !inside;
+            if (inside && !loop)
+                ++count;
+        }
+    }
+    printf("Part 2: %d\n", count);  // 417
+    printf("Time: %.0f us\n", stoptimer_us());
     return 0;
 }
