@@ -81,8 +81,17 @@ static Vec expand(const Vec pos, const int64_t factor)
 // Sum of distances between every pair of galaxies in expanded space.
 static int64_t dist(Map* map, const size_t len, const int64_t expansionfactor)
 {
-    for (size_t i = 0; i < len; ++i)
-        map[i].exp = expand(map[i].pos, expansionfactor);
+    Map* m = map;
+    for (size_t i = 0; i < len; ++i, ++m)
+        m->exp = expand(m->pos, expansionfactor);
+
+    #if EXAMPLE || defined(DEBUG)
+    printf("\n");
+    m = map;
+    for (size_t i = 0; i < len; ++i, ++m)
+        printf("%zu: (%"PRId64",%"PRId64") -> (%3"PRId64",%3"PRId64")\n", i, m->pos.x, m->pos.y, m->exp.x, m->exp.y);
+    printf("\n");
+    #endif
 
     int64_t sum = 0;
     for (size_t i = 0; i < len - 1; ++i)
@@ -100,7 +109,8 @@ int main(void)
         fgets(image[i], sizeof *image, f);
     fclose(f);
 
-    #if EXAMPLE
+    #if EXAMPLE || defined(DEBUG)
+    printf("Image:\n");
     for (size_t i = 0; i < N; ++i)
         printf("%s", image[i]);
     printf("\n");
@@ -133,23 +143,23 @@ int main(void)
     for (size_t i = 1; i < N; ++i)
         add_r(&stretch[i], stretch[i - 1]);
 
-    #if EXAMPLE
-    printf("cols ");
+    #if EXAMPLE || defined(DEBUG)
+    printf("Stretch cols: ");
     for (size_t i = 0; i < N; ++i)
-        printf(" %d", stretch[i].x);
-    printf("\nrows ");
+        printf(" %"PRId64, stretch[i].x);
+    printf("\nStretch rows: ");
     for (size_t i = 0; i < N; ++i)
-        printf(" %d", stretch[i].y);
-    printf("\n\n");
+        printf(" %"PRId64, stretch[i].y);
+    printf("\n");
     #endif
 
-    // Count galaxies
+    // Count galaxies.
     size_t count = 0;
     for (size_t i = 0; i < N; ++i)
         for (size_t j = 0; j < N; ++j)
             count += image[i][j] == '#';
 
-    // Save image coordinates of galaxies to map
+    // Save image coordinates of galaxies to list.
     Map* galaxy = malloc(count * sizeof *galaxy);
     size_t k = 0;
     for (size_t i = 0; i < N; ++i)
