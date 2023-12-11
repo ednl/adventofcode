@@ -19,7 +19,7 @@
 #include <stdint.h>    // int64_t
 #include <inttypes.h>  // PRId64
 #include <stdbool.h>   // bool
-#include "../startstoptimer.h"
+#include "../startstoptimer.h"  // timer
 
 #define EXAMPLE 0
 #if EXAMPLE

@@ -18,7 +18,7 @@
 #include <stdlib.h>    // malloc, free
 #include <stdint.h>    // int64_t
 #include <inttypes.h>  // PRId64
-#include "../startstoptimer.h"  // compile: "clang -std=gnu17 -Ofast -march-native 10.c ../startstoptimer.c"
+#include "../startstoptimer.h"  // timer
 
 #define EXAMPLE 0
 #if EXAMPLE
@@ -34,7 +34,7 @@
 static char image[N][N + 2];
 static int xcount[N], ycount[N], xshift[N], yshift[N];
 
-// Nifty algorithm from /u/NikitaSkybytskyi
+// Nifty algorithm by /u/NikitaSkybytskyi
 // https://www.reddit.com/r/adventofcode/comments/18fqxuq/an_on_algorithm_for_day_11/kcvwlev/
 static int64_t dist(int* pos, int* shift, int n, int64_t f)
 {
