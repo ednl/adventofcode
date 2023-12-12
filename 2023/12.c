@@ -6,9 +6,11 @@
  */
 
 #include <stdio.h>     // fopen, fclose, fgets, printf
+// #include <stdint.h>    // int64_t
+// #include <inttypes.h>  // PRId64
 #include <stdbool.h>   // bool
 
-#define EXAMPLE 0
+#define EXAMPLE 1
 #if EXAMPLE
 #define NAME "../aocinput/2023-12-example.txt"
 #define N 6  // different spring rows (=lines in input file)
@@ -27,6 +29,7 @@ typedef struct springs {
 
 static Springs springs[N];
 
+#if EXAMPLE || defined(DEBUG)
 static void putbin(const int n, int len)
 {
     if (len > 0) {
@@ -46,6 +49,7 @@ static void render(char* buf, const Springs* const row)
     }
     *buf = '\0';
 }
+#endif
 
 static int first(const Springs* const row)
 {
@@ -112,7 +116,7 @@ static int last(const Springs* row)
     return pat;
 }
 
-static void interpret(Springs* const row, const char* s)
+static void parse(Springs* const row, const char* s)
 {
     *row = (Springs){0};
     while (*s && *s != ' ') {
@@ -140,6 +144,28 @@ static void interpret(Springs* const row, const char* s)
     row->last = last(row);
 }
 
+static bool match(const Springs* row, int pat)
+{
+    if (row->operational & pat)
+        return false;
+    for (int i = row->groups - 1; i >= 0; --i) {
+        while (pat && !(pat & 1))
+            pat >>= 1;
+        if (!pat)
+            return false;
+        int len = 0;
+        while (pat & 1) {
+            pat >>= 1;
+            ++len;
+        }
+        if (len != row->group[i])
+            return false;
+        if (i)
+            pat >>= 1;   // skip gap
+    }
+    return !pat;
+}
+
 int main(void)
 {
     FILE* f = fopen(NAME, "r");
@@ -149,14 +175,24 @@ int main(void)
     int n = 0;
     char buf[64];
     while (n < N && fgets(buf, sizeof buf, f))
-        interpret(&springs[n++], buf);
+        parse(&springs[n++], buf);
     fclose(f);
 
-    int todo = 0;
+    int poss = 0;
     for (int i = 0; i < n; ++i) {
-        const int dif = springs[i].first ^ springs[i].last;
-        if (dif) {
-            ++todo;
+        ++poss;
+        const int pat1 = springs[i].first;
+        const int pat2 = springs[i].last;
+        const int diff = pat1 ^ pat2;
+        if (diff) {
+            ++poss;
+            int step = 1;
+            while (!(diff & step))
+                step <<= 1;
+            for (int p = pat2 + step; p < pat1; p += step)
+                poss += match(&springs[i], p);
+
+            #if EXAMPLE
             render(buf, &springs[i]);
             printf("%s", buf);
             for (int j = 0; j < springs[i].groups; ++j)
@@ -164,10 +200,12 @@ int main(void)
             printf("\n");
             putbin(springs[i].first, springs[i].len);
             putbin(springs[i].last , springs[i].len);
-            putbin(dif, springs[i].len);
+            putbin(diff, springs[i].len);
             printf("\n");
+            #endif
         }
+        // printf("%d\n", poss);
     }
-    printf("todo=%d\n", todo);
+    printf("Part 1: %d\n", poss);  // ex: 21, input: 13975 too high
     return 0;
 }
