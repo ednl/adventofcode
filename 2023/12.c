@@ -10,160 +10,54 @@
 // #include <inttypes.h>  // PRId64
 #include <stdbool.h>   // bool
 
-#define EXAMPLE 1
+#define EXAMPLE 0
 #if EXAMPLE
 #define NAME "../aocinput/2023-12-example.txt"
-#define N 6  // different spring rows (=lines in input file)
-#define M 4  // max number of spring clusters (=field count in CSV)
+#define N 6
 #else
 #define NAME "../aocinput/2023-12-input.txt"
 #define N 1000
-#define M 6
 #endif
+#define PLEN 32
+#define GLEN 8
 
 typedef struct springs {
-    int len, operational, damaged, unknown, first, last;
-    int group[M];
-    int groups;
+    char pat[PLEN];
+    int  grp[GLEN], all[GLEN];
+    int  plen, glen;
 } Springs;
 
 static Springs springs[N];
 
-#if EXAMPLE || defined(DEBUG)
-static void putbin(const int n, int len)
+static int arrangements(const Springs* const row, int ipat, int igrp)
 {
-    if (len > 0) {
-        while (len--)
-            fputc('0' | (n >> len & 1), stdout);
-        fputc('\n', stdout);
+    if (igrp >= row->glen) {  // no more groups
+        for (int i = ipat; i < row->plen; ++i)
+            if (row->pat[i] == '#')  // stil a damaged spring to allocate?
+                return 0;
+        return 1;  // all good
     }
-}
 
-static void render(char* buf, const Springs* const row)
-{
-    for (int mask = 1 << (row->len - 1); mask; mask >>= 1, ++buf) {
-        if  (row->operational & mask) *buf = '.';
-        else if (row->damaged & mask) *buf = '#';
-        else if (row->unknown & mask) *buf = '?';
-        else *buf = '_';
-    }
-    *buf = '\0';
-}
-#endif
+    // Skip all operational springs
+    while (ipat < row->plen && row->pat[ipat] == '.')
+        ++ipat;
 
-static int first(const Springs* const row)
-{
-    const int must = row->damaged;
-    const int deny = row->operational;
-    int pat = 0, bit = 1 << (row->len - 1);
-    for (int i = 0; i < row->groups; ++i) {  // all clusters forward
-        while (bit & deny)
-            bit >>= 1;
-        if (!bit)
-            return 0;  // can't start cluster
-        int cluster = 0, count = row->group[i];
-        while (bit && count) {
-            cluster |= bit;
-            bit >>= 1;  // next bit to set
-            --count;
-        }
-        if (count)
-            return 0;  // ran out of bits to set
-        int lsb = bit ? bit << 1 : 1;  // last bit of cluster
-        while ((cluster & deny || bit & must) && lsb) {
-            cluster >>= 1;
-            lsb >>= 1;
-            bit >>= 1;
-        }
-        if (cluster & deny || bit & must || !lsb)
-            return 0;  // cluster doesn't fit
-        pat |= cluster;
-        bit >>= 1;  // skip 1 to start of next cluster
-    }
-    return pat;
-}
+    // Enough pattern for all groups?
+    if (ipat + row->all[igrp] > row->plen)
+        return 0;
 
-static int last(const Springs* row)
-{
-    const int must = row->damaged;
-    const int deny = row->operational;
-    const int allow = (1 << row->len) - 1;
-    int pat = 0, bit = 1;
-    for (int i = row->groups - 1; i >= 0; --i) {  // all clusters backward
-        while (bit & deny)
-            bit <<= 1;
-        if (!(bit & allow))
-            return 0;  // can't start cluster
-        int cluster = 0, count = row->group[i];
-        while ((bit & allow) && count) {
-            cluster |= bit;
-            bit <<= 1;  // next bit to set
-            --count;
-        }
-        if (count)
-            return 0;  // ran out of bits to set
-        int msb = bit >> 1;  // first bit of cluster
-        while ((cluster & deny || bit & must) && msb & allow) {
-            cluster <<= 1;
-            msb <<= 1;
-            bit <<= 1;
-        }
-        if (cluster & deny || bit & must || !(msb & allow))
-            return 0;  // cluster doesn't fit
-        pat |= cluster;
-        bit <<= 1;  // skip 1 to start of next cluster
-    }
-    return pat;
-}
+    // Start with damaged or unknown spring
+    // If unknown, first assume it's operational
+    int count = row->pat[ipat] == '#' ? 0 : arrangements(row, ipat + 1, igrp);
 
-static void parse(Springs* const row, const char* s)
-{
-    *row = (Springs){0};
-    while (*s && *s != ' ') {
-        row->len++;
-        row->operational <<= 1;
-        row->damaged <<= 1;
-        row->unknown <<= 1;
-        switch (*s++) {
-            case '.': row->operational |= 1; break;
-            case '#': row->damaged |= 1; break;
-            case '?': row->unknown |= 1; break;
-        }
-    }
-    if (*s == ' ')
-        ++s;  // skip ' '
-    while (*s && *s != '\n') {
-        int val = 0;
-        while (*s >= '0' && *s <= '9')
-            val = val * 10 + (*s++ & 15);
-        row->group[row->groups++] = val;
-        if (*s == ',')
-            ++s;  // skip ','
-    }
-    row->first = first(row);
-    row->last = last(row);
-}
-
-static bool match(const Springs* row, int pat)
-{
-    if (row->operational & pat)
-        return false;
-    for (int i = row->groups - 1; i >= 0; --i) {
-        while (pat && !(pat & 1))
-            pat >>= 1;
-        if (!pat)
-            return false;
-        int len = 0;
-        while (pat & 1) {
-            pat >>= 1;
-            ++len;
-        }
-        if (len != row->group[i])
-            return false;
-        if (i)
-            pat >>= 1;   // skip gap
-    }
-    return !pat;
+    // Remember that, now it's damaged or assume it is
+    const int end = ipat + row->grp[igrp];  // index 1 past current group
+    for (int i = ipat + 1; i < end; ++i)
+        if (row->pat[i] == '.')
+            return count;
+    if (row->pat[end] == '#')
+        return count;
+    return count + arrangements(row, end + 1, igrp + 1);  // group fits here
 }
 
 int main(void)
@@ -174,38 +68,46 @@ int main(void)
 
     int n = 0;
     char buf[64];
-    while (n < N && fgets(buf, sizeof buf, f))
-        parse(&springs[n++], buf);
+    while (n < N && fgets(buf, sizeof buf, f)) {
+        const char *src = buf;
+        char *dst = springs[n].pat;
+        int len = 0;
+        while (*src != ' ' && len < PLEN - 1) {
+            *dst++ = *src++;  // copy pattern
+            ++len;
+        }
+        *dst++ = '.';  // add one operational spring as gap behind the last damaged one
+        *dst = '\0';
+        springs[n].plen = len + 1;
+        ++src;  // skip space
+        while (*src) {
+            int val = 0;
+            while (*src >= '0' && *src <= '9')  // until ',' or '\n'
+                val = val * 10 + (*src++ & 15);
+            springs[n].grp[springs[n].glen++] = val;
+            ++src;  // skip ',' or '\n'
+        }
+        // Backwards cumulative sum of group lengths = how much to go
+        for (int i = springs[n].glen - 1, prev = 0; i >= 0; --i)
+            prev = (springs[n].all[i] = springs[n].grp[i] + prev + 1);
+        ++n;
+    }
     fclose(f);
 
-    int poss = 0;
+    int sum = 0;
     for (int i = 0; i < n; ++i) {
-        ++poss;
-        const int pat1 = springs[i].first;
-        const int pat2 = springs[i].last;
-        const int diff = pat1 ^ pat2;
-        if (diff) {
-            ++poss;
-            int step = 1;
-            while (!(diff & step))
-                step <<= 1;
-            for (int p = pat2 + step; p < pat1; p += step)
-                poss += match(&springs[i], p);
-
-            #if EXAMPLE
-            render(buf, &springs[i]);
-            printf("%s", buf);
-            for (int j = 0; j < springs[i].groups; ++j)
-                printf(" %d", springs[i].group[j]);
-            printf("\n");
-            putbin(springs[i].first, springs[i].len);
-            putbin(springs[i].last , springs[i].len);
-            putbin(diff, springs[i].len);
-            printf("\n");
-            #endif
-        }
-        // printf("%d\n", poss);
+        const int count = arrangements(&springs[i], 0, 0);
+        sum += count;
+        #if EXAMPLE || defined(DEBUG)
+        printf("%3d: %3d %4d %22s (%2d) %d", i, count, sum, springs[i].pat, springs[i].plen, springs[i].grp[0]);
+        for (int j = 1; j < springs[i].glen; ++j)
+            printf(",%d", springs[i].grp[j]);
+        printf(" | %d", springs[i].all[0]);
+        for (int j = 1; j < springs[i].glen; ++j)
+            printf(",%d", springs[i].all[j]);
+        printf("\n");
+        #endif
     }
-    printf("Part 1: %d\n", poss);  // ex: 21, input: 13975 too high
+    printf("Part 1: %d\n", sum);  // example: 21, input: 7705
     return 0;
 }
