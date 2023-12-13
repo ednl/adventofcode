@@ -1,16 +1,26 @@
 /**
  * Advent of Code 2023
- * Day 12:
+ * Day 12: Hot Springs
  * https://adventofcode.com/2023/day/12
  * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *    clang -std=gnu17 -Ofast -march-native -Wall 12.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -Ofast -march-native -Wall 12.c ../startstoptimer.c
+ * Get minimum runtime:
+ *     m=50000;for((i=0;i<1000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
+ * Minimum runtime:
+ *     Apple M1 Mac Mini      : 12 ms
+ *     Raspberry Pi 5 2.4 GHz : ?? ms
  */
 
 #include <stdio.h>     // fopen, fclose, fgets, printf
 #include <stdlib.h>    // malloc, free
-#include <string.h>    // memmove
+#include <string.h>    // memmove, memcpy
 #include <stdint.h>    // int64_t
 #include <inttypes.h>  // PRId64
 #include <stdbool.h>   // bool
+#include "../startstoptimer.h"
 
 #define EXAMPLE 0
 #if EXAMPLE
@@ -20,8 +30,8 @@
 #define NAME "../aocinput/2023-12-input.txt"
 #define N 1000
 #endif
-#define PLEN 128
-#define GLEN 32
+#define PLEN 128  // max needed 20+1+1, 100+4+1+1
+#define GLEN 32   // max needed 6, 30
 
 typedef struct springs {
     char pat[PLEN];
@@ -129,10 +139,8 @@ static int64_t arrangements(int ipat, int igrp, const Springs* const row)
         return 0;
 
     int64_t cache;
-    if (hashfind(ipat, igrp, &cache)) {
-        // printf("%d,%d=%d <- %lld\n", ipat, igrp, hashkey(ipat, igrp), cache);
+    if (hashfind(ipat, igrp, &cache))
         return cache;
-    }
 
     // Start with damaged or unknown spring
     // If unknown, first assume it's operational
@@ -147,34 +155,53 @@ static int64_t arrangements(int ipat, int igrp, const Springs* const row)
         goto nofit;
     count += arrangements(end + 1, igrp + 1, row);  // group fits here
 nofit:
-    if (hashinsert(ipat, igrp, count)) {
-        // printf("(%d,%d)", ipat, igrp);
-        // for (size_t i = 0; i < hashcount; ++i)
-        //     printf(" %zu:%lld->%lld", i, hashtable[i].key, hashtable[i].val);
-        // printf("\n");
-    }
+    hashinsert(ipat, igrp, count);
     return count;
 }
 
-int main(void)
+static int64_t sumarr(const int n)
 {
-    FILE* f = fopen(NAME, "r");
+    int64_t sum = 0;
+    for (int i = 0; i < n; ++i) {
+        hashcount = 0;  // clear hashtable for every row because they are different
+        const int64_t count = arrangements(0, 0, &springs[i]);
+        sum += count;
+        #if EXAMPLE || defined(DEBUG)
+        printf("%3d: %6lld %6lld %22s (%2d) %d", i, count, sum, springs[i].pat, springs[i].plen, springs[i].grp[0]);
+        for (int j = 1; j < springs[i].glen; ++j)
+            printf(",%d", springs[i].grp[j]);
+        printf(" | %d", springs[i].all[0]);
+        for (int j = 1; j < springs[i].glen; ++j)
+            printf(",%d", springs[i].all[j]);
+        printf("\n");
+        #endif
+    }
+    return sum;
+}
+
+// Backwards cumulative sum of group lengths = how much to go
+static void togocount(Springs* const row)
+{
+    for (int i = row->glen - 1, prev = 0; i >= 0; --i)
+        prev = (row->all[i] = row->grp[i] + prev + 1);  // +1 = group separator
+}
+
+static int read(const char* fname)
+{
+    FILE* f = fopen(fname, "r");
     if (!f)
-        return 1;
-
-    hashtable = malloc(hashsize * sizeof *hashtable);
-
+        return 0;
     int n = 0;
     char buf[64];
     while (n < N && fgets(buf, sizeof buf, f)) {
-        const char *src = buf;
-        char *dst = springs[n].pat;
+        const char* src = buf;
+        char* dst = springs[n].pat;
         int len = 0;
         while (*src != ' ' && len < PLEN - 1) {
             *dst++ = *src++;  // copy pattern
             ++len;
         }
-        *dst++ = '.';  // add one operational spring as gap behind the last damaged one
+        *dst++ = '.';  // add one operational spring as gap behind last damaged one
         *dst = '\0';
         springs[n].plen = len + 1;
         ++src;  // skip space
@@ -185,30 +212,49 @@ int main(void)
             springs[n].grp[springs[n].glen++] = val;
             ++src;  // skip ',' or '\n'
         }
-        // Backwards cumulative sum of group lengths = how much to go
-        for (int i = springs[n].glen - 1, prev = 0; i >= 0; --i)
-            prev = (springs[n].all[i] = springs[n].grp[i] + prev + 1);
+        togocount(&springs[n]);  // helper data to bail earlier from arrangements()
         ++n;
     }
     fclose(f);
+    return n;
+}
 
-    int64_t sum = 0;
-    for (int i = 0; i < n; ++i) {
-        hashcount = 0;
-        const int64_t count = arrangements(0, 0, &springs[i]);
-        sum += count;
-        #if EXAMPLE || defined(DEBUG)
-        printf("%3d: %3lld %4lld %22s (%2d) %d", i, count, sum, springs[i].pat, springs[i].plen, springs[i].grp[0]);
-        for (int j = 1; j < springs[i].glen; ++j)
-            printf(",%d", springs[i].grp[j]);
-        printf(" | %d", springs[i].all[0]);
-        for (int j = 1; j < springs[i].glen; ++j)
-            printf(",%d", springs[i].all[j]);
-        printf("\n");
-        #endif
+int main(void)
+{
+    starttimer();
+    const int rows = read(NAME);
+    if (!rows)
+        return 1;
+
+    hashtable = malloc(hashsize * sizeof *hashtable);
+    printf("Part 1: %"PRId64"\n", sumarr(rows));  // example: 21, input: 7705
+
+    // Add 4 copies to pattern (sep='?') and groups
+    for (int i = 0; i < rows; ++i) {
+        const char* psrc = springs[i].pat;
+        const size_t plen = (size_t)(springs[i].plen - 1);  // remove added '.'
+        char* pdst = springs[i].pat + plen;
+
+        const int* gsrc = (int*)springs[i].grp;
+        const size_t glen = (size_t)springs[i].glen;
+        const size_t gsize = glen * sizeof *gsrc;
+        int* gdst = (int*)springs[i].grp + glen;
+
+        for (int j = 0; j < 4; ++j, pdst += plen, gdst += glen) {
+            *pdst++ = '?';
+            memcpy(pdst, psrc, plen);
+            memcpy(gdst, gsrc, gsize);
+        }
+        *pdst++ = '.';  // add back '.' at the end
+        *pdst = '\0';
+
+        springs[i].plen = (int)((plen + 1) * 5);  // 5x as long, add 4 separators, add one '.'
+        springs[i].glen = (int)(glen * 5);  // 5x as long
+        togocount(&springs[i]);  // new cumulative sum
     }
-    printf("Part 1: %"PRId64"\n", sum);  // example: 21, input: 7705
-    // printf("%zu %zu\n", hashcount, hashsize);
+    printf("Part 2: %"PRId64"\n", sumarr(rows));  // example: 525152, input: 50338344809230
     free(hashtable);
+
+    printf("Time: %.0f ms\n", stoptimer_ms());
     return 0;
 }
