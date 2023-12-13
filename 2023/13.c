@@ -72,9 +72,9 @@ static int imperfections(const int val, const int len, const int pos)
     const int shift2 = max(shift1 - pos, 0);
     const int minlen = min(pos, shift1);
     const int mask = (1 << minlen) - 1;
-    const int a = val >> shift1 & mask;
-    const int b = rev(val >> shift2 & mask, minlen);
-    return __builtin_popcount((unsigned)(a ^ b));
+    const int a = val >> shift1;
+    const int b = rev(val >> shift2, minlen);
+    return __builtin_popcount((unsigned)((a ^ b) & mask));
 }
 
 static int findmirror(const int* mat, const int rows, const int cols, const int imperf)
