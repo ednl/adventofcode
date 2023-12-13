@@ -6,8 +6,10 @@
  */
 
 #include <stdio.h>     // fopen, fclose, fgets, printf
-// #include <stdint.h>    // int64_t
-// #include <inttypes.h>  // PRId64
+#include <stdlib.h>    // malloc, free
+#include <string.h>    // memmove
+#include <stdint.h>    // int64_t
+#include <inttypes.h>  // PRId64
 #include <stdbool.h>   // bool
 
 #define EXAMPLE 0
@@ -18,8 +20,8 @@
 #define NAME "../aocinput/2023-12-input.txt"
 #define N 1000
 #endif
-#define PLEN 32
-#define GLEN 8
+#define PLEN 128
+#define GLEN 32
 
 typedef struct springs {
     char pat[PLEN];
@@ -27,9 +29,89 @@ typedef struct springs {
     int  plen, glen;
 } Springs;
 
-static Springs springs[N];
+typedef struct hashentry {
+    int64_t key, val;
+} Hashentry;
 
-static int arrangements(const Springs* const row, int ipat, int igrp)
+static Springs springs[N];
+static Hashentry* hashtable;
+static size_t hashcount = 0, hashsize = 1024;
+
+static int hashkey(const int ipat, const int igrp)
+{
+    return (igrp << 8) | ipat;
+}
+
+static bool hashfind(const int ipat, const int igrp, int64_t* value)
+{
+    if (!hashcount)
+        return false;
+    const int key = hashkey(ipat, igrp);
+    size_t l = 0, r = hashcount - 1;
+    if (key < hashtable[0].key || key > hashtable[r].key)
+        return false;
+    if (key == hashtable[0].key) {
+        *value = hashtable[0].val;
+        return true;
+    }
+    if (key == hashtable[r].key) {
+        *value = hashtable[r].val;
+        return true;
+    }
+    // Now always true: h[l] < key < h[r]
+    while (r - l != 1) {
+        size_t m = ((l + 1) >> 1) + (r >> 1);  // avoid index overflow
+        if (key > hashtable[m].key) l = m;
+        else if (key < hashtable[m].key) r = m;
+        else {
+            *value = hashtable[m].val;
+            return true;
+        }
+    }
+    return false;
+}
+
+// Insert into sorted hash table with index array.
+// Return false if failed (or not needed) to insert.
+static bool hashinsert(const int ipat, const int igrp, const int64_t value)
+{
+    const int key = hashkey(ipat, igrp);
+    if (!hashcount) {
+        hashtable[0] = (Hashentry){key, value};
+        hashcount = 1;
+        return true;
+    }
+    size_t l = 0, r = hashcount - 1;
+    if (key == hashtable[0].key || key == hashtable[r].key)
+        return false;
+    if (hashcount == hashsize) {
+        Hashentry* p = realloc(hashtable, (hashsize <<= 1) * sizeof *hashtable);
+        if (!p)
+            return false;
+        hashtable = p;
+    }
+    if (key < hashtable[0].key) {
+        memmove(hashtable + 1, hashtable, hashcount++ * sizeof *hashtable);
+        hashtable[0] = (Hashentry){key, value};
+        return true;
+    }
+    if (key > hashtable[r].key) {
+        hashtable[hashcount++] = (Hashentry){key, value};
+        return true;
+    }
+    // Now always true: h[l] < key < h[r]
+    while (r - l != 1) {
+        size_t m = ((l + 1) >> 1) + (r >> 1);  // avoid index overflow
+        if (key > hashtable[m].key) l = m;
+        else if (key < hashtable[m].key) r = m;
+        else return false;
+    }
+    memmove(hashtable + r + 1, hashtable + r, (hashcount++ - r) * sizeof *hashtable);
+    hashtable[r] = (Hashentry){key, value};
+    return true;
+}
+
+static int64_t arrangements(int ipat, int igrp, const Springs* const row)
 {
     if (igrp >= row->glen) {  // no more groups
         for (int i = ipat; i < row->plen; ++i)
@@ -46,18 +128,32 @@ static int arrangements(const Springs* const row, int ipat, int igrp)
     if (ipat + row->all[igrp] > row->plen)
         return 0;
 
+    int64_t cache;
+    if (hashfind(ipat, igrp, &cache)) {
+        // printf("%d,%d=%d <- %lld\n", ipat, igrp, hashkey(ipat, igrp), cache);
+        return cache;
+    }
+
     // Start with damaged or unknown spring
     // If unknown, first assume it's operational
-    int count = row->pat[ipat] == '#' ? 0 : arrangements(row, ipat + 1, igrp);
+    int64_t count = row->pat[ipat] == '#' ? 0 : arrangements(ipat + 1, igrp, row);
 
     // Remember that, now it's damaged or assume it is
     const int end = ipat + row->grp[igrp];  // index 1 past current group
     for (int i = ipat + 1; i < end; ++i)
         if (row->pat[i] == '.')
-            return count;
+            goto nofit;
     if (row->pat[end] == '#')
-        return count;
-    return count + arrangements(row, end + 1, igrp + 1);  // group fits here
+        goto nofit;
+    count += arrangements(end + 1, igrp + 1, row);  // group fits here
+nofit:
+    if (hashinsert(ipat, igrp, count)) {
+        // printf("(%d,%d)", ipat, igrp);
+        // for (size_t i = 0; i < hashcount; ++i)
+        //     printf(" %zu:%lld->%lld", i, hashtable[i].key, hashtable[i].val);
+        // printf("\n");
+    }
+    return count;
 }
 
 int main(void)
@@ -65,6 +161,8 @@ int main(void)
     FILE* f = fopen(NAME, "r");
     if (!f)
         return 1;
+
+    hashtable = malloc(hashsize * sizeof *hashtable);
 
     int n = 0;
     char buf[64];
@@ -94,12 +192,13 @@ int main(void)
     }
     fclose(f);
 
-    int sum = 0;
+    int64_t sum = 0;
     for (int i = 0; i < n; ++i) {
-        const int count = arrangements(&springs[i], 0, 0);
+        hashcount = 0;
+        const int64_t count = arrangements(0, 0, &springs[i]);
         sum += count;
         #if EXAMPLE || defined(DEBUG)
-        printf("%3d: %3d %4d %22s (%2d) %d", i, count, sum, springs[i].pat, springs[i].plen, springs[i].grp[0]);
+        printf("%3d: %3lld %4lld %22s (%2d) %d", i, count, sum, springs[i].pat, springs[i].plen, springs[i].grp[0]);
         for (int j = 1; j < springs[i].glen; ++j)
             printf(",%d", springs[i].grp[j]);
         printf(" | %d", springs[i].all[0]);
@@ -108,6 +207,8 @@ int main(void)
         printf("\n");
         #endif
     }
-    printf("Part 1: %d\n", sum);  // example: 21, input: 7705
+    printf("Part 1: %"PRId64"\n", sum);  // example: 21, input: 7705
+    // printf("%zu %zu\n", hashcount, hashsize);
+    free(hashtable);
     return 0;
 }
