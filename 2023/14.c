@@ -8,9 +8,9 @@
  *    clang -std=gnu17 -Ofast -march-native -Wall 14.c ../startstoptimer.c
  *    gcc   -std=gnu17 -Ofast -march-native -Wall 14.c ../startstoptimer.c
  * Get minimum runtime:
- *     m=50000;for((i=0;i<100;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
+ *     m=50000;for((i=0;i<200;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
- *     Apple M1 Mac Mini      : 29 ms
+ *     Apple M1 Mac Mini      : 23 ms
  *     Raspberry Pi 5 2.4 GHz : 61 ms
  */
 
@@ -72,36 +72,24 @@ static void printmap(void)
 }
 #endif
 
-static int min(const int a, const int b)
-{
-    return a < b ? a : b;
-}
-
-static int max(const int a, const int b)
-{
-    return a > b ? a : b;
-}
-
 // Roll round rocks all the way to the left
 static void roll(void)
 {
-    for (int i = 1; i < LIM; ++i)  // row
-        for (int head = 1; head < LIM; ++head) {  // col
-            while (head < LIM && map[i][head] != 'O')  // look for first round rock
-                ++head;
-            if (head < LIM) {
-                int dest = head;
-                while (map[i][--dest] == '.');  // look for open space to the left
-                const int shift = head - ++dest;  // how far to move left
-                if (shift) {
-                    int tail = head;
-                    while (map[i][++tail] == 'O');  // look for end of round rock sequence
-                    const int len = min(shift, tail - head);  // how many rocks to add+remove
-                    const int rem = max(head, tail - shift);  // start of rocks to be removed
-                    memset(&map[i][dest], 'O', (size_t)len);  // add round rocks
-                    memset(&map[i][rem] , '.', (size_t)len);  // remove round rocks
-                }
+    for (int i = 1; i < LIM; ++i)  // rows
+        for (int j = 1; j < LIM; ++j) {  // cols
+            while (j < LIM && map[i][j] != '.')  // look for first open space
+                ++j;
+            int end = j + 1, rocks = 0;
+            while (end < LIM && map[i][end] != '#')  // look for first square rock
+                rocks += map[i][end++] == 'O';  // count round rocks
+            if (rocks) {
+                char* dst1 = &map[i][j];
+                char* dst2 = dst1 + rocks;
+                const int space = end - j - rocks;
+                memset(dst1, 'O', (size_t)rocks);  // round rocks to the left
+                memset(dst2, '.', (size_t)space);  // open space to the right
             }
+            j = end;
         }
 }
 
