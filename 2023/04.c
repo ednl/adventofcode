@@ -18,7 +18,7 @@ static int copies[CARDS];
 static int numbers[N];
 
 // Sort int array ascending
-static int asc(const void *p, const void *q)
+static int asc(const void* p, const void* q)
 {
     const int a = *(const int*)p;
     const int b = *(const int*)q;
