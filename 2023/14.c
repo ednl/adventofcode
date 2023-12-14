@@ -34,33 +34,16 @@
 #define STEADY 100  // how many cycles to reach steady state loop
 
 static char map[DIM][DIM + 2];
-static char rot[DIM][DIM + 2];
 
-// Rotate anti-clockwise
-static void rot90(void)
+// Transpose
+static void transpose(void)
 {
-    memcpy(rot, map, sizeof map);
     for (int i = 1; i < LIM; ++i)
-        for (int j = 1; j < LIM; ++j)
-            map[i][j] = rot[j][LIM - i];  // transpose and mirror horiz
-}
-
-// Rotate clockwise
-static void rot270(void)
-{
-    memcpy(rot, map, sizeof map);
-    for (int i = 1; i < LIM; ++i)
-        for (int j = 1; j < LIM; ++j)
-            map[i][j] = rot[LIM - j][i];  // transpose and mirror vert
-}
-
-// Rotate 180 degrees
-static void rot180(void)
-{
-    memcpy(rot, map, sizeof map);
-    for (int i = 1; i < LIM; ++i)
-        for (int j = 1; j < LIM; ++j)
-            map[i][j] = rot[LIM - i][LIM - j];  // mirror horiz and vert
+        for (int j = i + 1; j < LIM; ++j) {
+            const char tmp = map[i][j];
+            map[i][j] = map[j][i];
+            map[j][i] = tmp;
+        }
 }
 
 #if EXAMPLE
@@ -72,45 +55,53 @@ static void printmap(void)
 }
 #endif
 
-// Roll round rocks all the way to the left
-static void roll(void)
+// Roll round rocks all the way to the left or right
+static void roll(const bool left)
 {
     for (int i = 1; i < LIM; ++i)  // rows
         for (int j = 1; j < LIM; ++j) {  // cols
-            while (j < LIM && map[i][j] != '.')  // look for first open space
+            while (j < LIM && map[i][j] == '#')  // look for first round rock or empty space
                 ++j;
-            int end = j + 1, rocks = 0;
+            int end = j, rocks = 0;
             while (end < LIM && map[i][end] != '#')  // look for first square rock
                 rocks += map[i][end++] == 'O';  // count round rocks
-            if (rocks) {
+            const int space = end - j - rocks;
+            if (rocks && space) {
                 char* dst1 = &map[i][j];
-                char* dst2 = dst1 + rocks;
-                const int space = end - j - rocks;
-                memset(dst1, 'O', (size_t)rocks);  // round rocks to the left
-                memset(dst2, '.', (size_t)space);  // open space to the right
+                if (left) {
+                    char* dst2 = dst1 + rocks;
+                    memset(dst1, 'O', (size_t)rocks);  // round rocks to the left
+                    memset(dst2, '.', (size_t)space);  // open space to the right
+                } else {
+                    char* dst2 = dst1 + space;
+                    memset(dst1, '.', (size_t)space);  // open space to the left
+                    memset(dst2, 'O', (size_t)rocks);  // round rocks to the rightt
+                }
             }
             j = end;
         }
 }
 
-// Total load on the South support beams (= North, if N = down)
-// Also used as unique configuration ID, which happens to work
+// Total load on the North support beams (if N = up)
+// Also used as unique configuration ID for cycle detection, which happens to work
 static int load(void)
 {
     int sum = 0;
-    for (int i = 1; i < LIM; ++i)
+    for (int i = 1; i < LIM; ++i) {  // rows
+        const int val = LIM - i;
         for (int j = 1; j < LIM; ++j)
-            sum += (map[i][j] == 'O') * i;
+            sum += (map[i][j] == 'O') * val;
+    }
     return sum;
 }
 
-// Roll N,W,S,E (begin and end with N = down)
+// Roll N,W,S,E (begin and end with N = up)
 static void cycle(void)
 {
-    rot270(); /* N = left  */ roll(); // roll left = N
-    rot270(); /* N = up    */ roll(); // roll left = W
-    rot270(); /* N = right */ roll(); // roll left = S
-    rot270(); /* N = down  */ roll(); // roll left = E
+    transpose(); /* N = left */ roll(true);  // roll left  = N
+    transpose(); /* N = up   */ roll(true);  // roll left  = W
+    transpose(); /* N = left */ roll(false); // roll right = S
+    transpose(); /* N = up   */ roll(false); // roll right = E
 }
 
 int main(void)
@@ -122,7 +113,7 @@ int main(void)
     for (int i = 1; i < LIM; ++i)
         fgets(&map[i][1], DIM, f);  // leave room for border
     fclose(f);
-    memset(&map[0][1], '#', N);
+    memset(&map[0][1], '#', N);  // top and bottom border not used
     memset(&map[DIM - 1][1], '#', N);
     for (int i = 0; i < DIM; ++i) {
         map[i][0] = '#';
@@ -135,22 +126,21 @@ int main(void)
     #if EXAMPLE
         printmap();
     #endif
-    rot90();  // N = left, for rolling
-    roll();   // roll left = N
+    transpose(); /* N = left */ roll(true); // roll left = N
+    transpose(); /* N = up   */
     #if EXAMPLE
-        rot270();  // N = up, for printing
         printmap();
-        rot180();  // N = down, for load calculation
-    #else
-        rot90();  // N = down, for load calculation
     #endif
     printf("Part 1: %d\n", load());  // example: 136, input: 113525
 
     // Part 2
-    // Complete first cycle from part 1: begin with N = down
-    rot180(); /* N = up    */ roll(); // roll left = W
-    rot270(); /* N = right */ roll(); // roll left = S
-    rot270(); /* N = down  */ roll(); // roll left = E
+    // Complete first cycle from part 1: begin with N = up
+    roll(true);  // roll left  = W
+    transpose(); /* N = left */ roll(false); // roll right = S
+    transpose(); /* N = up   */ roll(false); // roll right = E
+    #if EXAMPLE
+        printmap();
+    #endif
 
     // Get reference value after 100 cycles
     // (for my input enough to reach steady state loop)
@@ -169,6 +159,10 @@ int main(void)
     const int mod = (CYCLES - STEADY) % loop;
     for (int i = 0; i < mod; ++i)
         cycle();
+
+    #if EXAMPLE
+        printmap();
+    #endif
     printf("Part 2: %d\n", load());  // example: 64, input: 101292
     printf("Time: %.0f ms\n", stoptimer_ms());
     return 0;
