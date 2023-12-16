@@ -13,7 +13,7 @@
  *     Apple M1 Mac Mini 2020 (3.2 GHz)               :   ? ms
  *     Raspberry Pi 5 (2.4 GHz)                       :   ? ms
  *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) :  27 ms
- *     Raspberry Pi 4 (1.8 GHz)                       :   ? ms
+ *     Raspberry Pi 4 (1.8 GHz)                       :  70 ms
  */
 
 #include <stdio.h>    // fopen, fclose, fgets, printf
@@ -76,7 +76,18 @@ static int dirindex(const char dir)
         case 'S': return 2;
         case 'W': return 3;
     }
-    return 4;
+    return -1;
+}
+
+static int horiz(const char dir)
+{
+    switch (dir) {
+        case 'N':
+        case 'S': return 0;
+        case 'E':
+        case 'W': return 1;
+    }
+    return -1;
 }
 
 static bool isexplored(const Beam beam)
