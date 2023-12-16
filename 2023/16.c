@@ -26,11 +26,11 @@
 #if EXAMPLE
 #define NAME "../aocinput/2023-16-example.txt"
 #define N 10
-#define QSIZE 8  // max 4 for the example
+#define STACKSIZE 8  // max 4 for the example
 #else
 #define NAME "../aocinput/2023-16-input.txt"
 #define N 110
-#define QSIZE 80  // max 73 for my input
+#define STACKSIZE 80  // max 73 for my input
 #endif
 
 typedef struct vec {
@@ -44,8 +44,8 @@ typedef struct beam {
 
 static char mirror[N][N + 2];
 static bool cache[N][N][4];  // last index: NESW=[0..4)
-static Beam queue[QSIZE];
-static int qlen;
+static Beam stack[STACKSIZE];
+static int stacklen;
 
 static char getmirror(const Vec pos)
 {
@@ -89,24 +89,24 @@ static void markexplored(const Beam beam)
     cache[beam.pos.y][beam.pos.x][dirindex(beam.dir)] = true;
 }
 
-static bool enqueue(const Beam beam)
+static bool push(const Beam beam)
 {
     if (isexplored(beam))
         return false;
     markexplored(beam);
-    if (qlen == QSIZE) {
-        printf("!E");  // queue too small
+    if (stacklen == STACKSIZE) {
+        printf("!E");  // stack too small
         return false;
     }
-    queue[qlen++] = beam;
+    stack[stacklen++] = beam;
     return true;
 }
 
-static bool dequeue(Beam* beam)
+static bool pop(Beam* beam)
 {
-    if (!qlen)
+    if (!stacklen)
         return false;
-    *beam = queue[--qlen];
+    *beam = stack[--stacklen];
     return true;
 }
 
@@ -125,10 +125,10 @@ static int energize(Beam beam)
 {
     // Reset
     memset(cache, 0, sizeof cache);
-    qlen = 0;
-    // BFS
-    queue[qlen++] = beam;  // root has out of range indices: do not check or markexplored()
-    while (dequeue(&beam)) {
+    stacklen = 0;
+    // DFS
+    stack[stacklen++] = beam;  // root has out of range indices: do not check or markexplored()
+    while (pop(&beam)) {
         const Vec next = nextpos(beam);
         if (inside(next)) {
             switch (beam.dir << 8 | getmirror(next)) {
@@ -140,27 +140,27 @@ static int energize(Beam beam)
                 case 'S|':
                 case 'W.':
                 case 'W-':
-                    enqueue((Beam){next, beam.dir}); break;  // keep going
+                    push((Beam){next, beam.dir}); break;  // keep going
                 case 'N/':
                 case 'S\\':
-                    enqueue((Beam){next, 'E'}); break;
+                    push((Beam){next, 'E'}); break;
                 case 'E/':
                 case 'W\\':
-                    enqueue((Beam){next, 'N'}); break;
+                    push((Beam){next, 'N'}); break;
                 case 'S/':
                 case 'N\\':
-                    enqueue((Beam){next, 'W'}); break;
+                    push((Beam){next, 'W'}); break;
                 case 'W/':
                 case 'E\\':
-                    enqueue((Beam){next, 'S'}); break;
+                    push((Beam){next, 'S'}); break;
                 case 'N-':
                 case 'S-':
-                    enqueue((Beam){next, 'E'});
-                    enqueue((Beam){next, 'W'}); break;
+                    push((Beam){next, 'E'});
+                    push((Beam){next, 'W'}); break;
                 case 'E|':
                 case 'W|':
-                    enqueue((Beam){next, 'N'});
-                    enqueue((Beam){next, 'S'}); break;
+                    push((Beam){next, 'N'});
+                    push((Beam){next, 'S'}); break;
             }
         }
     }
