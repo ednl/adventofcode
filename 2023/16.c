@@ -5,8 +5,8 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -Ofast -march=native -Wall 16.c ../startstoptimer.c
- *    gcc   -std=gnu17 -Ofast -march=native -Wall 16.c ../startstoptimer.c
+ *    clang -std=gnu17 -Ofast -march=native -Wall -Wno-multichar 16.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wno-multichar 16.c ../startstoptimer.c
  * Get minimum runtime:
  *     m=999999;for((i=0;i<500;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
@@ -18,6 +18,7 @@
 
 #include <stdio.h>    // fopen, fclose, fgets, printf
 #include <string.h>   // memset
+#include <stdint.h>   // int32_t
 #include <stdbool.h>  // bool
 #include "../startstoptimer.h"
 
@@ -42,8 +43,7 @@ typedef struct beam {
 } Beam;
 
 static char mirror[N][N + 2];
-static bool energized[N][N];
-static bool cache[N][N][4];
+static bool cache[N][N][4];  // last index: NESW=[0..4)
 static Beam queue[QSIZE];
 static int qlen;
 
@@ -57,7 +57,7 @@ static void show(void)
 #if EXAMPLE || defined(DEBUG)
     for (int i = 0; i < N; ++i) {
         for (int j = 0; j < N; ++j)
-            fputc(energized[i][j] ? '#' : '.', stdout);
+            fputc(*(int32_t*)cache[i][j] ? '#' : '.', stdout);  // misuse 4 bools as 1 int
         printf(" %s", mirror[i]);  // includes '\n'
     }
 #endif
@@ -79,17 +79,6 @@ static int dirindex(const char dir)
     return -1;
 }
 
-static int horiz(const char dir)
-{
-    switch (dir) {
-        case 'N':
-        case 'S': return 0;
-        case 'E':
-        case 'W': return 1;
-    }
-    return -1;
-}
-
 static bool isexplored(const Beam beam)
 {
     return cache[beam.pos.y][beam.pos.x][dirindex(beam.dir)];
@@ -106,7 +95,7 @@ static bool enqueue(const Beam beam)
         return false;
     markexplored(beam);
     if (qlen == QSIZE) {
-        printf("!!!E");
+        printf("!E");  // queue too small
         return false;
     }
     queue[qlen++] = beam;
@@ -138,7 +127,7 @@ static int energize(Beam beam)
     memset(cache, 0, sizeof cache);
     qlen = 0;
     // BFS
-    queue[qlen++] = beam;  // root has out of range indeces, so no checking or markexplored()
+    queue[qlen++] = beam;  // root has out of range indices: do not check or markexplored()
     while (dequeue(&beam)) {
         const Vec next = nextpos(beam);
         if (inside(next)) {
@@ -151,7 +140,7 @@ static int energize(Beam beam)
                 case 'S|':
                 case 'W.':
                 case 'W-':
-                    enqueue((Beam){next, beam.dir}); break;
+                    enqueue((Beam){next, beam.dir}); break;  // keep going
                 case 'N/':
                 case 'S\\':
                     enqueue((Beam){next, 'E'}); break;
@@ -179,7 +168,7 @@ static int energize(Beam beam)
     int sum = 0;
     for (int i = 0; i < N; ++i)
         for (int j = 0; j < N; ++j)
-            sum += (energized[i][j] = *(int*)cache[i][j]);
+            sum += (*(int32_t*)cache[i][j] != 0);
     return sum;
 }
 
