@@ -7,7 +7,7 @@
 
 #include <stdio.h>    // fopen, fclose, fgets, printf
 #include <stdbool.h>  // bool
-#include "../startstoptimer.h"  // compile: "clang -std=gnu17 -Ofast -march-native 10.c ../startstoptimer.c"
+#include "../startstoptimer.h"  // compile: "clang -std=gnu17 -Ofast -march=native 10.c ../startstoptimer.c"
 
 #define EXAMPLE 0
 #if EXAMPLE
