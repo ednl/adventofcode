@@ -16,7 +16,7 @@
  * Minimum runtime:
  *     Apple M1 Mac Mini 2020 (3.2 GHz)               :    ? us
  *     Raspberry Pi 5 (2.4 GHz)                       :    ? us
- *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) :  223 us
+ *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) :  220 us
  *     Raspberry Pi 4 (1.8 GHz)                       :  481 us
  */
 
@@ -60,11 +60,12 @@ int main(void)
 {
     starttimer();
     FILE* f = fopen(NAME, "r");
+    if (!f)
+        return 1;
     char c;
-    int len, rgb;
-    for (int i = 0; i < N && fscanf(f, " %c %2d (#%6x)", &c, &len, &rgb) == 3; ++i) {
-        trench[0][i] = (Dig){char2dir(c), len};
-        trench[1][i] = (Dig){rgb & 3, rgb >> 4};
+    for (int i = 0, k, x; i < N && fscanf(f, " %c %2d (#%6x)", &c, &k, &x) == 3; ++i) {
+        trench[0][i] = (Dig){char2dir(c), k};
+        trench[1][i] = (Dig){x & 3, x >> 4};
     }
     fclose(f);
 
@@ -78,10 +79,10 @@ int main(void)
     printf("\n");
     #endif
 
-    for (int p = 0; p < 2; ++p) {  // parts 1 & 2
+    const Dig* t = &trench[0][0];
+    for (int p = 1; p < 3; ++p) {  // parts 1 & 2
         int64_t x = 0, y = 0, a = 0, b = 0;  // position, area, border
-        for (int i = 0; i < N; ++i) {
-            const Dig* t = &trench[p][i];
+        for (int i = 0; i < N; ++i, ++t) {
             switch (t->dir) {
                 case RIGHT: x += t->len; a -= y * t->len; break;  // pos. oriented, but y=-y
                 case DOWN : y += t->len; break;
@@ -91,7 +92,7 @@ int main(void)
             b += t->len;
         }
         // example: 62 952408144115, input: 46334 102000662718092
-        printf("Part %d: %"PRId64"\n", p + 1, (a > 0 ? a : -a) + b/2 + 1);
+        printf("Part %d: %"PRId64"\n", p, (a > 0 ? a : -a) + b/2 + 1);
     }
     printf("Time: %.0f us\n", stoptimer_us());
     return 0;
