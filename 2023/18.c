@@ -12,7 +12,7 @@
  *    clang -std=gnu17 -Ofast -march=native -Wall 18.c ../startstoptimer.c
  *    gcc   -std=gnu17 -Ofast -march=native -Wall 18.c ../startstoptimer.c
  * Get minimum runtime:
- *     m=999999;for((i=0;i<1000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
+ *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
  *     Apple M1 Mac Mini 2020 (3.2 GHz)               :    ? us
  *     Raspberry Pi 5 (2.4 GHz)                       :    ? us
@@ -20,8 +20,9 @@
  *     Raspberry Pi 4 (1.8 GHz)                       :    ? us
  */
 
-#include <stdio.h>
-#include <stdint.h>
+#include <stdio.h>     // fopen, fclose, fscanf, printf
+#include <stdint.h>    // int64_t
+#include <inttypes.h>  // PRId64
 #include "../startstoptimer.h"
 
 #define EXAMPLE 0
@@ -90,7 +91,7 @@ int main(void)
             b += t->len;
         }
         // example: 62 952408144115, input: 46334 102000662718092
-        printf("Part %d: %lld\n", p + 1, (a > 0 ? a : -a) + b/2 + 1);
+        printf("Part %d: %"PRId64"\n", p + 1, (a > 0 ? a : -a) + b/2 + 1);
     }
     printf("Time: %.0f us\n", stoptimer_us());
     return 0;
