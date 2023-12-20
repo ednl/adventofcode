@@ -1,8 +1,9 @@
 #include <stdio.h>
+#include <stdbool.h>
 
 #define NAME "../aocinput/2023-20-example.txt"
 #define MODULES 58
-#define BUSWIDTH 6
+#define BUSSIZE 6
 
 typedef enum signal {
     LO, HI, NOP
@@ -13,19 +14,24 @@ typedef enum type {
 } Type;
 
 typedef struct bus {
-    int id[BUSWIDTH];
-    Signal val[BUSWIDTH];
-}
+    int id[BUSSIZE];
+    Signal val[BUSSIZE];
+    int len;
+} Bus;
 
-// not right yet, maybe split flip/conj because multi input & mem for conj
-typedef struct module {
+// %
+typedef struct flipflop {
     int id;
-    Type type;
-    Signal inp;
-    int out[OUTSIZE];
-    int outlen;
-    int state;
-} Module;
+    bool on;
+    Signal inp, out;
+
+} Flipflop;
+
+// &
+typedef struct conjunction {
+    int id;
+    Signal out;
+} Conjunction;
 
 static Module module[MODULES];
 
