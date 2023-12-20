@@ -24,6 +24,9 @@ typedef struct workflow {
 } Workflow;
 
 static const char* cat2char = "xmas_";
+static const int start = 'i' << 8 | 'n';
+static const int accepted = 'A';
+static const int rejected = 'R';
 static Workflow wf[WFSZ];
 static unsigned part[PARTS][4];
 
@@ -36,6 +39,31 @@ static Cat char2cat(const char c)
         case 's': return S;
     }
     return NONE;
+}
+
+static void show(void)
+{
+    for (int i = 0 ; i < WFSZ; ++i) {
+        printf("%d: %s{", i, wf[i].name);
+        for (int j = 0; j < wf[i].len; ++j) {
+            Cat cat = wf[i].cond[j].cat;
+            if (cat != NONE) {  // conditional
+                fputc(cat2char[cat], stdout);
+                if (wf[i].cond[j].lower)
+                    printf(">%d:", wf[i].cond[j].lower);
+                if (wf[i].cond[j].upper)
+                    printf("<%d:", wf[i].cond[j].upper);
+            }
+            printf("%s", wf[i].cond[j].nextname);
+            if (j != wf[i].len - 1)
+                printf(",");
+        }
+        printf("}\n");
+    }
+    printf("\n");
+    for (int i = 0; i < PARTS; ++i)
+        printf("{x=%d,m=%d,a=%d,s=%d}\n", part[i][0], part[i][1], part[i][2], part[i][3]);
+    printf("\n");
 }
 
 int main(void)
@@ -75,39 +103,10 @@ int main(void)
     for (int i = 0; i < PARTS; ++i)
         fscanf(f, " {x=%d,m=%d,a=%d,s=%d}", &part[i][0], &part[i][1], &part[i][2], &part[i][3]);
     fclose(f);
+    show();
 
-    for (int i = 0 ; i < WFSZ; ++i) {
-        printf("%d: %s{", i, wf[i].name);
-        for (int j = 0; j < wf[i].len; ++j) {
-            Cat cat = wf[i].cond[j].cat;
-            if (cat != NONE) {  // conditional
-                fputc(cat2char[cat], stdout);
-                if (wf[i].cond[j].lower)
-                    printf(">%d:", wf[i].cond[j].lower);
-                if (wf[i].cond[j].upper)
-                    printf("<%d:", wf[i].cond[j].upper);
-            }
-            printf("%s", wf[i].cond[j].nextname);
-            if (j != wf[i].len - 1)
-                printf(",");
-        }
-        printf("}\n");
+    for (int i = 0; i < PARTS; ++i) {
+        //
     }
-    printf("\n");
-    for (int i = 0; i < PARTS; ++i)
-        printf("{x=%d,m=%d,a=%d,s=%d}\n", part[i][0], part[i][1], part[i][2], part[i][3]);
-    printf("\n");
-
-    for (int i = 0; i < WFSZ; ++i) {
-        bool found = true;
-        for (int j = 0; j < wf[i].len; ++j)
-            if (wf[i].cond[j].nextid != 'A') {
-                found = false;
-                break;
-            }
-        if (found)
-            printf("%d: %dx A\n", i, wf[i].len);
-    }
-
     return 0;
 }
