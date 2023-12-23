@@ -1,3 +1,10 @@
+/**
+ * Advent of Code 2023
+ * Day 19: Aplenty
+ * https://adventofcode.com/2023/day/19
+ * By: E. Dronkert https://github.com/ednl
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>

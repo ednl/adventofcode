@@ -1,3 +1,10 @@
+/**
+ * Advent of Code 2023
+ * Day 22: Sand Slabs
+ * https://adventofcode.com/2023/day/22
+ * By: E. Dronkert https://github.com/ednl
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>

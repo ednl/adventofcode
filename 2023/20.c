@@ -1,3 +1,10 @@
+/**
+ * Advent of Code 2023
+ * Day 20: Pulse Propagation
+ * https://adventofcode.com/2023/day/20
+ * By: E. Dronkert https://github.com/ednl
+ */
+
 #include <stdio.h>
 #include <stdbool.h>
 
