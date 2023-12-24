@@ -103,6 +103,7 @@ int main(void)
     //   r = p[i] + (v[i] - s).t1
     //   r = p[j] + (v[j] - s).t2
     //   r = p[k] + (v[k] - s).t3
+    // Intersect lines i and j: det|(v[i]-s) (p[i]-(p[j]+v[j]-s)) (v[j]-s)| = 0
 
     return 0;
 }
