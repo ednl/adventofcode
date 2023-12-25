@@ -10,14 +10,15 @@
  * Get minimum runtime:
  *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
- *     Apple M1 Mac Mini 2020 (3.2 GHz)               : 209 us
- *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) : 322 us
- *     Raspberry Pi 5 (2.4 GHz)                       : 351 us
- *     Raspberry Pi 4 (1.8 GHz)                       : 759 us
+ *     Apple M1 Mac Mini 2020 (3.2 GHz)               :  ? us
+ *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) : 59 us
+ *     Raspberry Pi 5 (2.4 GHz)                       :  ? us
+ *     Raspberry Pi 4 (1.8 GHz)                       :  ? us
  */
 
 #include <stdio.h>   // fopen, fclose, fgets, printf
-#include <stdlib.h>  // qsort
+#include <string.h>  // memset
+#include <stdbool.h>
 #include "../startstoptimer.h"
 
 #define NAME "../aocinput/2023-04-input.txt"
@@ -27,17 +28,7 @@
 #define N (NWIN + NHAVE)  // total amount of numbers on one card
 
 static int copies[CARDS];
-static int numbers[N];
-
-// Sort int array ascending
-static int asc(const void* p, const void* q)
-{
-    const int a = *(const int*)p;
-    const int b = *(const int*)q;
-    if (a < b) return -1;
-    if (a > b) return  1;
-    return 0;
-}
+static bool win[128];
 
 // Convert 1 or 2 digits to number (' ' & 15 = 0, so leading space is fine)
 static inline int readnum(const char* s)
@@ -56,19 +47,14 @@ int main(void)
     char buf[128];  // every line is 116 chars + '\n\0'
     while (card < CARDS && fgets(buf, sizeof buf, f)) {  // read one line at a time
         char* s = buf + 10;  // skip to first winning number
+        memset(win, 0, sizeof win);
         for (int i = 0; i < NWIN; ++i, s += 3)  // read winning numbers
-            numbers[i] = readnum(s);
-        s += 2;  // skip divider
-        for (int i = NWIN; i < N; ++i, s += 3)  // read numbers "you have"
-            numbers[i] = readnum(s);
+            win[readnum(s)] = true;
 
+        s += 2;  // skip divider
         int match = 0;  // matching number count = intersect(win,have).length
-        qsort(numbers, N, sizeof *numbers, asc);
-        for (int i = 1; i < N; ++i)
-            if (numbers[i] == numbers[i - 1]) {
-                ++match;
-                ++i;  // can't have more than two consecutive matching numbers
-            }
+        for (int i = NWIN; i < N; ++i, s += 3)  // read numbers "you have"
+            match += win[readnum(s)];
 
         part1 += match ? (1 << (match - 1)) : 0;  // score for current card
         part2 += ++copies[card];  // count original card as one more copy
