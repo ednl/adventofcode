@@ -3,10 +3,22 @@
  * Day 4: Scratchcards
  * https://adventofcode.com/2023/day/4
  * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *    clang -std=gnu17 -Ofast -march=native -Wall -Wextra 04.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wextra 04.c ../startstoptimer.c
+ * Get minimum runtime:
+ *     m=999999;for((i=0;i<2000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
+ * Minimum runtime:
+ *     Apple M1 Mac Mini 2020 (3.2 GHz)               :   ? us
+ *     Raspberry Pi 5 (2.4 GHz)                       :   ? us
+ *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) : 322 us
+ *     Raspberry Pi 4 (1.8 GHz)                       :   ? us
  */
 
-#include <stdio.h>    // fopen, fclose, printf
-#include <stdlib.h>   // qsort
+#include <stdio.h>   // fopen, fclose, fgets, printf
+#include <stdlib.h>  // qsort
+#include "../startstoptimer.h"
 
 #define NAME "../aocinput/2023-04-input.txt"
 #define CARDS 202         // number of lines (cards) in input
@@ -35,6 +47,7 @@ static inline int readnum(const char* s)
 
 int main(void)
 {
+    starttimer();
     FILE* f = fopen(NAME, "r");
     if (!f)
         return 1;
@@ -66,7 +79,7 @@ int main(void)
         ++card;
     }
     fclose(f);
-
     printf("%d %d\n", part1, part2);  // 24733 5422730
+    printf("Time: %.0f us\n", stoptimer_us());
     return 0;
 }
