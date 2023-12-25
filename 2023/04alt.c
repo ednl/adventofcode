@@ -16,19 +16,21 @@
  *     Raspberry Pi 4 (1.8 GHz)                       : 124 µs
  */
 
-#include <stdio.h>   // fopen, fclose, fgets, printf
-#include <string.h>  // memset
-#include <stdbool.h>
+#include <stdio.h>    // fopen, fclose, fgets, printf
+#include <string.h>   // memset
+#include <stdbool.h>  // bool
 #include "../startstoptimer.h"
 
 #define NAME "../aocinput/2023-04-input.txt"
-#define CARDS 202         // number of lines (cards) in input
-#define NWIN   10         // winning numbers on one card
-#define NHAVE  25         // numbers "you have" on one card
-#define N (NWIN + NHAVE)  // total amount of numbers on one card
+#define N 202  // lines (cards) in input
 
-static int copies[CARDS];
-static bool win[128];
+static bool win[100];  // numbers in range [0..99]
+static int copies[N];
+
+static int min(const int a, const int b)
+{
+    return a < b ? a : b;
+}
 
 // Convert 1 or 2 digits to number (' ' & 15 = 0, so leading space is fine)
 static inline int readnum(const char* s)
@@ -40,29 +42,27 @@ int main(void)
 {
     starttimer();
     FILE* f = fopen(NAME, "r");
-    if (!f)
-        return 1;
+    if (!f) { fputs("File not found.\n", stderr); return 1; }
 
-    int part1 = 0, part2 = 0, card = 0;  // card = zero-based index
+    int part1 = 0, part2 = 0;
     char buf[128];  // every line is 116 chars + '\n\0'
-    while (card < CARDS && fgets(buf, sizeof buf, f)) {  // read one line at a time
-        char* s = buf + 10;  // skip to first winning number
-        memset(win, 0, sizeof win);
-        for (int i = 0; i < NWIN; ++i, s += 3)  // read winning numbers
-            win[readnum(s)] = true;
+    for (int card = 0; fgets(buf, sizeof buf, f); ) {  // read one line at a time
+        memset(win, 0, sizeof win);    // reset winning number scoring
+        char* s = buf + 10;            // skip to first winning number
+        for (; *s != '|'; s += 3)      // until '|', skip to next winning number
+            win[readnum(s)] = true;    // mark as winning number
 
-        s += 2;  // skip divider
-        int match = 0;  // matching number count = intersect(win,have).length
-        for (int i = NWIN; i < N; ++i, s += 3)  // read numbers "you have"
-            match += win[readnum(s)];
+        int match = 0;                 // how many winning numbers I have on this card
+        for (s += 2; *s; s += 3)       // skip divider, until '\0', skip to next number I have
+            match += win[readnum(s)];  // match numbers I have with winning
 
         part1 += match ? (1 << (match - 1)) : 0;  // score for current card
-        part2 += ++copies[card];  // count original card as one more copy
+        const int add = ++copies[card];  // count original card as one more copy
+        part2 += add;
 
-        const int m = card + match + 1;  // 1 past maximum index of extra copies to add
-        for (int i = card + 1; i < m && i < CARDS; ++i)  // add extra copies
-            copies[i] += copies[card];
-        ++card;
+        const int lim = min(++card + match, N);  // 1 past maximum index of extra copies to add
+        for (int i = card; i < lim; ++i)  // add extra copies
+            copies[i] += add;
     }
     fclose(f);
     printf("%d %d\n", part1, part2);  // 24733 5422730
