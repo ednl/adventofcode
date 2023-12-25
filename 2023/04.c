@@ -13,7 +13,7 @@
  *     Apple M1 Mac Mini 2020 (3.2 GHz)               :   ? us
  *     Raspberry Pi 5 (2.4 GHz)                       :   ? us
  *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) : 322 us
- *     Raspberry Pi 4 (1.8 GHz)                       :   ? us
+ *     Raspberry Pi 4 (1.8 GHz)                       : 759 us
  */
 
 #include <stdio.h>   // fopen, fclose, fgets, printf
