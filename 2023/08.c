@@ -10,10 +10,10 @@
  * Get minimum runtime:
  *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
- *     Apple M1 Mac Mini 2020 (3.2 GHz)               :    ? µs
- *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) :  488 µs
- *     Raspberry Pi 5 (2.4 GHz)                       :    ? µs
- *     Raspberry Pi 4 (1.8 GHz)                       :    ? µs
+ *     Apple M1 Mac Mini 2020 (3.2 GHz)               : 435 µs
+ *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) : 488 µs
+ *     Raspberry Pi 5 (2.4 GHz)                       : 556 µs
+ *     Raspberry Pi 4 (1.8 GHz)                       : 997 µs
  */
 
 #include <stdio.h>     // fopen, fclose, fgets, fgetc, printf, fputc, puts
@@ -173,9 +173,10 @@ int main(void)
     qsort(node, NODES, sizeof *node, node_asc);  // *node is an int[3] so size is 12
 
     // Transform next node numbers to index of node array
-    for (int j = 1; j < 3; ++j)
-        for (int i = 0; i < NODES; ++i)
-            node[i][j] = nodeindex(node[i][j]);
+    for (int i = 0; i < NODES; ++i) {
+        node[i][1] = nodeindex(node[i][1]);
+        node[i][2] = nodeindex(node[i][2]);
+    }
 
     #ifdef DEBUG
     printf("\n");
