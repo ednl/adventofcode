@@ -10,10 +10,10 @@
  * Get minimum runtime:
  *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
- *     Apple M1 Mac Mini 2020 (3.2 GHz)               : 435 µs
+ *     Apple M1 Mac Mini 2020 (3.2 GHz)               : 432 µs
  *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) : 488 µs
  *     Raspberry Pi 5 (2.4 GHz)                       : 556 µs
- *     Raspberry Pi 4 (1.8 GHz)                       : 997 µs
+ *     Raspberry Pi 4 (1.8 GHz)                       : 993 µs
  */
 
 #include <stdio.h>     // fopen, fclose, fgets, fgetc, printf, fputc, puts
