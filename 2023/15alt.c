@@ -10,9 +10,9 @@
  * Get minimum runtime:
  *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
- *     Apple M1 Mac Mini 2020 (3.2 GHz)               :    ? µs
- *     Raspberry Pi 5 (2.4 GHz)                       :    ? µs
+ *     Apple M1 Mac Mini 2020 (3.2 GHz)               :  370 µs
  *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) :  623 µs
+ *     Raspberry Pi 5 (2.4 GHz)                       :  785 µs
  *     Raspberry Pi 4 (1.8 GHz)                       : 1789 µs
  */
 
@@ -51,6 +51,16 @@ static int makelabel(const int64_t id, char* buf)
     return len;
 }
 
+static void show(int n)
+{
+    char buf[8];
+    for (int i = 0; i < n; ++i)
+        if (step[i].box < 4) {
+            makelabel(step[i].id, buf);
+            printf("%2d: ord=%2d box=%d [%s %d]\n", i, step[i].ord, step[i].box, buf, step[i].focal);
+        }
+}
+
 static int cmp_id_ord(const void* p, const void* q)
 {
     const Step* const a = p;
@@ -73,26 +83,16 @@ static int cmp_box_ord(const void* p, const void* q)
     return 0;
 }
 
-static void show(int n)
-{
-    char buf[8];
-    for (int i = 0; i < n; ++i)
-        if (step[i].box < 4) {
-            makelabel(step[i].id, buf);
-            printf("%2d: ord=%2d box=%d [%s %d]\n", i, step[i].ord, step[i].box, buf, step[i].focal);
-        }
-}
-
 int main(void)
 {
     starttimer();
     FILE* f = fopen(NAME, "r");
-    if (!f)
-        return 1;
+    if (!f) { fputs("File not found.\n", stderr); return 1; }
+
     char* line = NULL;
     size_t bufsz;
     ssize_t len;
-    if ((len = getline(&line, &bufsz, f)) < 1)
+    if ((len = getline(&line, &bufsz, f)) < 1)  // read whole file (one line) at once
         return 2;
     fclose(f);
     line[--len] = '\0';  // remove newline, now 2x '\0' in a row
@@ -107,13 +107,13 @@ int main(void)
             hash += *s++;
             hash *= 17;
         }
-        hash &= 0xff;  // box number
+        hash &= 0xff;  // box number for part 2
         if (*s == '-') {
             step[count] = (Step){id, count, hash, 0};
-            hash = hash * 17 + 253;  // add '-' to hash
+            hash = hash * 17 + 253;  // add '-' to hash for part 1
         } else if (*s == '=') {
             step[count] = (Step){id, count, hash, *(++s) & 15};
-            hash = hash * 33 + *s * 17 + 221;  // add '=' and focal length to hash
+            hash = hash * 33 + *s * 17 + 221;  // add '=' and focal length to hash for part 1
         }
         part1 += (hash & 0xff);
         ++count;

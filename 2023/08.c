@@ -3,12 +3,24 @@
  * Day 8: Haunted Wasteland
  * https://adventofcode.com/2023/day/8
  * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *    clang -std=gnu17 -Ofast -march=native -Wall -Wextra 08.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wextra 08.c ../startstoptimer.c
+ * Get minimum runtime:
+ *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
+ * Minimum runtime:
+ *     Apple M1 Mac Mini 2020 (3.2 GHz)               :    ? µs
+ *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) :  488 µs
+ *     Raspberry Pi 5 (2.4 GHz)                       :    ? µs
+ *     Raspberry Pi 4 (1.8 GHz)                       :    ? µs
  */
 
 #include <stdio.h>     // fopen, fclose, fgets, fgetc, printf, fputc, puts
 #include <stdlib.h>    // qsort
 #include <stdint.h>    // int64_t
 #include <inttypes.h>  // PRId64
+#include "../startstoptimer.h"
 
 #define EXAMPLE 0
 #if EXAMPLE
@@ -29,12 +41,12 @@
 #else
     // #define DEBUG  // uncomment or compile with -DDEBUG
     #define NAME "../aocinput/2023-08-input.txt"
-    #define LR    293
-    #define NODES 786
+    #define LR    293  // number of LR instructions
+    #define NODES 786  // number of nodes, each with two neighbours
 #endif
 
-static char lr[LR + 1];  // +'\0'
-static int node[NODES][3];
+static char lr[LR + 1];  // +1 for '\0'
+static int node[NODES][3];  // each node consists of 3 IDs (hashes of node names)
 
 // Greatest Common Divisor
 static int64_t gcd(int64_t a, int64_t b)
@@ -65,12 +77,12 @@ static int node_asc(const void *p, const void *q)
     return 0;
 }
 
-// Convert 3 chars to int ("hash value")
+// Convert 3 chars to int ID ("hash value")
 static int str2int(const char* s)
 {
     int n = 0;
     for (int i = 0; i < 3; ++i)
-        n = (n << 8) + *s++;  // store chars in bytes, first char in MSByte
+        n = (n << 8) + *s++;  // store chars in bytes, first char ends up in MSByte
     return n;
 }
 
@@ -121,11 +133,12 @@ static int walk(int i)
 
 int main(void)
 {
+    starttimer();
     FILE* f = fopen(NAME, "r");
     if (!f)
         return 1;
-    fgets(lr, sizeof lr, f);  // one long line of LR instructions
-    fgetc(f); fgetc(f);  // empty line
+    fgets(lr, sizeof lr, f);  // one long line of LR instructions, excludes '\n'
+    fgetc(f); fgetc(f);  // newline, empty line
     char buf[32];
     for (int i = 0; i < NODES; ++i) {
         fgets(buf, sizeof buf, f);       // read whole line
@@ -141,7 +154,7 @@ int main(void)
 
     // Transform LR instructions from ['L','R'] to [1,2] (=index into node entry)
     for (int i = 0; i < LR; ++i)
-        lr[i] = (char)(1 + (lr[i] >> 1 & 1));  // 'L'=0b1001100 => 1, 'R'=0b1010010 => 2
+        lr[i] = (char)(lr[i] >> 3 & 3);  // 'L'=0b1001100 => 1, 'R'=0b1010010 => 2
 
     #ifdef DEBUG
     for (int i = 0; i < NODES; ++i) {
@@ -184,7 +197,7 @@ int main(void)
             printf("%d: len=%d lcm=%"PRId64"\n", i, walk(i), part2);
             #endif
         }
-
     printf("Part 2: %"PRId64"\n", part2);  // ex1: 2, ex2: 6, ex3: 6, input: 21003205388413
+    printf("Time: %.0f us\n", stoptimer_us());
     return 0;
 }
