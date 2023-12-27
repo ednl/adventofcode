@@ -3,19 +3,34 @@
  * Day 9: Mirage Maintenance
  * https://adventofcode.com/2023/day/9
  * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *    clang -std=gnu17 -Ofast -march=native -Wall -Wextra 09.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wextra 09.c ../startstoptimer.c
+ * Get minimum runtime:
+ *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
+ * Minimum runtime:
+ *     Apple M1 Mac Mini 2020 (3.2 GHz)               :  313 µs
+ *     Raspberry Pi 5 (2.4 GHz)                       :  633 µs
+ *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) :  637 µs
+ *     Raspberry Pi 4 (1.8 GHz)                       : 1788 µs
  */
 
 #include <stdio.h>   // fopen, fclose, fscanf, printf
+#include "../startstoptimer.h"
 
 #define NAME "../aocinput/2023-09-input.txt"
-#define N 200  // sensors
-#define M  21  // measurements
+#define N 200  // sensors (lines in input file)
+#define M  21  // measurements (numbers per line)
 
 static int data[N][M][M];  // second dimension is for difference table
 
 int main(void)
 {
+    starttimer();
     FILE* f = fopen(NAME, "r");
+    if (!f) { fputs("File not found.\n", stderr); return 1; }
+
     for (int i = 0; i < N; ++i)
         for (int j = 0; j < M; ++j)
             fscanf(f, "%d", &data[i][0][j]);  // measurements in row 0 of difference table
@@ -34,5 +49,6 @@ int main(void)
     }
 
     printf("%d %d\n", part1, part2);  // 1861775706, 1082
+    printf("Time: %.0f us\n", stoptimer_us());
     return 0;
 }
