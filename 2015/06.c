@@ -14,7 +14,7 @@
  *     Raspberry Pi 5 (2.4 GHz)                         :    ? µs
  *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz)         :    ? µs
  *     Raspberry Pi 4 (1.8 GHz)                         :    ? µs
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 4852 µs
+ *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 4843 µs
  */
 
 #include <stdio.h>
@@ -30,9 +30,9 @@ typedef struct range {
 static int8_t lights1[N][N];
 static int8_t lights2[N][N];
 
-static int8_t max(const int8_t a, const int8_t b)
+static int8_t notneg(const int8_t a)
 {
-    return a > b ? a : b;
+    return a > 0 ? a : 0;
 }
 
 static int readnum(const char** s)
@@ -52,7 +52,7 @@ static Range parse(const char* s)
     int c = readnum(&s);
     s += 1;  // skip comma
     int d = readnum(&s);
-    return (Range){a,b,c,d};
+    return (Range){a, b, c + 1, d + 1};
 }
 
 int main(void)
@@ -67,24 +67,24 @@ int main(void)
         switch (buf[6]) {  // first unique char for each action
             case 'n':  // turn on
                 r = parse(buf + 8);
-                for (int i = r.x0; i <= r.x1; ++i)
-                    for (int j = r.y0; j <= r.y1; ++j) {
+                for (int i = r.x0; i < r.x1; ++i)
+                    for (int j = r.y0; j < r.y1; ++j) {
                         lights1[i][j] = 1;
                         lights2[i][j] += 1;
                     }
                 break;
             case 'f':  // turn off
                 r = parse(buf + 9);
-                for (int i = r.x0; i <= r.x1; ++i)
-                    for (int j = r.y0; j <= r.y1; ++j) {
+                for (int i = r.x0; i < r.x1; ++i)
+                    for (int j = r.y0; j < r.y1; ++j) {
                         lights1[i][j] = 0;
-                        lights2[i][j] = max(0, lights2[i][j] - 1);
+                        lights2[i][j] = notneg(lights2[i][j] - 1);
                     }
                 break;
             case ' ':  // toggle
                 r = parse(buf + 7);
-                for (int i = r.x0; i <= r.x1; ++i)
-                    for (int j = r.y0; j <= r.y1; ++j) {
+                for (int i = r.x0; i < r.x1; ++i)
+                    for (int j = r.y0; j < r.y1; ++j) {
                         lights1[i][j] ^= 1;
                         lights2[i][j] += 2;
                     }
