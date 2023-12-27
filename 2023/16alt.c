@@ -3,67 +3,82 @@
 #include <stdbool.h>
 
 #define N 110
-#define LIM (N + 1)  // max x/y value
+#define LIM (N + 1)  // max x/y value (min=1)
 #define DIM (N + 2)  // +border
-#define ROW (DIM + 2)  // +2='\n\0'
+#define ROW (DIM + 2)  // +2 for '\n\0'
 #define SSIZE 80
 
+typedef enum ori {
+    NONE=0, VERT, HORZ
+} Ori;
+
 typedef enum dir {
-    NONE=0, HORZ, VERT
+    NODIR=0, UP, DOWN, LEFT, RIGHT
 } Dir;
 
 typedef struct vec {
     int x, y;
 } Vec;
 
-typedef struct beam {
-    Vec pos;
-    int step;  // horz: +/-1, vert: +/-(N+2)
-    Dir dir;   // 1=horz, 2=vert
-} Beam;
+typedef struct ray {
+    Vec pos, dir;
+} Ray;
 
-static char mirror[DIM][ROW];
-static int seen[DIM][DIM];  // HORZ | VERT
-static Beam stack[SSIZE];
+static const char* dir2char = "_UDLR";
+static const Vec delta[5] = {{0,0},{0,-1},{0,1},{-1,0},{1,0}};  // _,U,D,L,R
+
+static char grid[DIM][ROW];
+static Ori seen[DIM][DIM];
+static Ray stack[SSIZE];
 static int slen, energized;
 
-static bool pop(Beam* const beam)
+static Vec turnleft(const Vec dir)
+{
+    return (Vec){-dir.y, dir.x};
+}
+
+static Vec turnright(const Vec dir)
+{
+    return (Vec){dir.y, -dir.x};
+}
+
+static bool pop(Ray* const ray)
 {
     if (!slen) return false;
-    *beam = stack[--slen];
+    *ray = stack[--slen];
     return true;
 }
 
-static bool push(const Beam beam)
+static bool push(const Ray ray)
 {
     if (slen == SSIZE) { printf("!S"); return false; }
-    stack[slen++] = beam;
+    stack[slen++] = ray;
     return true;
 }
 
-static void propagate(const Beam beam)
+static void trace(const Ray ray)
 {
-    const char* m = &mirror[beam.pos.y][beam.pos.x];
-
 }
 
 int main(void)
 {
     FILE* f = fopen("../aocinput/2023-16-input.txt", "r");
+    if (!f) { fputs("File not found.\n", stderr); return 1; }
+
     for (int i = 0; i < N; ++i)
-        fgets(&mirror[i + 1][1], N + 2, f);
+        fgets(&grid[i + 1][1], N + 2, f);
     fclose(f);
-    memset(mirror[0], '#', N + 2);
-    memset(mirror[N + 1], '#', N + 2);
+    memset(grid[0], '#', N + 2);
+    memset(grid[N + 1], '#', N + 2);
     for (int i = 0; i < N + 2; ++i) {
-        mirror[i][0] = '#';
-        mirror[i][N + 1] = '#';
-        mirror[i][N + 2] = '\n';
-        mirror[i][N + 3] = '\0';
+        grid[i][0] = '#';
+        grid[i][N + 1] = '#';
+        grid[i][N + 2] = '\n';
+        grid[i][N + 3] = '\0';
     }
 
     for (int i = 0; i < N + 2; ++i)
-        printf("%s", mirror[i]);
+        printf("%s", grid[i]);
 
     return 0;
 }
