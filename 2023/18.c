@@ -60,12 +60,12 @@ int main(void)
 {
     starttimer();
     FILE* f = fopen(NAME, "r");
-    if (!f)
-        return 1;
+    if (!f) { fputs("File not found.\n", stderr); return 1; }
+
     char c;
     for (int i = 0, k, x; i < N && fscanf(f, " %c %2d (#%6x)", &c, &k, &x) == 3; ++i) {
-        trench[0][i] = (Dig){char2dir(c), k};
-        trench[1][i] = (Dig){x & 3, x >> 4};
+        trench[0][i] = (Dig){char2dir(c), k};  // digging instructions for part 1
+        trench[1][i] = (Dig){x & 3, x >> 4};   // digging instructions for part 2
     }
     fclose(f);
 
@@ -80,7 +80,7 @@ int main(void)
     #endif
 
     const Dig* t = &trench[0][0];
-    for (int p = 1; p < 3; ++p) {  // parts 1 & 2
+    for (int part = 1; part <= 2; ++part) {
         int64_t x = 0, y = 0, a = 0, b = 0;  // position, area, border
         for (int i = 0; i < N; ++i, ++t) {
             switch (t->dir) {
@@ -91,9 +91,11 @@ int main(void)
             }
             b += t->len;
         }
-        // example: 62 952408144115, input: 46334 102000662718092
-        printf("Part %d: %"PRId64"\n", p, (a > 0 ? a : -a) + b/2 + 1);
+        // example:    62    952408144115
+        // input  : 46334 102000662718092
+        printf("Part %d: %"PRId64"\n", part, (a > 0 ? a : -a) + b/2 + 1);
     }
+
     printf("Time: %.0f us\n", stoptimer_us());
     return 0;
 }
