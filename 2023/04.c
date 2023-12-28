@@ -49,8 +49,7 @@ int main(void)
 {
     starttimer();
     FILE* f = fopen(NAME, "r");
-    if (!f)
-        return 1;
+    if (!f) { fputs("File not found.\n", stderr); return 1; }
 
     int part1 = 0, part2 = 0, card = 0;  // card = zero-based index
     char buf[128];  // every line is 116 chars + '\n\0'

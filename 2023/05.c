@@ -56,8 +56,8 @@ static i64 convert1(i64 src)
 int main(void)
 {
     FILE* f = fopen(NAME, "r");
-    if (!f)
-        return 1;
+    if (!f) { fputs("File not found.\n", stderr); return 1; }
+
     while (fgetc(f) != ':');  // skip to first seed number
     for (int i = 0; i < SEEDS; ++i)  // read seed numbers
         fscanf(f, "%"PRId64, &seed[i]);

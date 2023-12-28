@@ -51,8 +51,8 @@ int main(void)
 {
     starttimer();
     FILE* f = fopen(NAME, "r");
-    if (!f)
-        return 1;
+    if (!f) { fputs("File not found.\n", stderr); return 1; }
+
     for (int i = 0; i < N; ++i)
         fgets(image[i], sizeof *image, f);
     fclose(f);

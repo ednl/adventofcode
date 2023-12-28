@@ -122,8 +122,8 @@ static int gearratio(const int r, const int c)
 int main(void)
 {
     FILE* f = fopen(FNAME, "r");
-    if (!f)
-        return 1;
+    if (!f) { fputs("File not found.\n", stderr); return 1; }
+
     memset(schematic, '.', sizeof schematic);  // init including padding
     for (int i = 1; i <= N; ++i) {
         fgets(schematic[i] + 1, N + 2, f);

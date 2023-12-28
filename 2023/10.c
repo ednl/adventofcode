@@ -134,8 +134,8 @@ int main(void)
 {
     starttimer();
     FILE* f = fopen(NAME, "r");
-    if (!f)
-        return 1;
+    if (!f) { fputs("File not found.\n", stderr); return 1; }
+
     for (int i = 0; i < H; ++i)
         fgets(field[i], sizeof *field, f);
     fclose(f);

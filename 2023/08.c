@@ -135,8 +135,8 @@ int main(void)
 {
     starttimer();
     FILE* f = fopen(NAME, "r");
-    if (!f)
-        return 1;
+    if (!f) { fputs("File not found.\n", stderr); return 1; }
+
     fgets(lr, sizeof lr, f);  // one long line of LR instructions, excludes '\n'
     fgetc(f); fgetc(f);  // newline, empty line
     char buf[32];

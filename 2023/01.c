@@ -55,8 +55,7 @@ static void rev(char* s, const int len)
 int main(void)
 {
     FILE* f = fopen("../aocinput/2023-01-input.txt", "r");
-    if (!f)
-        return 1;
+    if (!f) { fputs("File not found.\n", stderr); return 1; }
 
     int part1 = 0, part2 = 0, len;
     char* buf = NULL;

@@ -57,8 +57,8 @@ static int64_t ways2win(int raceid)
 int main(void)
 {
     FILE* f = fopen(NAME, "r");
-    if (!f)
-        return 1;
+    if (!f) { fputs("File not found.\n", stderr); return 1; }
+
     for (int i = 0; i < L; ++i) {  // two lines
         while (fgetc(f) != ':');  // skip to first number
         for (int j = 0; j < RACES; ++j)
