@@ -52,9 +52,20 @@ static int parse_from(const int r, int* const c)
     return n;
 }
 
+// Check part number
+//   Pre: schematic[r][c] is digit, might be start of part number
+//   Post: schematic[r][c] is first char AFTER all consecutive digits
+//   Return: part number or zero
+static int partnumber(const int r, int* const c)
+{
+    int k = *c;  // save first col index of number
+    int n = parse_from(r, c);  // *c is now last col index of number
+    return symboladjacent(r, k, *c) ? n : 0;  // valid part number?
+}
+
 // Convert to number from range of digits & around
 //   Pre: schematic[r][c0..c1] are digits (might be more before or after)
-//   Return: number of all consecutive digits
+//   Return: number composed of all consecutive digits
 static int parse_around(const int r, int c0, int c1)
 {
     while (c0 > 1 && isdigit(schematic[r][c0 - 1]))
@@ -65,17 +76,6 @@ static int parse_around(const int r, int c0, int c1)
     while (c0 <= c1)
         n = n * 10 + (schematic[r][c0++] & 15);
     return n;
-}
-
-// Check part number
-//   Pre: schematic[r][c] is digit, might be start of part number
-//   Post: schematic[r][c] is first char AFTER all consecutive digits
-//   Return: part number or zero
-static int partnumber(const int r, int* const c)
-{
-    int k = *c;  // save first col index of number
-    int n = parse_from(r, c);  // *c is now last col index of number
-    return symboladjacent(r, k, *c) ? n : 0;  // valid part number?
 }
 
 // Calculate gear ratio
@@ -102,20 +102,18 @@ static int gearratio(const int r, const int c)
 
     // Parse 2 numbers and return product
     int gear[2] = {0};
-    for (int i = 0, k = r - 1, g = 0; i < 3; ++i, ++k) {
+    for (int i = 0, k = r - 1, g = 0; i < 3; ++i, ++k)
         switch (pat[i]) {
             case 0: continue;  // no numbers on this line                 000
             case 1: gear[g++] = parse_around(k, c + 1, c + 1); break;  // 001
             case 2: gear[g++] = parse_around(k, c    , c    ); break;  // 010
             case 3: gear[g++] = parse_around(k, c    , c + 1); break;  // 011
-            case 4: // fallthrough                                        100
-            case 5: gear[g++] = parse_around(k, c - 1, c - 1); break;  // 101
+            case 4: gear[g++] = parse_around(k, c - 1, c - 1); break;  // 100
+            case 5: gear[g++] = parse_around(k, c - 1, c - 1);
+                    gear[g++] = parse_around(k, c + 1, c + 1); break;  // 101
             case 6: gear[g++] = parse_around(k, c - 1, c    ); break;  // 110
             case 7: gear[g++] = parse_around(k, c - 1, c + 1); break;  // 111
         }
-        if (pat[i] == 5)  // a second number on the same line
-            gear[g++] = parse_around(k, c + 1, c + 1);
-    }
     return gear[0] * gear[1];
 }
 
