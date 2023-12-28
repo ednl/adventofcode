@@ -47,17 +47,17 @@ int main(void)
     int part1 = 0, part2 = 0;
     char buf[128];  // every line is 116 chars + '\n\0'
     for (int card = 0; fgets(buf, sizeof buf, f); ) {  // read one line at a time
-        memset(win, 0, sizeof win);    // reset winning number scoring
-        char* s = buf + 10;            // skip to first winning number
-        for (; *s != '|'; s += 3)      // until '|', skip to next winning number
-            win[readnum(s)] = true;    // mark as winning number
+        memset(win, 0, sizeof win);       // reset winning number scoring
+        char* s = buf + 10;               // skip to first winning number
+        for (; *s != '|'; s += 3)         // until '|', skip to next winning number
+            win[readnum(s)] = true;       // mark as winning number
 
-        int match = 0;                 // how many winning numbers I have on this card
-        for (s += 2; *s; s += 3)       // skip divider, until '\0', skip to next number I have
-            match += win[readnum(s)];  // match numbers I have with winning
+        int match = 0;                    // how many winning numbers I have on this card
+        for (s += 2; *s; s += 3)          // skip divider, until '\0', skip to next number I have
+            match += win[readnum(s)];     // match numbers I have with winning
 
         part1 += match ? (1 << (match - 1)) : 0;  // score for current card
-        const int add = ++copies[card];  // count original card as one more copy
+        const int add = ++copies[card];   // count original card as one more copy
         part2 += add;
 
         const int lim = min(++card + match, N);  // 1 past maximum index of extra copies to add
