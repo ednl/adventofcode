@@ -3,6 +3,17 @@
  * Day 1: Trebuchet?!
  * https://adventofcode.com/2023/day/1
  * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *    clang -std=gnu17 -Ofast -march=native -Wall -Wextra 01.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wextra 01.c ../startstoptimer.c
+ * Get minimum runtime:
+ *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
+ * Minimum runtime:
+ *     Apple M1 Mac Mini 2020 (3.2 GHz)               : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)                       : ? µs
+ *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) : 311 µs
+ *     Raspberry Pi 4 (1.8 GHz)                       : ? µs
  */
 
 #include <stdio.h>    // fopen, fclose, getline, printf
@@ -10,6 +21,7 @@
 #include <ctype.h>    // isdigit
 #include <string.h>   // strncmp
 #include <stdbool.h>  // bool
+#include "../startstoptimer.h"
 
 typedef struct Digit {
     int  val, len;
@@ -54,6 +66,7 @@ static void rev(char* s, const int len)
 
 int main(void)
 {
+    starttimer();
     FILE* f = fopen("../aocinput/2023-01-input.txt", "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
 
@@ -73,5 +86,6 @@ int main(void)
     free(buf);
 
     printf("Part 1: %d\nPart 2: %d\n", part1, part2);  // example: 209 281, input: 54630 54770
+    printf("Time: %.0f us\n", stoptimer_us());
     return 0;
 }
