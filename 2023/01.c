@@ -12,44 +12,49 @@
  * Minimum runtime:
  *     Apple M1 Mac Mini 2020 (3.2 GHz)               : ? µs
  *     Raspberry Pi 5 (2.4 GHz)                       : ? µs
- *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) : 311 µs
+ *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) : 213 µs
  *     Raspberry Pi 4 (1.8 GHz)                       : ? µs
  */
 
 #include <stdio.h>    // fopen, fclose, getline, printf
 #include <stdlib.h>   // free
-#include <ctype.h>    // isdigit
 #include <string.h>   // strncmp
 #include <stdbool.h>  // bool
 #include "../startstoptimer.h"
 
-typedef struct Digit {
-    int  val, len;
-    char name[2][8];
-} Digit;
-
-// Reverse name to search reversed line
-static const Digit digit[] = {
-    {1, 3, {"one"  ,   "eno"}},
-    {6, 3, {"six"  ,   "xis"}},
-    {2, 3, {"two"  ,   "owt"}},
-    {5, 4, {"five" ,  "evif"}},
-    {4, 4, {"four" ,  "ruof"}},
-    {9, 4, {"nine" ,  "enin"}},
-    {8, 5, {"eight", "thgie"}},
-    {7, 5, {"seven", "neves"}},
-    {3, 5, {"three", "eerht"}},
-};
-
-static int firstdigit(const char* const msg, const int len, const bool words, const bool reversed)
+static int firstdigit(const char* s, const bool words, const bool reversed)
 {
-    for (int i = 0; i < len; ++i) {
-        if (isdigit(msg[i]))
-            return msg[i] - '0';
+    while (*s) {
+        if (*s >= '1' && *s <= '9')
+            return *s & 15;
         if (words)
-            for (int j = 0; j < (int)(sizeof digit / sizeof *digit); ++j)
-                if (!strncmp(&msg[i], digit[j].name[reversed], (size_t)digit[j].len))
-                    return digit[j].val;
+            if (reversed) {
+                switch (*s++) {
+                    case 'e': if (!strncmp(s, "no"  , 2)) return 1;         // 1
+                              if (!strncmp(s, "erht", 4)) return 3;         // 3
+                              if (!strncmp(s, "vif" , 3)) return 5;         // 5
+                              if (!strncmp(s, "nin" , 3)) return 9; break;  // 9
+                    case 'o': if (!strncmp(s, "wt"  , 2)) return 2; break;  // 2
+                    case 'r': if (!strncmp(s, "uof" , 3)) return 4; break;  // 4
+                    case 'x': if (!strncmp(s, "is"  , 2)) return 6; break;  // 6
+                    case 'n': if (!strncmp(s, "eves", 4)) return 7; break;  // 7
+                    case 't': if (!strncmp(s, "hgie", 4)) return 8; break;  // 8
+                }
+            } else {
+                switch (*s++) {
+                    case 'o': if (!strncmp(s, "ne"  , 2)) return 1; break;  // 1
+                    case 't': if (!strncmp(s, "wo"  , 2)) return 2;         // 2
+                              if (!strncmp(s, "hree", 4)) return 3; break;  // 3
+                    case 'f': if (!strncmp(s, "our" , 3)) return 4;         // 4
+                              if (!strncmp(s, "ive",  3)) return 5; break;  // 5
+                    case 's': if (!strncmp(s, "ix"  , 2)) return 6;         // 6
+                              if (!strncmp(s, "even", 4)) return 7; break;  // 7
+                    case 'e': if (!strncmp(s, "ight", 4)) return 8; break;  // 8
+                    case 'n': if (!strncmp(s, "ine" , 3)) return 9; break;  // 9
+                }
+            }
+        else
+            ++s;
     }
     return 0;
 }
@@ -76,11 +81,11 @@ int main(void)
     // fgets is simpler but would need another strlen()
     while ((len = (int)getline(&buf, &bufsz, f)) > 1) {
         buf[--len] = '\0';  // remove newline
-        part1 += firstdigit(buf, len, 0, 0) * 10;
-        part2 += firstdigit(buf, len, 1, 0) * 10;
+        part1 += firstdigit(buf, 0, 0) * 10;
+        part2 += firstdigit(buf, 1, 0) * 10;
         rev(buf, len);
-        part1 += firstdigit(buf, len, 0, 1);
-        part2 += firstdigit(buf, len, 1, 1);
+        part1 += firstdigit(buf, 0, 1);
+        part2 += firstdigit(buf, 1, 1);
     }
     fclose(f);
     free(buf);
