@@ -162,7 +162,7 @@ int main(void)
         i64 dst, src, len;
         while (map[i].len < CONVS && fscanf(f, "%"PRId64" %"PRId64" %"PRId64, &dst, &src, &len) == 3)
             map[i].conv[map[i].len++] = (Conv){src, src + len, dst - src};
-        qsort(map[i].conv, map[i].len, sizeof (Conv), lo_asc);  // sort to enable binsearch
+        qsort(map[i].conv, map[i].len, sizeof (Conv), lo_asc);  // sort to enable l-r search
         while (!feof(f) && fgetc(f) != ':');  // skip to first conversion of next map
     }
     fclose(f);
