@@ -16,6 +16,7 @@ typedef struct Digit {
     char name[2][8];
 } Digit;
 
+// Reverse name to search reversed line
 static const Digit digit[] = {
     {1, 3, {"one"  ,   "eno"}},
     {6, 3, {"six"  ,   "xis"}},
@@ -41,13 +42,13 @@ static int firstdigit(const char* const msg, const int len, const bool words, co
     return 0;
 }
 
-static void rev(char* const s, const int len)
+static void rev(char* s, const int len)
 {
-    char *p = s, *q = s + len - 1;
-    while (p < q) {
-        char c = *p;
-        *p++ = *q;
-        *q-- = c;
+    char *t = s + len - 1;
+    while (s < t) {
+        char c = *s;
+        *s++ = *t;
+        *t-- = c;
     }
 }
 
@@ -60,6 +61,7 @@ int main(void)
     int part1 = 0, part2 = 0, len;
     char* buf = NULL;
     size_t bufsz;
+    // fgets is simpler but would need another strlen()
     while ((len = (int)getline(&buf, &bufsz, f)) > 1) {
         buf[--len] = '\0';  // remove newline
         part1 += firstdigit(buf, len, 0, 0) * 10;
