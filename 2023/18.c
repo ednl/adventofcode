@@ -35,12 +35,12 @@
 #endif
 
 typedef enum dir {
-    RIGHT, DOWN, LEFT, UP
+    RIGHT=0, DOWN, LEFT, UP
 } Dir;
 
 typedef struct dig {
-    Dir dir;
-    int len;
+    Dir dir;  // R=0,D,L,U
+    int len;  // must hold 20-bit number for part 2
 } Dig;
 
 static Dig trench[2][N];  // two different trenches for parts 1 & 2
@@ -65,7 +65,7 @@ int main(void)
     char c;
     for (int i = 0, k, x; i < N && fscanf(f, " %c %2d (#%6x)", &c, &k, &x) == 3; ++i) {
         trench[0][i] = (Dig){char2dir(c), k};  // digging instructions for part 1
-        trench[1][i] = (Dig){x & 3, x >> 4};   // digging instructions for part 2
+        trench[1][i] = (Dig){x & 3, x >> 4};   // last hex digit of x: 0=R,1=D,2=L,3=U
     }
     fclose(f);
 
@@ -83,14 +83,19 @@ int main(void)
     for (int part = 1; part <= 2; ++part) {
         int64_t x = 0, y = 0, a = 0, b = 0;  // position, area, border
         for (int i = 0; i < N; ++i, ++t) {
+            // Shoelace: A = 1/2 . sum((y[i] + y[i+1]).(x[i] - x[i+1]))
+            // For two points on horizontal line: y[i] = y[i+1] = 2y
+            // For two points on vertical line: x[i] = x[i+1], so x[i] - x[i+1] = 0
+            // Bring the 1/2 in the sum: A = sum(y.dx) for horizontal lines only
             switch (t->dir) {
-                case RIGHT: x += t->len; a -= y * t->len; break;  // pos. oriented, but y=-y
+                case RIGHT: x += t->len; a -= y * t->len; break;
                 case DOWN : y += t->len; break;
                 case LEFT : x -= t->len; a += y * t->len; break;
                 case UP   : y -= t->len; break;
             }
             b += t->len;
         }
+        // Pick: i = A - b/2 + 1, but add border b
         // example:    62    952408144115
         // input  : 46334 102000662718092
         printf("Part %d: %"PRId64"\n", part, (a > 0 ? a : -a) + b/2 + 1);
