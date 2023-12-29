@@ -84,7 +84,7 @@ int main(void)
         int64_t x = 0, y = 0, a = 0, b = 0;  // position, area, border
         for (int i = 0; i < N; ++i, ++t) {
             // Shoelace: A = 1/2 . sum((y[i] + y[i+1]).(x[i] - x[i+1]))
-            // For two points on horizontal line: y[i] = y[i+1] = 2y
+            // For two points on horizontal line: y[i] = y[i+1], so y[i] + y[i+1] = 2y
             // For two points on vertical line: x[i] = x[i+1], so x[i] - x[i+1] = 0
             // Bring the 1/2 in the sum: A = sum(y.dx) for horizontal lines only
             switch (t->dir) {
