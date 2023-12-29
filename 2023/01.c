@@ -12,7 +12,7 @@
  * Minimum runtime:
  *     Apple M1 Mac Mini 2020 (3.2 GHz)               : 132 µs
  *     Raspberry Pi 5 (2.4 GHz)                       : 170 µs
- *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) : 213 µs
+ *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) : 199 µs
  *     Raspberry Pi 4 (1.8 GHz)                       : 370 µs
  */
 
@@ -21,43 +21,6 @@
 #include <string.h>   // strncmp
 #include <stdbool.h>  // bool
 #include "../startstoptimer.h"
-
-static int firstdigit(const char* s, const bool words, const bool reversed)
-{
-    while (*s) {
-        if (*s >= '1' && *s <= '9')
-            return *s & 15;
-        if (words)
-            if (reversed) {
-                switch (*s++) {
-                    case 'e': if (!strncmp(s, "no"  , 2)) return 1;         // 1
-                              if (!strncmp(s, "erht", 4)) return 3;         // 3
-                              if (!strncmp(s, "vif" , 3)) return 5;         // 5
-                              if (!strncmp(s, "nin" , 3)) return 9; break;  // 9
-                    case 'o': if (!strncmp(s, "wt"  , 2)) return 2; break;  // 2
-                    case 'r': if (!strncmp(s, "uof" , 3)) return 4; break;  // 4
-                    case 'x': if (!strncmp(s, "is"  , 2)) return 6; break;  // 6
-                    case 'n': if (!strncmp(s, "eves", 4)) return 7; break;  // 7
-                    case 't': if (!strncmp(s, "hgie", 4)) return 8; break;  // 8
-                }
-            } else {
-                switch (*s++) {
-                    case 'o': if (!strncmp(s, "ne"  , 2)) return 1; break;  // 1
-                    case 't': if (!strncmp(s, "wo"  , 2)) return 2;         // 2
-                              if (!strncmp(s, "hree", 4)) return 3; break;  // 3
-                    case 'f': if (!strncmp(s, "our" , 3)) return 4;         // 4
-                              if (!strncmp(s, "ive",  3)) return 5; break;  // 5
-                    case 's': if (!strncmp(s, "ix"  , 2)) return 6;         // 6
-                              if (!strncmp(s, "even", 4)) return 7; break;  // 7
-                    case 'e': if (!strncmp(s, "ight", 4)) return 8; break;  // 8
-                    case 'n': if (!strncmp(s, "ine" , 3)) return 9; break;  // 9
-                }
-            }
-        else
-            ++s;
-    }
-    return 0;
-}
 
 static void rev(char* s, const int len)
 {
@@ -78,14 +41,49 @@ int main(void)
     int part1 = 0, part2 = 0, len;
     char* buf = NULL;
     size_t bufsz;
-    // fgets is simpler but would need another strlen()
+    // fgets is simpler but would need another strlen() to reverse
     while ((len = (int)getline(&buf, &bufsz, f)) > 1) {
         buf[--len] = '\0';  // remove newline
-        part1 += firstdigit(buf, 0, 0) * 10;
-        part2 += firstdigit(buf, 1, 0) * 10;
+
+        char* s = buf;
+        while (*s > '9') ++s;  // every line has at least one numerical digit
+        int num = (*s & 15) * 10;
+        int val = 0;
+        for (char* t = buf; t < s - 2 && !val; )
+            switch (*t++) {
+                case 'o': if (!strncmp(t, "ne"  , 2)) val = 10; break;  // 1
+                case 't': if (!strncmp(t, "wo"  , 2)) val = 20; else    // 2
+                          if (!strncmp(t, "hree", 4)) val = 30; break;  // 3
+                case 'f': if (!strncmp(t, "our" , 3)) val = 40; else    // 4
+                          if (!strncmp(t, "ive",  3)) val = 50; break;  // 5
+                case 's': if (!strncmp(t, "ix"  , 2)) val = 60; else    // 6
+                          if (!strncmp(t, "even", 4)) val = 70; break;  // 7
+                case 'e': if (!strncmp(t, "ight", 4)) val = 80; break;  // 8
+                case 'n': if (!strncmp(t, "ine" , 3)) val = 90; break;  // 9
+            }
+        part1 += num;
+        part2 += val ? val : num;
+
         rev(buf, len);
-        part1 += firstdigit(buf, 0, 1);
-        part2 += firstdigit(buf, 1, 1);
+
+        s = buf;
+        while (*s > '9') ++s;
+        num = *s & 15;
+        val = 0;
+        for (char* t = buf; t < s - 2 && !val; )
+            switch (*t++) {
+                case 'e': if (!strncmp(t, "no"  , 2)) val = 1; else    // 1
+                          if (!strncmp(t, "erht", 4)) val = 3; else    // 3
+                          if (!strncmp(t, "vif" , 3)) val = 5; else    // 5
+                          if (!strncmp(t, "nin" , 3)) val = 9; break;  // 9
+                case 'o': if (!strncmp(t, "wt"  , 2)) val = 2; break;  // 2
+                case 'r': if (!strncmp(t, "uof" , 3)) val = 4; break;  // 4
+                case 'x': if (!strncmp(t, "is"  , 2)) val = 6; break;  // 6
+                case 'n': if (!strncmp(t, "eves", 4)) val = 7; break;  // 7
+                case 't': if (!strncmp(t, "hgie", 4)) val = 8; break;  // 8
+            }
+        part1 += num;
+        part2 += val ? val : num;
     }
     fclose(f);
     free(buf);
