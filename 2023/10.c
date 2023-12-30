@@ -3,131 +3,100 @@
  * Day 10: Pipe Maze
  * https://adventofcode.com/2023/day/10
  * By: E. Dronkert https://github.com/ednl
+ *
+ * Theory:
+ *     https://en.wikipedia.org/wiki/Shoelace_formula
+ *     https://en.wikipedia.org/wiki/Pick%27s_theorem
+ *
+ * Compile:
+ *    clang -std=gnu17 -Ofast -march=native -Wall -Wextra -Wno-multichar 10.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wextra -Wno-multichar 10.c ../startstoptimer.c
+ * Get minimum runtime:
+ *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
+ * Minimum runtime:
+ *     Apple M1 Mac Mini 2020 (3.2 GHz)               :  90 µs
+ *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) : 148 µs
+ *     Raspberry Pi 5 (2.4 GHz)                       : 150 µs
+ *     Raspberry Pi 4 (1.8 GHz)                       : 361 µs
  */
 
 #include <stdio.h>    // fopen, fclose, fgets, printf
-#include <stdbool.h>  // bool
-#include "../startstoptimer.h"  // compile: "clang -std=gnu17 -Ofast -march=native 10.c ../startstoptimer.c"
+#include "../startstoptimer.h"
 
 #define EXAMPLE 0
 #if EXAMPLE
-#define NAME "../aocinput/2023-10-example.txt"
-#define W 20
-#define H 10
+    #define NAME "../aocinput/2023-10-example.txt"
+    #define W 20
+    #define H 10
 #else
-#define NAME "../aocinput/2023-10-input.txt"
-#define W 140
-#define H 140
+    #define NAME "../aocinput/2023-10-input.txt"
+    #define W 140
+    #define H 140
 #endif
+#define W2 (W + 2)  // +2 for '\n\0'
 
 typedef struct vec {
     int x, y;
 } Vec;
+typedef enum dir {
+    NONE, UP, DOWN, LEFT, RIGHT
+} Dir;
+typedef struct state {
+    Vec pos;
+    Dir dir;
+} State;
 
-static char field[H][W + 2];  // room for '\n\0'
-static bool visited[H][W];
+static const Vec delta[] = {{0,0},{0,-1},{0,1},{-1,0},{1,0}};
+static const int pdiff[] = {0, -W2, W2, -1, 1};
+static char pipe[H][W2];
 
-static bool equal(const Vec a, const Vec b)
+static void add_r(Vec* a, const Vec b)
 {
-    return a.x == b.x && a.y == b.y;
+    a->x += b.x;
+    a->y += b.y;
 }
 
-// Get pipe at position pos
-static char getpipe(const Vec pos)
+static int absi(const int a)
 {
-    return field[pos.y][pos.x];
+    return a < 0 ? -a : a;
 }
 
-// Set pipe at position pos
-static void setpipe(const Vec pos, const char pipe)
+static int manh(const Vec a, const Vec b)
 {
-    field[pos.y][pos.x] = pipe;
+    return absi(a.x - b.x) + absi(a.y - b.y);
 }
 
-static bool isloop(const Vec pos)
+// https://en.wikipedia.org/wiki/Shoelace_formula
+static int shoelace(const Vec a, const Vec b)
 {
-    return visited[pos.y][pos.x];
+    return (a.y + b.y) * (a.x - b.x);
 }
 
-static void beenthere(const Vec pos)
-{
-    visited[pos.y][pos.x] = true;
-}
-
-// Find start ('S')
-static Vec startpos(void)
+// Find start point 'S'
+static State start(void)
 {
     for (int y = 0; y < H; ++y)
         for (int x = 0; x < W; ++x)
-            if (getpipe((Vec){x, y}) == 'S')
-                return (Vec){x, y};
-    return (Vec){-1, -1};
-}
-
-// Return next position from current position and direction
-static Vec nextpos(const Vec pos, const char dir)
-{
-    switch (dir) {
-        case 'N': return (Vec){pos.x    , pos.y - 1};
-        case 'E': return (Vec){pos.x + 1, pos.y    };
-        case 'S': return (Vec){pos.x    , pos.y + 1};
-        case 'W': return (Vec){pos.x - 1, pos.y    };
-    }
-    return pos;
-}
-
-// Set S to appropriate pipe bend
-// Return: direction to start (NESW)
-static char startdir(const Vec pos)
-{
-    if (pos.x < 0 || pos.y < 0 || pos.x >= W || pos.y >= H || getpipe(pos) != 'S')
-        return '\0';
-    int connections = 0;  // set bits for "can go from here to N/E/S/W" (N = LSB, W = MSB)
-    if (pos.y > 0) {
-        const char p = getpipe(nextpos(pos, 'N'));  // North
-        if (p == '|' || p == '7' || p == 'F') connections |= (1 << 0);
-    }
-    if (pos.x < W - 1) {
-        const char p = getpipe(nextpos(pos, 'E'));  // East
-        if (p == '-' || p == 'J' || p == '7') connections |= (1 << 1);
-    }
-    if (pos.y < H - 1) {
-        const char p = getpipe(nextpos(pos, 'S'));  // South
-        if (p == '|' || p == 'J' || p == 'L') connections |= (1 << 2);
-    }
-    if (pos.x > 0) {
-        const char p = getpipe(nextpos(pos, 'W'));  // West
-        if (p == '-' || p == 'L' || p == 'F') connections |= (1 << 3);
-    }
-    switch (connections) {
-        case  3: setpipe(pos, 'L'); return 'N';  // 0b0011 = NE -> L
-        case  5: setpipe(pos, '|'); return 'N';  // 0b0101 = NS -> |
-        case  9: setpipe(pos, 'J'); return 'N';  // 0b1001 = NW -> J
-        case  6: setpipe(pos, 'F'); return 'E';  // 0b0110 = ES -> F
-        case 10: setpipe(pos, '-'); return 'E';  // 0b1010 = EW -> -
-        case 12: setpipe(pos, '7'); return 'S';  // 0b1100 = SW -> 7
-    }
-    return '\0';
-}
-
-static bool move(Vec* pos, char* dir)
-{
-    const Vec next = nextpos(*pos, *dir);
-    switch (((*dir) << 8) | getpipe(next)) {
-        case 'N|':
-        case 'EJ':
-        case 'WL': *pos = next; *dir = 'N'; return true;
-        case 'E-':
-        case 'SL':
-        case 'NF': *pos = next; *dir = 'E'; return true;
-        case 'E7':
-        case 'S|':
-        case 'WF': *pos = next; *dir = 'S'; return true;
-        case 'N7':
-        case 'SJ':
-        case 'W-': *pos = next; *dir = 'W'; return true;
-    }
-    return false;
+            if (pipe[y][x] == 'S') {
+                if (y > 0) {
+                    const char p = pipe[y - 1][x];
+                    if (p == '|' || p == '7' || p == 'F') return (State){{x, y}, UP};
+                }
+                if (y < H - 1) {
+                    const char p = pipe[y + 1][x];
+                    if (p == '|' || p == 'J' || p == 'L') return (State){{x, y}, DOWN};
+                }
+                if (x > 0) {
+                    const char p = pipe[y][x - 1];
+                    if (p == '-' || p == 'L' || p == 'F') return (State){{x, y}, LEFT};
+                }
+                if (x < W - 1) {
+                    const char p = pipe[y][x + 1];
+                    if (p == '-' || p == 'J' || p == '7') return (State){{x, y}, RIGHT};
+                }
+                return (State){{x, y}, NONE};
+            }
+    return (State){{0, 0}, NONE};
 }
 
 int main(void)
@@ -137,35 +106,39 @@ int main(void)
     if (!f) { fputs("File not found.\n", stderr); return 1; }
 
     for (int i = 0; i < H; ++i)
-        fgets(field[i], sizeof *field, f);
+        fgets(pipe[i], sizeof *pipe, f);
     fclose(f);
 
-    const Vec start = startpos();  // [118,102]
-    char dir = startdir(start);  // can go W,S -> pipe='7' -> dir=W or S
-
-    Vec pos = start;
-    int len = move(&pos, &dir);
-    beenthere(pos);
-    while (!equal(pos, start) && move(&pos, &dir)) {
-        beenthere(pos);
-        ++len;
-    }
-    printf("Part 1: %d\n", len / 2);  // 7005
-
-    int count = 0;
-    for (int y = 0; y < H; ++y) {
-        bool inside = false;
-        for (int x = 0; x < W; ++x) {
-            const Vec p = (Vec){x, y};
-            const bool loop = isloop(p);
-            const char pipe = getpipe(p);
-            if (loop && (pipe == '|' || pipe == 'F' || pipe == '7'))
-                inside = !inside;
-            if (inside && !loop)
-                ++count;
+    State s = start();
+    const char* p = &pipe[s.pos.y][s.pos.x];
+    int area = 0, border = 0;
+    do {
+        const Vec prev = s.pos;
+        do {
+            add_r(&s.pos, delta[s.dir]);
+            p += pdiff[s.dir];
+        } while (*p == '-' || *p == '|');
+        switch ("_UDLR"[s.dir] << 8 | *p) {
+            case 'LL':
+            case 'RJ': s.dir = UP; break;
+            case 'LF':
+            case 'R7': s.dir = DOWN; break;
+            case 'U7':
+            case 'DJ': s.dir = LEFT; break;
+            case 'UF':
+            case 'DL': s.dir = RIGHT; break;
         }
-    }
-    printf("Part 2: %d\n", count);  // 417
+        area += shoelace(prev, s.pos);
+        border += manh(prev, s.pos);
+    } while (*p != 'S');
+
+    border /= 2;  // half border = from 'S' to farthest point
+    // Shoelace formula: A = 1/2 . sum((y_i + y_i+1) . (x_i - x_i+1))
+    // Pick's theorem: i = A - b/2 + 1
+    const int inside = absi(area) / 2 - border + 1;
+
+    printf("Part 1: %d\n", border);  // 7005
+    printf("Part 2: %d\n", inside);  // 417
     printf("Time: %.0f us\n", stoptimer_us());
     return 0;
 }
