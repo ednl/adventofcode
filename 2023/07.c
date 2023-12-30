@@ -10,10 +10,10 @@
  * Get minimum runtime:
  *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
- *     Mac Mini 2020 (M1 3.2 GHz)          :  407 µs
- *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :  504 µs
- *     Raspberry Pi 5 (2.4 GHz)            : 1089 µs
- *     Raspberry Pi 4 (1.8 GHz)            : 2234 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)          :  323 µs
+ *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :  499 µs
+ *     Raspberry Pi 5 (2.4 GHz)            :  562 µs
+ *     Raspberry Pi 4 (1.8 GHz)            : 1184 µs
  */
 
 #include <stdio.h>    // fopen, fclose, fscanf, printf
@@ -33,7 +33,7 @@
     #define HANDS 1000
 #endif
 #define HANDSIZE  5  // five card deal
-#define VALRANGE 16  // face values range from 0 ('J' in part 2) to 14 ('A'), 16 for qsort alignment
+#define VALRANGE 15  // face values range from 0 ('J' in part 2) to 14 ('A')
 
 // Rankings for a hand of 5 cards, from lowest to highest.
 // Called 'type' in the puzzle.
@@ -66,16 +66,14 @@ static int strength_desc(const void *p, const void *q)
     return 0;
 }
 
-// Value [0..14] for 13 different card faces from:
-//   [_,_,2..9,T,J,Q,K,A] (part 1)
-//   [J,_,2..9,T,_,Q,K,A] (part 2)
-static int facevalue(const char card, const bool ispart2)
+// Value [2..14] for 13 different card faces from [2..9,T,J,Q,K,A]
+static int facevalue(const char card)
 {
     if (card <= '9')  // no check for card >= '2' because all cards are
         return card & 15;
     switch (card) {
         case 'T': return 10;
-        case 'J': return 11 * !ispart2;  // part 1: J=11, part 2: J=0
+        case 'J': return 11;
         case 'Q': return 12;
         case 'K': return 13;
         case 'A': return 14;
@@ -92,7 +90,8 @@ static void eval(Hand* const hand, const bool ispart2)
     int count[VALRANGE] = {0};
     hand->deal = 0;
     for (int i = 0; i < HANDSIZE; ++i) {
-        const int val = facevalue(hand->card[i], ispart2);
+        // const int val = facevalue(hand->card[i], ispart2);
+        const int val = hand->card[i] == 'J' && ispart2 ? 0 : facevalue(hand->card[i]);
         count[val]++;
         hand->deal = (hand->deal << 4) | val;  // each value fits in 4 bits
     }
@@ -103,13 +102,13 @@ static void eval(Hand* const hand, const bool ispart2)
         count[0] = 0;
 
     // Order histogram by most to least (without jokers for part 2).
-    size_t len = 0, end = 14;
-    while (len < end) {
+    size_t len = 0, last = 14;
+    while (len < last) {
         while (count[len]) ++len;  // find first count=0
-        while (end && !count[end]) --end;  // find last count!=0
-        if (len < end) {
-            count[len++] = count[end];
-            count[end--] = 0;
+        while (last && !count[last]) --last;  // find last count!=0
+        if (len < last) {
+            count[len++] = count[last];
+            count[last--] = 0;
         }
     }
     while (count[len]) ++len;
