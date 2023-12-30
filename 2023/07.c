@@ -10,10 +10,10 @@
  * Get minimum runtime:
  *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
- *     Mac Mini 2020 (M1 3.2 GHz)          :  323 µs
- *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :  477 µs
- *     Raspberry Pi 5 (2.4 GHz)            :  545 µs
- *     Raspberry Pi 4 (1.8 GHz)            : 1163 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)          :  312 µs
+ *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :  474 µs
+ *     Raspberry Pi 5 (2.4 GHz)            :  512 µs
+ *     Raspberry Pi 4 (1.8 GHz)            : 1093 µs
  */
 
 #include <stdio.h>    // fopen, fclose, fscanf, printf
@@ -38,15 +38,15 @@
 // Rankings for a hand of 5 cards, from lowest to highest.
 // Called 'type' in the puzzle.
 typedef enum rank {
-    NONE, HIGHCARD, ONEPAIR, TWOPAIR, THREEKIND, FULLHOUSE, FOURKIND, FIVEKIND
+    HIGHCARD, ONEPAIR, TWOPAIR, THREEKIND, FULLHOUSE, FOURKIND, FIVEKIND
 } Rank;
 
 // All info for one hand
 // ::card and ::bid from input
-// ::rank is first sorting key for hand strength
-// ::deal is second sorting key for hand strength
+// ::rank is first sorting key for hand strength (called 'type' by AoC)
+// ::deal is second sorting key for hand strength (called 'rank' by AoC)
 typedef struct hand {
-    char card[HANDSIZE + 1];  // +1 for '\0'
+    char card[HANDSIZE + 3];  // +1 for '\0', +2 for alignment
     Rank rank;
     int deal, bid;
 } Hand;
@@ -80,7 +80,7 @@ static int facevalue(const char card)
         return card & 15;
     switch (card) {
         case 'T': return 10;
-        case 'J': return 11;
+        case 'J': return 11;  // 'J'=0 in part 2 (handled in analyse() function)
         case 'Q': return 12;
         case 'K': return 13;
         case 'A': return 14;
@@ -88,12 +88,13 @@ static int facevalue(const char card)
     return 0;  // shouldn't reach this
 }
 
-// Evaluate a hand by setting ::rank and ::deal
+// Analyse & evaluate a hand by setting ::rank and ::deal
 // ::rank is primary sort where 'five of a kind' wins
-// ::deal is secondary sort by face value of first card in deal, then second, etc.
-static void eval(Hand* const hand, const bool ispart2)
+// ::deal is secondary sort on first cards in hand, then second, etc.
+static void analyse(Hand* const hand, const bool ispart2)
 {
-    // Make sparse histogram of face values and set ::deal = hash of face values in deal order
+    // Make sparse histogram of face values
+    // and set ::deal (= hash of face values in order dealt)
     int hist[VALRANGE] = {0};
     hand->deal = 0;
     for (int i = 0; i < HANDSIZE; ++i) {
@@ -124,7 +125,7 @@ static void eval(Hand* const hand, const bool ispart2)
         }
 
     // Best option is always to add all jokers to highest card count
-    count[0] += jokers;  // jokers=0 in part 1 because count[0]=0
+    count[0] += jokers;  // jokers=0 in part 1, because count[0]=0
 
     // Set rank (= first sorting key for hand strength)
     switch (count[0]) {
@@ -140,7 +141,7 @@ static void eval(Hand* const hand, const bool ispart2)
 static int winnings(const bool ispart2)
 {
     for (int i = 0; i < HANDS; ++i)
-        eval(&game[i], ispart2);
+        analyse(&game[i], ispart2);
     qsort(game, HANDS, sizeof *game, strength_desc);
     int score = 0;
     for (int i = 0; i < HANDS; ++i)
