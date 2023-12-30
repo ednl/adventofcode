@@ -18,7 +18,7 @@ typedef enum signal {
 
 typedef enum type {
     NONE, BC, FLIP, CONJ
-} Type;
+} Rank;
 
 typedef struct bus {
     int id[BUSSIZE];
