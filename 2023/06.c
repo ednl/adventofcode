@@ -3,12 +3,24 @@
  * Day 6: Wait For It
  * https://adventofcode.com/2023/day/6
  * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *    clang -std=gnu17 -Ofast -march=native -Wall -Wextra 11.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wextra 11.c ../startstoptimer.c
+ * Get minimum runtime:
+ *     m=50000;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
+ * Minimum runtime:
+ *     Apple M1 Mac Mini 2020 (3.2 GHz)               : ? µs
+ *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) : 39 µs
+ *     Raspberry Pi 5 (2.4 GHz)                       : ? µs
+ *     Raspberry Pi 4 (1.8 GHz)                       : ? µs
  */
 
 #include <stdio.h>     // fopen, fclose, fscanf, printf
 #include <math.h>      // sqrt, floor, ceil
 #include <stdint.h>    // int64_t
 #include <inttypes.h>  // PRId64
+#include "../startstoptimer.h"
 
 #define EXAMPLE 0
 #if EXAMPLE == 1
@@ -26,7 +38,7 @@ static int64_t race[RACES][L];
 
 // Given: t = race time, d = race distance (t>0, d>0)
 // Find: x = button time => remaining time = t - x
-//   boat speed = v = x => travel = v.time = x(t - x)
+//   boat speed = v = x => travel = v . time = x . (t - x)
 // Condition: travel > d
 // Find roots: travel = d
 // <=> x(t - x) = d
@@ -39,16 +51,13 @@ static int64_t ways2win(int raceid)
     const int64_t d = race[raceid][D];
     const double t_mid = (double)t / 2;
     const double sq = t_mid * t_mid - d;
-    if (sq < 0)  // no real solutions; doesn't happen in example or my input
-        return 0;
+    // if (sq < 0)  // no real solutions; doesn't happen in example or my input
+    //     return 0;
     const double width = sqrt(sq);
-    const double f1 =  ceil(t_mid - width);  // intermediate vars to avoid compiler warning
-    const double f2 = floor(t_mid + width);  // (should really test value to fit in int64_t)
-    int64_t button1 = (int64_t)f1;
-    int64_t button2 = (int64_t)f2;
+    int64_t button1 = (int64_t)(ceil(t_mid - width));
+    int64_t button2 = (int64_t)(floor(t_mid + width));
     if (button1 * (t - button1) == d) { ++button1; --button2; }  // remove integer roots
-    // Two impossible cases because t>0,d>0
-    // if (button1 <= 0) button1 = 1;
+    // if (button1 <= 0) button1 = 1;  // two impossible cases because t>0,d>0
     // if (button2 >= t) button2 = t - 1;
     const int64_t len = button2 - button1 + 1;  // might be -1 for identical integer roots
     return len > 0 ? len : 0;
@@ -56,6 +65,7 @@ static int64_t ways2win(int raceid)
 
 int main(void)
 {
+    starttimer();
     FILE* f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
 
@@ -82,5 +92,6 @@ int main(void)
 
     printf("Part 1: %"PRId64"\n", prod);         // example:   288, input:  2449062
     printf("Part 2: %"PRId64"\n", ways2win(0));  // example: 71503, input: 33149631
+    printf("Time: %.0f us\n", stoptimer_us());
     return 0;
 }
