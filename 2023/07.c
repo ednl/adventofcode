@@ -11,9 +11,9 @@
  *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
  *     Mac Mini 2020 (M1 3.2 GHz)          :  323 µs
- *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :  499 µs
- *     Raspberry Pi 5 (2.4 GHz)            :  562 µs
- *     Raspberry Pi 4 (1.8 GHz)            : 1184 µs
+ *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :  477 µs
+ *     Raspberry Pi 5 (2.4 GHz)            :  545 µs
+ *     Raspberry Pi 4 (1.8 GHz)            : 1163 µs
  */
 
 #include <stdio.h>    // fopen, fclose, fscanf, printf
@@ -54,6 +54,13 @@ typedef struct hand {
 // Complete game with all hands
 static Hand game[HANDS];
 
+static inline void swap(int* const a, int* const b)
+{
+    const int tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
+
 // Qsort helper: sort game of hands by rank descending, deal descending
 static int strength_desc(const void *p, const void *q)
 {
@@ -86,44 +93,35 @@ static int facevalue(const char card)
 // ::deal is secondary sort by face value of first card in deal, then second, etc.
 static void eval(Hand* const hand, const bool ispart2)
 {
-    // Make histogram of face values and set ::deal = hash of face values in deal order
-    int count[VALRANGE] = {0};
+    // Make sparse histogram of face values and set ::deal = hash of face values in deal order
+    int hist[VALRANGE] = {0};
     hand->deal = 0;
     for (int i = 0; i < HANDSIZE; ++i) {
-        // const int val = facevalue(hand->card[i], ispart2);
         const int val = hand->card[i] == 'J' && ispart2 ? 0 : facevalue(hand->card[i]);
-        count[val]++;
+        hist[val]++;
         hand->deal = (hand->deal << 4) | val;  // each value fits in 4 bits
     }
 
     // Count jokers and remove them for part 2.
-    const int jokers = count[0];  // joker value is 0 in part 2, so count is at index=0
-    if (ispart2)
-        count[0] = 0;
+    const int jokers = hist[0];  // joker value is 0 in part 2, so count is at index=0
+    hist[0] = 0;  // already zero in part 1
 
-    // Order histogram by most to least (without jokers for part 2).
-    size_t len = 0, last = 14;
-    while (len < last) {
-        while (count[len]) ++len;  // find first count=0
-        while (last && !count[last]) --last;  // find last count!=0
-        if (len < last) {
-            count[len++] = count[last];
-            count[last--] = 0;
+    // Condense sparse histogram to minimal size.
+    int count[HANDSIZE] = {0}, bins = 0;
+    for (int i = 2; i < VALRANGE; ++i)  // nothing in hist[0] or hist[1]
+        if (hist[i])
+            count[bins++] = hist[i];
+
+    // Order counts by most to least (without jokers for part 2).
+    // Very short array so insertion sort is faster than qsort.
+    if (bins > 1)
+        for (int i = 0, k = 0; i < bins - 1; k = ++i) {
+            for (int j = i + 1; j < bins; ++j)
+                if (count[k] < count[j])
+                    k = j;  // index of maximum
+            if (i != k)
+                swap(count + i, count + k);
         }
-    }
-    while (count[len]) ++len;
-    if (len > 1) {
-        for (size_t i = 0, max = 0; i < len - 1; max = ++i) {
-            for (size_t j = i + 1; j < len; ++j)
-                if (count[j] > count[max])
-                    max = j;
-            if (max != i) {
-                const int tmp = count[i];
-                count[i] = count[max];
-                count[max] = tmp;
-            }
-        }
-    }
 
     // Best option is always to add all jokers to highest card count
     count[0] += jokers;  // jokers=0 in part 1 because count[0]=0
