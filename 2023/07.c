@@ -11,7 +11,7 @@
  *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
  *     Mac Mini 2020 (M1 3.2 GHz)          :  407 µs
- *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :  641 µs
+ *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :  504 µs
  *     Raspberry Pi 5 (2.4 GHz)            : 1089 µs
  *     Raspberry Pi 4 (1.8 GHz)            : 2234 µs
  */
@@ -38,7 +38,7 @@
 // Rankings for a hand of 5 cards, from lowest to highest.
 // Called 'type' in the puzzle.
 typedef enum rank {
-    HIGHCARD, ONEPAIR, TWOPAIR, THREEKIND, FULLHOUSE, FOURKIND, FIVEKIND
+    NONE, HIGHCARD, ONEPAIR, TWOPAIR, THREEKIND, FULLHOUSE, FOURKIND, FIVEKIND
 } Rank;
 
 // All info for one hand
@@ -53,16 +53,6 @@ typedef struct hand {
 
 // Complete game with all hands
 static Hand game[HANDS];
-
-// Qsort helper: sort histogram by count descending
-static int count_desc(const void *p, const void *q)
-{
-    const int a = *(const int*)p;
-    const int b = *(const int*)q;
-    if (a > b) return -1;
-    if (a < b) return  1;
-    return 0;
-}
 
 // Qsort helper: sort game of hands by rank descending, deal descending
 static int strength_desc(const void *p, const void *q)
@@ -113,7 +103,28 @@ static void eval(Hand* const hand, const bool ispart2)
         count[0] = 0;
 
     // Order histogram by most to least (without jokers for part 2).
-    qsort(count, VALRANGE, sizeof *count, count_desc);
+    size_t len = 0, end = 14;
+    while (len < end) {
+        while (count[len]) ++len;  // find first count=0
+        while (end && !count[end]) --end;  // find last count!=0
+        if (len < end) {
+            count[len++] = count[end];
+            count[end--] = 0;
+        }
+    }
+    while (count[len]) ++len;
+    if (len > 1) {
+        for (size_t i = 0, max = 0; i < len - 1; max = ++i) {
+            for (size_t j = i + 1; j < len; ++j)
+                if (count[j] > count[max])
+                    max = j;
+            if (max != i) {
+                const int tmp = count[i];
+                count[i] = count[max];
+                count[max] = tmp;
+            }
+        }
+    }
 
     // Best option is always to add all jokers to highest card count
     count[0] += jokers;  // jokers=0 in part 1 because count[0]=0
@@ -124,8 +135,7 @@ static void eval(Hand* const hand, const bool ispart2)
         case 2: hand->rank = count[1] == 2 ? TWOPAIR : ONEPAIR; break;
         case 3: hand->rank = count[1] == 2 ? FULLHOUSE : THREEKIND; break;
         case 4: hand->rank = FOURKIND; break;
-        case 5:
-        case 6: hand->rank = FIVEKIND; break;  // count is possibly 6 in part 2 if count('J')=5
+        case 5: hand->rank = FIVEKIND; break;
     }
 }
 
