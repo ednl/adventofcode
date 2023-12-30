@@ -14,10 +14,10 @@
  * Get minimum runtime:
  *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
- *     Apple M1 Mac Mini 2020 (3.2 GHz)               : ? µs
+ *     Apple M1 Mac Mini 2020 (3.2 GHz)               :  90 µs
  *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) : 148 µs
- *     Raspberry Pi 5 (2.4 GHz)                       : ? µs
- *     Raspberry Pi 4 (1.8 GHz)                       : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)                       : 150 µs
+ *     Raspberry Pi 4 (1.8 GHz)                       : 361 µs
  */
 
 #include <stdio.h>    // fopen, fclose, fgets, printf
@@ -131,11 +131,14 @@ int main(void)
         area += shoelace(prev, s.pos);
         border += manh(prev, s.pos);
     } while (*p != 'S');
-    area = absi(area) >> 1;
-    border >>= 1;
+
+    border /= 2;  // half border = from 'S' to farthest point
+    // Shoelace formula: A = 1/2 . sum((y_i + y_i+1) . (x_i - x_i+1))
+    // Pick's theorem: i = A - b/2 + 1
+    const int inside = absi(area) / 2 - border + 1;
 
     printf("Part 1: %d\n", border);  // 7005
-    printf("Part 2: %d\n", area - border + 1);  // 417
+    printf("Part 2: %d\n", inside);  // 417
     printf("Time: %.0f us\n", stoptimer_us());
     return 0;
 }
