@@ -10,8 +10,10 @@
  * Get minimum runtime:
  *     m=50000;for((i=0;i<200;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
- *     Apple M1 Mac Mini      : 23 ms
- *     Raspberry Pi 5 2.4 GHz : 42 ms
+ *     Mac Mini 2020 (M1 3.2 GHz)          : 22 ms
+ *     iMac 2013 (i5 Haswell 4570 3.2 GHz) : 37 ms
+ *     Raspberry Pi 5 (2.4 GHz)            : 41 ms
+ *     Raspberry Pi 4 (1.8 GHz)            : 87 ms
  */
 
 #include <stdio.h>    // fopen, fclose, fgets, printf
@@ -21,13 +23,12 @@
 
 #define EXAMPLE 0
 #if EXAMPLE
-#define NAME "../aocinput/2023-14-example.txt"
-#define N 10
+    #define NAME "../aocinput/2023-14-example.txt"
+    #define N 10
 #else
-#define NAME "../aocinput/2023-14-input.txt"
-#define N 100
+    #define NAME "../aocinput/2023-14-input.txt"
+    #define N 100
 #endif
-
 #define LIM (N + 1)
 #define DIM (N + 2)
 #define CYCLES 1000000000
