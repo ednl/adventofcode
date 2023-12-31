@@ -16,9 +16,9 @@
  *     Raspberry Pi 4 (1.8 GHz)            : ? µs
  */
 
-#include <stdio.h>    // fopen, fclose, fgets, printf
+#include <stdio.h>    // fopen, fclose, fgets, printf, fputs, fputc
 #include <string.h>   // memset
-#include <stdint.h>
+#include <stdint.h>   // uint16_t
 #include <stdbool.h>  // bool
 // #include "../startstoptimer.h"
 
@@ -30,14 +30,15 @@
     typedef uint16_t bitmask;
 #else
     #define NAME "../aocinput/2023-14-input.txt"
-    #define N 100  // grid rows and cols
+    #define N 100  // number of rows and cols of the map
     #define SEGMENTS 20  // max no. of disjoint open space segments in any row or col
-    typedef __uint128_t bitmask;  // room for N cols or rows
+    typedef __uint128_t bitmask;  // number of bits >= N
 #endif
 
-static char map[N][N + 2];
+static char map[N][N + 2];  // +2 for '\n\0'
+static bitmask ones[N + 1];  // ones[i] = 0,1,3,7,15,31,etc or popcount(ones[i]) = i
 static bitmask space[2][N][SEGMENTS];  // 2 orientations, N rows or cols, max number of open space segments
-static bitmask balls[N];
+static bitmask balls[N];  // rolling rocks 'O'
 
 static void transpose_map(void)
 {
@@ -62,12 +63,12 @@ static void init(void)
         for (int j = 0, k = N - 1; j < N; ++j, --k)
             balls[i] |= (bitmask)(map[i][j] == 'O') << k;
 
-    // Base masks of increasing length
-    bitmask base[N], m = 1;
-    for (int i = 0; i < N; ++i, m = (bitmask)(m << 1 | 1))
-        base[i] = m;
+    // Base masks with increasing count of bits set
+    bitmask m = 1;
+    for (int i = 1; i <= N; ++i, m = (bitmask)(m << 1 | 1))
+        ones[i] = m;
 
-    // Find open space segments
+    // Find open space segments in rows and cols
     for (int t = 0; t < 2; ++t) {
         for (int i = 0; i < N; ++i)
             for (int j = 0, segm = 0, k; j < N; j = k + 1) {
@@ -76,7 +77,7 @@ static void init(void)
                 if (j < N)
                     // k-j = segment length
                     // N-j-1-(k-j-1) = N-k = offset from right
-                    space[t][i][segm++] = (bitmask)(base[k - j - 1] << (N - k));
+                    space[t][i][segm++] = (bitmask)(ones[k - j] << (N - k));
             }
         transpose_map();
     }
@@ -86,7 +87,7 @@ int main(void)
 {
     init();
 
-    // Show space and square rocks
+    // Show space and square rocks in row x col and col x row
     for (int t = 0; t < 2; ++t) {
         for (int i = 0; i < N; ++i) {
             printf("%3d: ", i + 1);
