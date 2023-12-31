@@ -115,14 +115,13 @@ static void analyse(Hand* const hand, const bool ispart2)
 
     // Order counts by most to least (without jokers for part 2).
     // Very short array so insertion sort is faster than qsort.
-    if (bins > 1)
-        for (int i = 0, k = 0; i < bins - 1; k = ++i) {
-            for (int j = i + 1; j < bins; ++j)
-                if (count[k] < count[j])
-                    k = j;  // index of maximum
-            if (i != k)
-                swap(count + i, count + k);
-        }
+    for (int i = 0, k = 0; i < bins - 1; k = ++i) {
+        for (int j = i + 1; j < bins; ++j)
+            if (count[k] < count[j])
+                k = j;  // index of maximum
+        if (i != k)
+            swap(count + i, count + k);
+    }
 
     // Best option is always to add all jokers to highest card count
     count[0] += jokers;  // jokers=0 in part 1, because count[0]=0

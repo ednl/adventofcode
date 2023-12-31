@@ -8,7 +8,7 @@
  *    clang -std=gnu17 -Ofast -march=native -Wall -Wextra 14.c ../startstoptimer.c
  *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wextra 14.c ../startstoptimer.c
  * Get minimum runtime:
- *     m=50000;for((i=0;i<200;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
+ *     m=999999;for((i=0;i<200;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
  *     Mac Mini 2020 (M1 3.2 GHz)          : 22 ms
  *     iMac 2013 (i5 Haswell 4570 3.2 GHz) : 37 ms
