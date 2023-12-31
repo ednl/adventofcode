@@ -22,7 +22,7 @@
 #include <stdbool.h>  // bool
 // #include "../startstoptimer.h"
 
-#define EXAMPLE 1
+#define EXAMPLE 0
 #if EXAMPLE
     #define NAME "../aocinput/2023-14-example.txt"
     #define N 10
@@ -37,7 +37,6 @@
 
 static char map[N][N + 2];
 static bitmask space[2][N][SEGMENTS];  // 2 orientations, N rows or cols, max number of open space segments
-static bitmask base[N];  // mask with [0..N) bits and zero offset
 
 static void transpose_map(void)
 {
@@ -49,27 +48,49 @@ static void transpose_map(void)
         }
 }
 
-int main(void)
+static void init(void)
 {
     FILE* f = fopen(NAME, "r");
-    if (!f) { fputs("File not found.\n", stderr); return 1; }
+    if (!f) { fputs("File not found.\n", stderr); return; }
     for (int i = 0; i < N; ++i)
         fgets(map[i], sizeof *map, f);
     fclose(f);
 
-    bitmask m = 1u;
-    for (int i = 0; i < N; ++i, m = m << 1 | 1)
+    // Base masks of increasing length
+    bitmask base[N], m = 1;
+    for (int i = 0; i < N; ++i, m = (bitmask)(m << 1 | 1))
         base[i] = m;
 
-    // Map open space segments
-    for (int i = 0, segm = 0; i < N; ++i) {
-        for (int j = 0, k; j < N; j = k + 1) {
-            while (j < N && map[i][j] == '#') ++j;  // j is start of open space
-            if (j < N) {
-                for (k = j + 1; k < N && map[i][j] != '#'; ++k);  // k is 1 past end of open space
-                space[0][i][segm++] = base[k - j] << (N - j - k);  // k-j = length
+    // Find open space segments
+    for (int t = 0; t < 2; ++t) {
+        for (int i = 0; i < N; ++i)
+            for (int j = 0, segm = 0, k; j < N; j = k + 1) {
+                while (j < N && map[i][j] == '#') ++j;  // j is start of open space
+                for (k = j + 1; k < N && map[i][k] != '#'; ++k);  // k is 1 past end of open space
+                if (j < N)
+                    // k-j = segment length
+                    // N-j-1-(k-j-1) = N-k = offset from right
+                    space[t][i][segm++] = (bitmask)(base[k - j - 1] << (N - k));
             }
+        transpose_map();
+    }
+}
+
+int main(void)
+{
+    init();
+
+    for (int t = 0; t < 2; ++t) {
+        for (int i = 0; i < N; ++i) {
+            printf("%3d: ", i + 1);
+            bitmask m = 0;
+            for (int j = 0; j < SEGMENTS; ++j)
+                m |= space[t][i][j];
+            for (bitmask b = (bitmask)1 << (N - 1); b; b >>= 1)
+                fputc(m & b ? '.' : '#', stdout);
+            fputc('\n', stdout);
         }
+        fputc('\n', stdout);
     }
 
     return 0;
