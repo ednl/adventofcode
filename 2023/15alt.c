@@ -10,10 +10,10 @@
  * Get minimum runtime:
  *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
- *     Apple M1 Mac Mini 2020 (3.2 GHz)               :  370 µs
- *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) :  623 µs
- *     Raspberry Pi 5 (2.4 GHz)                       :  785 µs
- *     Raspberry Pi 4 (1.8 GHz)                       : 1789 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)          :  370 µs
+ *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :  523 µs
+ *     Raspberry Pi 5 (2.4 GHz)            :  785 µs
+ *     Raspberry Pi 4 (1.8 GHz)            : 1789 µs
  */
 
 #include <stdio.h>    // fopen, fclose, getline, printf
@@ -33,21 +33,25 @@
 
 // n=[0..N), box=[0..255], focal=0=remove, focal=[1..9]=add/replace
 typedef struct step {
-    int64_t id;  // numerical ID from text label=[a-z]{1,6}
-    int ord, box, focal;
+    int32_t id;  // numerical ID from text label=[a-z]{1,6}
+    int16_t ord;
+    uint8_t box, focal;
 } Step;
 
 static Step step[N];
 
-static int makelabel(const int64_t id, char* buf)
+#if EXAMPLE || defined(DEBUG)
+static int makelabel(int32_t id, char* label)
 {
-    int byte = 8;
-    while (byte && !(id >> ((byte - 1) << 3) & 127))
-        --byte;
-    const int len = byte;
-    while (byte--)
-        *buf++ = id >> (byte << 3) & 127;
-    *buf = '\0';
+    char buf[8];
+    int len = 0;
+    while (id) {
+        buf[len++] = 'a' + id % 26;
+        id /= 26;
+    }
+    for (int i = 0; i < len; ++i)
+        label[i] = buf[len - i - 1];
+    label[len] = '\0';
     return len;
 }
 
@@ -60,6 +64,7 @@ static void show(int n)
             printf("%2d: ord=%2d box=%d [%s %d]\n", i, step[i].ord, step[i].box, buf, step[i].focal);
         }
 }
+#endif
 
 static int cmp_id_ord(const void* p, const void* q)
 {
@@ -97,23 +102,24 @@ int main(void)
     fclose(f);
     line[--len] = '\0';  // remove newline, now 2x '\0' in a row
 
-    int part1 = 0, count = 0;
+    int part1 = 0;
+    int16_t count = 0;
     const char* s = line;
     while (count < N) {
-        int64_t id = 0;
-        int hash = 0;
+        int32_t id = 0;
+        uint8_t hash = 0;
         while (*s >= 'a') {
-            id = id << 8 | *s;
+            id = id * 26 + (*s - 'a');
             hash += *s++;
             hash *= 17;
         }
-        hash &= 0xff;  // box number for part 2
+        // hash &= 0xff;  // box number for part 2
         if (*s == '-') {
             step[count] = (Step){id, count, hash, 0};
             hash = hash * 17 + 253;  // add '-' to hash for part 1
         } else if (*s == '=') {
             step[count] = (Step){id, count, hash, *(++s) & 15};
-            hash = hash * 33 + *s * 17 + 221;  // add '=' and focal length to hash for part 1
+            hash = hash * 33 + (uint8_t)*s * 17 + 221;  // add '=' and focal length to hash for part 1
         }
         part1 += (hash & 0xff);
         ++count;
@@ -122,7 +128,9 @@ int main(void)
     printf("Part 1: %d\n", part1);  // example: 1320, input: 514394
 
     qsort(step, (size_t)count, sizeof *step, cmp_id_ord);
-    // show(count);
+#if EXAMPLE || defined(DEBUG)
+    show(count);
+#endif
 
     int reduced = 0;
     for (int i = 0, j, end; i < count; i = end) {
@@ -135,20 +143,18 @@ int main(void)
     }
 
     qsort(step, (size_t)reduced, sizeof *step, cmp_box_ord);
-    // show(reduced);
+#if EXAMPLE || defined(DEBUG)
+    show(reduced);
+    printf("%d %d\n", count, reduced);  // 4000 246
+#endif
 
     int part2 = 0;
     for (int i = 0, j = 1; i < reduced; ++j) {
         const int box = step[i].box;
         for (; j < reduced && step[j].box == box; ++j);
         const int slots = j - i;
-        // if (box < 4)
-        //     printf("box=%d slots=%d\n", box, slots);
-        for (int slot = 0; slot < slots; ++slot, ++i) {
+        for (int slot = 0; slot < slots; ++slot, ++i)
             part2 += (box + 1) * (slot + 1) * step[i].focal;
-            // if (box < 4)
-            //     printf("%d * %d * %d = %d -> %d\n", box + 1, slot + 1, step[i].focal, (box + 1) * (slot + 1) * step[i].focal, part2);
-        }
     }
     printf("Part 2: %d\n", part2);  // example: 145, input: 236358
 
