@@ -32,34 +32,34 @@
 #define M 8    // max number of lenses per box (my input: 6)
 
 typedef struct lens {
-    int64_t id;
-    int focal;
+    int32_t id;
+    uint8_t focal;
 } Lens;
 
 typedef struct box {
     Lens lens[M];
-    int count;
+    uint8_t count;
 } Box;
 
 static Box box[N];
 
 // For my input, label is max. 6 chars long, regex=[a-z]{1,6}
-static int64_t label2id(const char* s)
+static int32_t label2id(const char* s)
 {
-    int64_t id = 0;
+    int32_t id = 0;
     while (*s >= 'a' && *s <= 'z')
-        id = id << 8 | *s++;
+        id = id * 26 + *s++;
     return id;
 }
 
-static int hash(const char* s)
+static uint8_t hash(const char* s)
 {
-    int h = 0;
+    uint8_t h = 0;
     while (*s) {
-        h += *s++;
+        h += (uint8_t)*s++;
         h *= 17;
     }
-    return h & 0xff;
+    return h;
 }
 
 // Remove lens from box
@@ -69,7 +69,7 @@ static bool rem(const char* label)
     Box* b = &box[hash(label)];
     if (!b->count)
         return false;
-    const int64_t id = label2id(label);
+    const int32_t id = label2id(label);
     const Lens* end = b->lens + b->count;
     for (Lens* lens = b->lens; lens != end; ++lens)
         if (lens->id == id) {
@@ -84,10 +84,10 @@ static bool rem(const char* label)
 
 // Add lens to box
 // Return true if replaced or appended, false for memory allocation failure
-static bool add(const char* label, const int focal)
+static bool add(const char* label, const uint8_t focal)
 {
     Box* b = &box[hash(label)];
-    const int64_t id = label2id(label);
+    const int32_t id = label2id(label);
     const Lens* end = b->lens + M;
     Lens* tail = b->lens + b->count;
     for (Lens* lens = b->lens; lens != tail; ++lens)
