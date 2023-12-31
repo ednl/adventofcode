@@ -22,7 +22,7 @@
 #include <stdbool.h>  // bool
 // #include "../startstoptimer.h"
 
-#define EXAMPLE 0
+#define EXAMPLE 1
 #if EXAMPLE
     #define NAME "../aocinput/2023-14-example.txt"
     #define N 10
@@ -30,13 +30,14 @@
     typedef uint16_t bitmask;
 #else
     #define NAME "../aocinput/2023-14-input.txt"
-    #define N 100
-    #define SEGMENTS 20
-    typedef __uint128_t bitmask;
+    #define N 100  // grid rows and cols
+    #define SEGMENTS 20  // max no. of disjoint open space segments in any row or col
+    typedef __uint128_t bitmask;  // room for N cols or rows
 #endif
 
 static char map[N][N + 2];
 static bitmask space[2][N][SEGMENTS];  // 2 orientations, N rows or cols, max number of open space segments
+static bitmask balls[N];
 
 static void transpose_map(void)
 {
@@ -55,6 +56,11 @@ static void init(void)
     for (int i = 0; i < N; ++i)
         fgets(map[i], sizeof *map, f);
     fclose(f);
+
+    // Find rolling rocks
+    for (int i = 0; i < N; ++i)
+        for (int j = 0, k = N - 1; j < N; ++j, --k)
+            balls[i] |= (bitmask)(map[i][j] == 'O') << k;
 
     // Base masks of increasing length
     bitmask base[N], m = 1;
@@ -80,6 +86,7 @@ int main(void)
 {
     init();
 
+    // Show space and square rocks
     for (int t = 0; t < 2; ++t) {
         for (int i = 0; i < N; ++i) {
             printf("%3d: ", i + 1);
@@ -92,6 +99,15 @@ int main(void)
         }
         fputc('\n', stdout);
     }
+
+    // Show round rocks
+    for (int i = 0; i < N; ++i) {
+        printf("%3d: ", i + 1);
+        for (bitmask bit = (bitmask)1 << (N - 1); bit; bit >>= 1)
+            fputc(balls[i] & bit ? 'O' : '.', stdout);
+        fputc('\n', stdout);
+    }
+    fputc('\n', stdout);
 
     return 0;
 }
