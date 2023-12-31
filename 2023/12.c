@@ -203,8 +203,8 @@ static void togocount(Springs* const row)
 static int read(const char* fname)
 {
     FILE* f = fopen(fname, "r");
-    if (!f)
-        return 0;
+    if (!f) { fputs("File not found.\n", stderr); return 0; }
+
     char buf[64];
     int i = 0;
     Springs* row = springs;
