@@ -38,17 +38,7 @@
 static char map[N][N + 2];  // +2 for '\n\0'
 static bitmask ones[N + 1];  // ones[i] = 0,1,3,7,15,31,etc or popcount(ones[i]) = i
 static bitmask space[2][N][SEGMENTS];  // 2 orientations, N rows or cols, max number of open space segments
-static bitmask balls[N];  // rolling rocks 'O'
-
-static void transpose_map(void)
-{
-    for (int i = 0; i < N; ++i)
-        for (int j = i + 1; j < N; ++j) {
-            const char tmp = map[i][j];
-            map[i][j] = map[j][i];
-            map[j][i] = tmp;
-        }
-}
+static bitmask balls[N];  // rounded rocks 'O'
 
 static void init(void)
 {
@@ -58,7 +48,7 @@ static void init(void)
         fgets(map[i], sizeof *map, f);
     fclose(f);
 
-    // Find rolling rocks
+    // Find rounded rocks
     for (int i = 0; i < N; ++i)
         for (int j = 0, k = N - 1; j < N; ++j, --k)
             balls[i] |= (bitmask)(map[i][j] == 'O') << k;
@@ -79,15 +69,33 @@ static void init(void)
                     // N-j-1-(k-j-1) = N-k = offset from right
                     space[t][i][segm++] = (bitmask)(ones[k - j] << (N - k));
             }
-        transpose_map();
+        for (int i = 0; i < N - 1; ++i)
+            for (int j = i + 1; j < N; ++j) {
+                const char tmp = map[i][j];
+                map[i][j] = map[j][i];  // transpose
+                map[j][i] = tmp;
+            }
     }
+}
+
+void transpose64(void)
+{
+    int j, k;
+    uint64_t m, t;
+
+    for (j = 32, m = 0x00000000FFFFFFFF; j; j >>= 1, m ^= m << j)
+        for (k = 0; k < 64; k = ((k | j) + 1) & ~j) {
+            t = (balls[k] ^ (balls[k | j] >> j)) & m;
+            balls[k] ^= t;
+            balls[k | j] ^= (t << j);
+        }
 }
 
 int main(void)
 {
     init();
 
-    // Show space and square rocks in row x col and col x row
+    // Show space and cube-shaped rocks in row x col and col x row
     for (int t = 0; t < 2; ++t) {
         for (int i = 0; i < N; ++i) {
             printf("%3d: ", i + 1);
@@ -101,7 +109,7 @@ int main(void)
         fputc('\n', stdout);
     }
 
-    // Show round rocks
+    // Show rounded rocks
     for (int i = 0; i < N; ++i) {
         printf("%3d: ", i + 1);
         for (bitmask bit = (bitmask)1 << (N - 1); bit; bit >>= 1)
@@ -109,6 +117,15 @@ int main(void)
         fputc('\n', stdout);
     }
     fputc('\n', stdout);
+
+    // Transpose rounded rocks
+    bitmask bit_i = (bitmask)1 << (N - 1);
+    for (int i = 0; i < N - 1; ++i) {
+        bitmask bit_j = bit_i >> 1;
+        for (int j = i + 1; j < N; ++j) {
+            // balls[i] & bit_j <-> balls[j] & bit_i;
+        }
+    }
 
     return 0;
 }
