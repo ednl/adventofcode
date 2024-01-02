@@ -16,9 +16,13 @@
  *     Raspberry Pi 4 (1.8 GHz)            : ? µs
  */
 
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
 #include <stdio.h>    // fopen, fclose, fgets, printf, fputs, fputc
 #include <string.h>   // memset
 #include <stdint.h>   // uint16_t
+#include <inttypes.h>  // PRIx
 #include <stdbool.h>  // bool
 // #include "../startstoptimer.h"
 
@@ -26,11 +30,15 @@
 #if EXAMPLE
     #define NAME "../aocinput/2023-14-example.txt"
     #define N 10
+    #define M 16
+    #define P  4
     #define SEGMENTS 3
     typedef uint16_t bitmask;
 #else
     #define NAME "../aocinput/2023-14-input.txt"
     #define N 100  // number of rows and cols of the map
+    #define M 128  // next power of 2
+    #define P   7
     #define SEGMENTS 20  // max no. of disjoint open space segments in any row or col
     typedef __uint128_t bitmask;  // number of bits >= N
 #endif
@@ -38,7 +46,8 @@
 static char map[N][N + 2];  // +2 for '\n\0'
 static bitmask ones[N + 1];  // ones[i] = 0,1,3,7,15,31,etc or popcount(ones[i]) = i
 static bitmask space[2][N][SEGMENTS];  // 2 orientations, N rows or cols, max number of open space segments
-static bitmask balls[N];  // rounded rocks 'O'
+static bitmask balls[M];  // rounded rocks 'O', size is power of 2 for transposing
+static bitmask tpat[P];  // transpose patterns
 
 static void init(void)
 {
@@ -55,8 +64,18 @@ static void init(void)
 
     // Base masks with increasing count of bits set
     bitmask m = 1;
-    for (int i = 1; i <= N; ++i, m = (bitmask)(m << 1 | 1))
+    for (int i = 1; i <= N; ++i, m = (bitmask)(m << 1 | 1)) {
         ones[i] = m;
+        // printf("%3d: %04x\n", i, m);
+    }
+
+    // Generate transpose bit patterns
+    // E.g. for 16 bit size: 0: 0000000011111111, 1: 0000111100001111, 2: 0011001100110011, 3: 0101010101010101
+    m = ones[M >> 1];
+    for (int i = 0, j = M >> 1; j; ++i, j >>= 1, m ^= m << j) {
+        tpat[i] = m;
+        printf("%d: %04x\n", i, m);
+    }
 
     // Find open space segments in rows and cols
     for (int t = 0; t < 2; ++t) {
@@ -78,18 +97,18 @@ static void init(void)
     }
 }
 
-void transpose64(void)
-{
-    int j, k;
-    uint64_t m, t;
+// static void transpose64(void)
+// {
+//     int j, k;
+//     uint64_t m, t;
 
-    for (j = 32, m = 0x00000000FFFFFFFF; j; j >>= 1, m ^= m << j)
-        for (k = 0; k < 64; k = ((k | j) + 1) & ~j) {
-            t = (balls[k] ^ (balls[k | j] >> j)) & m;
-            balls[k] ^= t;
-            balls[k | j] ^= (t << j);
-        }
-}
+//     for (j = 32, m = 0x00000000FFFFFFFF; j; j >>= 1, m ^= m << j)
+//         for (k = 0; k < 64; k = ((k | j) + 1) & ~j) {
+//             t = (balls[k] ^ (balls[k | j] >> j)) & m;
+//             balls[k] ^= t;
+//             balls[k | j] ^= (t << j);
+//         }
+// }
 
 int main(void)
 {
@@ -119,13 +138,6 @@ int main(void)
     fputc('\n', stdout);
 
     // Transpose rounded rocks
-    bitmask bit_i = (bitmask)1 << (N - 1);
-    for (int i = 0; i < N - 1; ++i) {
-        bitmask bit_j = bit_i >> 1;
-        for (int j = i + 1; j < N; ++j) {
-            // balls[i] & bit_j <-> balls[j] & bit_i;
-        }
-    }
 
     return 0;
 }
