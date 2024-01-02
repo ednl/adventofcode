@@ -3,6 +3,7 @@
 #include <stdint.h>  // uint32_t
 #include <string.h>  // memcpy
 #include <stdbool.h>
+#include "../startstoptimer.h"
 
 #define EXAMPLE 0
 #if EXAMPLE == 1
@@ -278,7 +279,9 @@ static int part(int stretch)
 
 int main(void)
 {
+    starttimer();
     printf("Part 1: %d\n", part(1));     // example = 22728, input = 16106
     printf("Part 2: %d\n", part(2017));  // example = 22551, input = 22423
+    printf("Time: %.2f s\n", stoptimer_s());
     return 0;
 }

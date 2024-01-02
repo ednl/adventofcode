@@ -1,7 +1,26 @@
+/**
+ * Advent of Code 2016
+ * Day 17: Two Steps Forward
+ * https://adventofcode.com/2016/day/17
+ * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *    clang -std=gnu17 -Ofast -march=native -Wall -Wextra 17alt.c mymd5.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wextra 17alt.c mymd5.c ../startstoptimer.c
+ * Get minimum runtime (input is 8-char string as command line argument):
+ *     m=999999;for((i=0;i<1000;++i));do t=$(./a.out udskfozm|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
+ * Minimum runtime:
+ *     Mac Mini 2020 (M1 3.2 GHz)          : 44337 µs
+ *     iMac 2013 (i5 Haswell 4570 3.2 GHz) : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)            : ? µs
+ *     Raspberry Pi 4 (1.8 GHz)            : ? µs
+ */
+
 #include <stdio.h>   // printf
 #include <stdlib.h>  // malloc, realloc, free
 #include <string.h>  // memcpy
 #include "mymd5.h"
+#include "../startstoptimer.h"
 
 #define N 4
 #define M (N - 1)
@@ -45,6 +64,7 @@ static void walk(int x, int y, size_t len, char *path)
 
 int main(int argc, char *argv[])
 {
+    starttimer();
     if (argc != 2)
         return 1;
     saltlen = strlen(argv[1]);
@@ -56,5 +76,6 @@ int main(int argc, char *argv[])
 
     free(salt);
     free(shortestpath);
+    printf("Time: %.0f us\n", stoptimer_us());
     return 0;
 }

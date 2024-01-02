@@ -2,6 +2,7 @@
 #include <stdint.h>  // uint32_t
 #include <string.h>  // strlen, memcpy
 #include <stdbool.h>
+#include "../startstoptimer.h"
 
 // My puzzle input
 // #define DOORID "abc"    // example
@@ -129,6 +130,8 @@ static bool md5(void)
 
 int main(void)
 {
+    starttimer();
     while (!md5());
+    printf("Time: %.2f s\n", stoptimer_s());
     return 0;
 }

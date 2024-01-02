@@ -2,6 +2,7 @@
 #include <string.h>   // strlen, memcpy
 #include <stdbool.h>  // bool
 #include "mymd5.h"
+#include "../startstoptimer.h"
 
 #define N 4         // dimensions = 4x4
 #define M (N - 1)   // max coordinate = 3
@@ -51,6 +52,7 @@ static bool enq(queue_t *q, const state_t * const val)
 
 int main(int argc, char *argv[])
 {
+    starttimer();
     if (argc != 2)
         return 1;
     size_t baselen = strlen(argv[1]);
@@ -104,5 +106,6 @@ int main(int argc, char *argv[])
     // Ex3   : "ulqzkmiv" = 830
     // Input : "udskfozm" = 556
     printf("Part 2: %zu\n", longest >= baselen ? longest - baselen : 0);
+    printf("Time: %.2f ms\n", stoptimer_ms());
     return 0;
 }
