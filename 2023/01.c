@@ -6,24 +6,26 @@
  *
  * Compile:
  *    clang -std=gnu17 -Ofast -march=native -Wall -Wextra 01.c ../startstoptimer.c
- *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wextra -Wno-misleading-indentation 01.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wextra 01.c ../startstoptimer.c
  * Get minimum runtime:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
- *     Mac Mini 2020 (M1 3.2 GHz)                  : 100 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)                  :  60 µs
  *     Raspberry Pi 5 (2.4 GHz)                    : ? µs
  *     iMac 2013 (i5 Haswell 4570 3.2 GHz)         : ? µs
  *     Raspberry Pi 4 (1.8 GHz)                    : ? µs
- *     Macbook Air 2013 (i5 4250U Haswell 1.3 GHz) : 220 µs
  */
 
 #include <stdio.h>   // fopen, fclose, fgets, printf
 #include <stdint.h>  // int64_t
 #include "../startstoptimer.h"
 
-#define M3 ((INT64_C(1) << 24) - 1)
-#define M4 ((INT64_C(1) << 32) - 1)
-#define M5 ((INT64_C(1) << 40) - 1)
+#define N 32768  // greater than size of input file (21985)
+#define M3 ((INT64_C(1) << 24) - 1)  // 3-byte mask
+#define M4 ((INT64_C(1) << 32) - 1)  // 4-byte mask
+#define M5 ((INT64_C(1) << 40) - 1)  // 5-byte mask
+
+static char input[N];
 
 static int lookfwd(const char* s, const char* const end, const int def)
 {
@@ -80,24 +82,23 @@ static int lookback(const char* s, const char* const end, const int def)
 int main(void)
 {
     starttimer();
-    FILE* f = fopen("../aocinput/2023-01-input.txt", "r");
+    FILE* f = fopen("../aocinput/2023-01-input.txt", "rb");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
+    fread(input, sizeof input, 1, f);  // read whole file in one go
+    fclose(f);
 
     int part1 = 0, part2 = 0;
-    char buf[64];  // needed for my input: 58
-    while (fgets(buf, sizeof buf, f)) {  // 1000 lines
-        const char* s, *t, *end;
-        for (s = buf; *s > '9'; ++s);  // find first numerical digit (every line has at least one)
-        const int d1 = (*s & 15) * 10;
+    for (const char* line = input, *end, *s1, *s2; *line; line = end + 1) {
+        for (s1 = line; *s1 > '9'; ++s1);  // find first numerical digit (every line has at least one)
+        const int d1 = (*s1 & 15) * 10;
         part1 += d1;
-        part2 += lookfwd(buf, s, d1);  // look for first digit word BEFORE first numerical digit
-        for (end = s + 1; *end != '\n'; ++end);  // newline = end of string
-        for (t = end - 1; *t > '9' && t > s; --t);  // find last numerical digit
-        const int d2 = *t & 15;
+        part2 += lookfwd(line, s1, d1);  // look for first digit word BEFORE first numerical digit
+        for (end = s1 + 1; *end != '\n'; ++end);  // newline = end of line
+        for (s2 = end - 1; *s2 > '9' && s2 > s1; --s2);  // find last numerical digit
+        const int d2 = *s2 & 15;
         part1 += d2;
-        part2 += lookback(end, t, d2);  // look for last digit word AFTER last numerical digit
+        part2 += lookback(end, s2, d2);  // look for last digit word AFTER last numerical digit
     }
-    fclose(f);
     printf("Part 1: %d\nPart 2: %d\n", part1, part2);  // example: 209 281, input: 54630 54770
     printf("Time: %.0f us\n", stoptimer_us());
     return 0;
