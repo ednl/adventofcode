@@ -26,9 +26,9 @@ static void rev(char* s, const int len)
 {
     char *t = s + len - 1;
     while (s < t) {
-        char c = *s;
+        const char tmp = *s;
         *s++ = *t;
-        *t-- = c;
+        *t-- = tmp;
     }
 }
 
