@@ -10,10 +10,10 @@
  * Get minimum runtime:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
- *     Mac Mini 2020 (M1 3.2 GHz)          : 56 µs (45 µs without reading the input file)
- *     Raspberry Pi 5 (2.4 GHz)            : ? µs
- *     iMac 2013 (i5 Haswell 4570 3.2 GHz) : ? µs
- *     Raspberry Pi 4 (1.8 GHz)            : ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)          :  56 µs (45 µs without reading the input file)
+ *     Raspberry Pi 5 (2.4 GHz)            : 103 µs
+ *     iMac 2013 (i5 Haswell 4570 3.2 GHz) : 106 µs
+ *     Raspberry Pi 4 (1.8 GHz)            : 219 µs
  */
 
 #include <stdio.h>   // fopen, fclose, fread, printf
@@ -31,7 +31,7 @@ static char input[N];  // complete input file as one blob
 static int lookfwd(const char* start, const char* const end, const int def)
 {
     if (start + 3 > end) return def;
-    // Startup 3/4/3
+    // Startup 3/4/3.
     unsigned win = 0;
     for (int i = 0 ; i < 3 ; ++i)
         win = win << 5 | (unsigned)(*start++ - 'a');
@@ -52,7 +52,7 @@ static int lookfwd(const char* start, const char* const end, const int def)
         case 18711u: return 60;  // "six"
         case 20174u: return 20;  // "two"
     }
-    // Loop 5/4/3, 5/4/3, etc
+    // Loop 5/4/3, 5/4/3, etc.
     while (start < end) {
         win = win << 5 | (unsigned)(*start++ - 'a');
         switch (win & BITS25) {
@@ -79,7 +79,7 @@ static int lookfwd(const char* start, const char* const end, const int def)
 static int lookback(const char* start, const char* const end, const int def)
 {
     if (start - 3 < end) return def;
-    // Startup 3/4/3
+    // Startup 3/4/3.
     unsigned win = 0;
     for (int i = 0 ; i < 3 ; ++i)
         win = win >> 5 | ((unsigned)(*start-- - 'a') << 20);
@@ -100,7 +100,7 @@ static int lookback(const char* start, const char* const end, const int def)
         case 18711u: return 6;  // "six"
         case 20174u: return 2;  // "two"
     }
-    // Loop 5/4/3, 5/4/3, etc
+    // Loop 5/4/3, 5/4/3, etc.
     while (start > end) {
         win = win >> 5 | ((unsigned)(*start-- - 'a') << 20);
         switch (win) {
