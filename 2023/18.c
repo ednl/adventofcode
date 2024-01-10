@@ -39,7 +39,7 @@ typedef enum dir {
 } Dir;
 
 typedef struct dig {
-    Dir dir;  // R=0,D,L,U
+    Dir dir;  // 0..3 = R,D,L,U
     int len;  // must hold 20-bit number for part 2
 } Dig;
 
@@ -62,10 +62,10 @@ int main(void)
     FILE* f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
 
-    char c;
-    for (int i = 0, k, x; i < N && fscanf(f, " %c %2d (#%6x)", &c, &k, &x) == 3; ++i) {
-        trench[0][i] = (Dig){char2dir(c), k};  // digging instructions for part 1
-        trench[1][i] = (Dig){x & 3, x >> 4};   // last hex digit of x: 0=R,1=D,2=L,3=U
+    char dir;
+    for (int i = 0, len, hex; i < N && fscanf(f, "%c %2d (#%6x)\n", &dir, &len, &hex) == 3; ++i) {
+        trench[0][i] = (Dig){char2dir(dir), len};  // digging instructions for part 1
+        trench[1][i] = (Dig){hex & 3, hex >> 4};   // last hex digit: 0=R,1=D,2=L,3=U
     }
     fclose(f);
 
@@ -81,19 +81,19 @@ int main(void)
 
     const Dig* t = &trench[0][0];
     for (int part = 1; part <= 2; ++part) {
-        int64_t x = 0, y = 0, a = 0, b = 0;  // position, area, border
+        int64_t a = 0, b = 0, y = 0;  // area, border, y-position
         for (int i = 0; i < N; ++i, ++t) {
             // Shoelace: A = 1/2 . sum((y[i] + y[i+1]).(x[i] - x[i+1]))
             // For two points on horizontal line: y[i] = y[i+1], so y[i] + y[i+1] = 2y
             // For two points on vertical line: x[i] = x[i+1], so x[i] - x[i+1] = 0
-            // Bring the 1/2 in the sum: A = sum(y.dx) for horizontal lines only
+            // Bring the 1/2 in the sum: A = sum(y.dx) for horizontal lines only.
             switch (t->dir) {
-                case RIGHT: x += t->len; a -= y * t->len; break;
+                case RIGHT: a -= y * t->len; break;
                 case DOWN : y += t->len; break;
-                case LEFT : x -= t->len; a += y * t->len; break;
+                case LEFT : a += y * t->len; break;
                 case UP   : y -= t->len; break;
             }
-            b += t->len;
+            b += t->len;  // trench length = border area
         }
         // Pick: i = A - b/2 + 1, but add border b
         // example:    62    952408144115
