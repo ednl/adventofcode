@@ -19,21 +19,21 @@
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
-#include <stdio.h>    // fopen, fclose, fgets, printf, fputs, fputc
-#include <string.h>   // memset
-#include <stdint.h>   // uint16_t
+#include <stdio.h>     // fopen, fclose, fgets, printf, fputs, fputc
+#include <string.h>    // memset
+#include <stdint.h>    // uint16_t
 #include <inttypes.h>  // PRIx
-#include <stdbool.h>  // bool
+#include <stdbool.h>   // bool
 // #include "../startstoptimer.h"
 
 #define EXAMPLE 1
 #if EXAMPLE
     #define NAME "../aocinput/2023-14-example.txt"
-    #define N 10
-    #define M 16
+    #define N 10  // number of rows and cols of the map
+    #define M 16  // next power of 2
     #define P  4
-    #define SEGMENTS 3
-    typedef uint16_t bitmask;
+    #define SEGMENTS 3  // max no. of disjoint open space segments in any row or col
+    typedef uint16_t bitmask;  // number of bits >= N
 #else
     #define NAME "../aocinput/2023-14-input.txt"
     #define N 100  // number of rows and cols of the map
