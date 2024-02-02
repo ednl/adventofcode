@@ -26,11 +26,11 @@
 
 #define EXAMPLE 0
 #if EXAMPLE
-#define NAME "../aocinput/2023-12-example.txt"
-#define N 6
+    #define NAME "../aocinput/2023-12-example.txt"
+    #define N 6
 #else
-#define NAME "../aocinput/2023-12-input.txt"
-#define N 1000
+    #define NAME "../aocinput/2023-12-input.txt"
+    #define N 1000
 #endif
 #define PLEN 128  // max needed 20+1+1, 100+4+1+1
 #define GLEN 32   // max needed 6, 30
