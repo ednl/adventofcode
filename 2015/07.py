@@ -10,8 +10,8 @@ fun = {
     'PATCH' : lambda x: x}
 
 h = {}
-with open('../aocinput/2015-07-input.txt') as f:
-    for line in f:
+with open('../aocinput/2015-07-input.txt') as fp:
+    for line in fp:
         m = regrule.match(line)
         if m:
             f = fun[m.group(4) if m.group(4) is not None else 'PATCH']
@@ -31,8 +31,9 @@ def getval(id):
 
 # Part 1
 val = {}
-print(getval('a'))
+a = getval('a')
+print(a)            # 46065
 
 # Part 2
-val = {'b': 46065}
-print(getval('a'))
+val = {'b': a}
+print(getval('a'))  # 14134
