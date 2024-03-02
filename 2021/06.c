@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
-#include <stdbool.h>
-#include <time.h>
+#include "../startstoptimer.h"
 
 #define CYCLE   7  // spawn every 7 days
 #define DELAY   2  // add 2 days to the first spawn cycle
@@ -12,23 +11,6 @@
 
 // Histogram of fish population count per age mod 9
 static uint64_t age[LIFE] = {0};
-
-static uint64_t nanotimer(void)
-{
-    static bool start = true;
-    static struct timespec t0;
-
-    if (start) {
-        start = false;
-        clock_gettime(CLOCK_MONOTONIC_RAW, &t0);
-        return 0;
-    } else {
-        struct timespec t1;
-        clock_gettime(CLOCK_MONOTONIC_RAW, &t1);
-        start = true;
-        return (uint64_t)(t1.tv_sec - t0.tv_sec) * UINT64_C(1000000000) + (uint64_t)t1.tv_nsec - (uint64_t)t0.tv_nsec;
-    }
-}
 
 // Live for days, return population
 static uint64_t live(const int days)
@@ -46,8 +28,7 @@ static uint64_t live(const int days)
 
 int main(void)
 {
-    nanotimer();
-
+    starttimer();
     // Build population histogram by age bin
     FILE *f = fopen("../aocinput/2021-06-input.txt", "r");
     int c = ',';
@@ -59,6 +40,6 @@ int main(void)
 
     printf("Part 1: %"PRIu64"\n", live(DAYS1));  // 374927
     printf("Part 2: %"PRIu64"\n", live(DAYS2));  // 1687617803407
-    printf("%.3f ms\n", nanotimer() * 1e-6);
+    printf("Time: %.0f us\n", stoptimer_us());
     return 0;
 }
