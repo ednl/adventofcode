@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
             case '1': f = fopen("../aocinput/2021-12-example1.txt", "r"); break;
             case '2': f = fopen("../aocinput/2021-12-example2.txt", "r"); break;
             case '3': f = fopen("../aocinput/2021-12-example3.txt", "r"); break;
-            default : f = fopen("../aocinput/2021-12-input.txt"    , "r"); break;
+            default : f = fopen("../aocinput/2021-12-input.txt"   , "r"); break;
         }
     }
 
@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
     }
     // print_graph();
 
-    printf("Part 1: %u\n", find_all_paths(startnode, 1));  // Ex1: 10, Ex2: 19, Ex3: 226, Input: 3410
+    printf("Part 1: %u\n", find_all_paths(startnode, 1));  // Ex1: 10, Ex2:  19, Ex3:  226, Input: 3410
     printf("Part 2: %u\n", find_all_paths(startnode, 2));  // Ex1: 36, Ex2: 103, Ex3: 3509, Input: ?
 
     return 0;
