@@ -44,7 +44,8 @@ static Wire wire[N];
 static bool incache[N];  // separate array for easy reset
 
 // Convert wire name to array index, e.g.: a=1, aa=27, zz=702.
-// Max. index for my input: ma=339.
+// (max. index for my input: "ma" = 339)
+// Also advance the char pointer.
 static uint16_t namehash(char* s[])
 {
     int id = *(*s)++ - 'a' + 1;  // +1 to tell apart "a" and "aa"
@@ -54,7 +55,7 @@ static uint16_t namehash(char* s[])
 }
 
 // Read unsigned int value from string.
-// Advance the char pointer.
+// Also advance the char pointer.
 static uint16_t intval(char* s[])
 {
     int n = *(*s)++ - '0';
@@ -63,8 +64,8 @@ static uint16_t intval(char* s[])
     return (uint16_t)n;
 }
 
-// Recursively evaluate a wire.
-// Max. recursion depth for my input = 40.
+// Recursively evaluate a wire by index.
+// (max. recursion depth for my input = 40)
 static uint16_t eval(const uint16_t index)
 {
     Wire* const w = &wire[index];
