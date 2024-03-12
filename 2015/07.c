@@ -10,7 +10,7 @@
  * Get minimum runtime:
  *     m=999999;for((i=0;i<2000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
- *     Mac Mini 2020 (M1 3.2 GHz)          :  31 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)          :  30 µs
  *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :  68 µs
  *     Raspberry Pi 5 (2.4 GHz)            :  50 µs
  *     Raspberry Pi 4 (1.8 GHz)            : 131 µs
@@ -22,8 +22,12 @@
 #include <string.h>  // memset
 #include "../startstoptimer.h"
 
-#define BASE 26  // 26 letters
-#define N   512  // max. wire name "ma" = 339
+#define CHARVAL(C) ((C) - 'a' + 1)  // +1 to tell apart "a" and "aa"
+#define BASE CHARVAL('z')           // 'z' - 'a' + 1 = 26 letters
+
+// Number of wires = 340 (my input: max. wire name "ma" = index 339)
+// To anticipate any two-letter wire name, change to "zz"
+#define N (BASE * CHARVAL('m') + CHARVAL('a') + 1)
 
 // EQ means a direct patch from one wire to another, or to a value
 // e.g.: "cd -> aa" or "0 -> b"
@@ -43,24 +47,22 @@ typedef struct wire {
 static Wire wire[N];
 static bool incache[N];  // separate array for easy reset
 
-// Convert wire name to array index, e.g.: a=1, aa=27, zz=702.
-// (max. index for my input: "ma" = 339)
-// Also advance the char pointer.
-static uint16_t namehash(char* s[])
+// Convert wire name to array index while advancing char pointer
+// E.g.: a=1, aa=27, zz=702 (max. index for my input: ma=339)
+static uint16_t wireindex(char* wirename[])
 {
-    int id = *(*s)++ - 'a' + 1;  // +1 to tell apart "a" and "aa"
-    if (**s >= 'a' && **s <= 'z')
-        id = id * BASE + *(*s)++ - 'a' + 1;
+    int id = CHARVAL(*(*wirename)++);
+    if (**wirename >= 'a' && **wirename <= 'z')
+        id = id * BASE + CHARVAL(*(*wirename)++);
     return (uint16_t)id;
 }
 
-// Read unsigned int value from string.
-// Also advance the char pointer.
-static uint16_t intval(char* s[])
+// Read unsigned int value from string while advancing char pointer
+static uint16_t parseint(char* digits[])
 {
-    int n = *(*s)++ - '0';
-    while (**s >= '0' && **s <= '9')
-        n = n * 10 + *(*s)++ - '0';
+    int n = *(*digits)++ - '0';
+    while (**digits >= '0' && **digits <= '9')
+        n = n * 10 + *(*digits)++ - '0';
     return (uint16_t)n;
 }
 
@@ -69,7 +71,7 @@ static uint16_t intval(char* s[])
 static uint16_t eval(const uint16_t index)
 {
     Wire* const w = &wire[index];
-    if (incache[index])  // already evaluated?
+    if (incache[index])  // shortcut if already evaluated
         return w->val;
     uint16_t x = w->iswire[0] ? eval(w->arg[0]) : w->arg[0];
     uint16_t y = w->iswire[1] ? eval(w->arg[1]) : w->arg[1];
@@ -81,7 +83,7 @@ static uint16_t eval(const uint16_t index)
         case SHL: x <<= y; break;
         case SHR: x >>= y; break;
     }
-    w->val = x;  // save wire value to avoid more recursion
+    w->val = x;  // save as shortcut for next evaluation of same wire
     incache[index] = true;
     return x;
 }
@@ -89,51 +91,48 @@ static uint16_t eval(const uint16_t index)
 int main(void)
 {
     starttimer();
-
-    // Parse input file
     FILE* f = fopen("../aocinput/2015-07-input.txt", "r");
     if (!f) return 1;
+
+    // Parse input file
     char line[32];
-    while (fgets(line, sizeof line, f)) {
-        Wire w = {0};  // .func = EQ, .val = 0, .arg[i] = 0, .iswire[i] = false
-        uint16_t hash = 0, args = 0;
+    while (fgets(line, sizeof line, f)) {  // read with newline
+        Wire w = {0};  // .func = EQ, .val = 0, .arg[] = 0, .iswire[] = false
+        uint16_t args = 0;  // argument count
         char* s = line;
-        while (*s != '\n' && *s != '\0') {
-            while (*s == ' ') ++s;  // skip space(s)
-            if (*s >= 'a' && *s <= 'z') {  // wire name
-                w.arg[args] = namehash(&s);
-                w.iswire[args++] = true;  // argument is another wire
-            } else if (*s >= '0' && *s <= '9') {  // number (unsigned int)
-                w.arg[args] = intval(&s);
-                w.iswire[args++] = false;  // argument is a number
-            } else if (*s >= 'A' && *s <= 'Z') {  // input function with 1 or 2 arguments
+        while (*s) {
+            if (*s >= 'a' && *s <= 'z') {         // argument is a wire name
+                w.iswire[args] = true;
+                w.arg[args++] = wireindex(&s);
+            } else if (*s >= '0' && *s <= '9') {  // argument is a number
+                w.arg[args++] = parseint(&s);     // from init: .iswire[] = false
+            } else if (*s >= 'A' && *s <= 'Z') {  // input function name
                 switch (*s) {
-                    // EQ (patch / direct assignment) already covered by init to 0=EQ
+                    // EQ (patch / direct assignment) already covered by init: EQ=0
                     case 'N': w.func = NOT; break;
                     case 'A': w.func = AND; break;
                     case 'O': w.func = OR;  break;
                     case 'L': w.func = SHL; break;
                     case 'R': w.func = SHR; break;
                 }
-                while (*s != ' ') ++s;  // skip the rest of the function name
+                while (*s != ' ') ++s;  // skip rest of function name
             } else if (*s == '-') {
                 s += 3;  // skip arrow and space
-                hash = namehash(&s);
+                wire[wireindex(&s)] = w;
             }
+            ++s;  // skip space or newline
         }
-        if (hash)
-            wire[hash] = w;
     }
     fclose(f);
 
     // Part 1
-    const uint16_t a = eval(1);  // wire name "a" = index 1
-    printf("Part 1: %u\n", a);  // 46065
+    const uint16_t a = eval(CHARVAL('a'));
+    printf("Part 1: %u\n", a);                   // 46065
 
     // Part 2
-    memset(incache, 0, sizeof incache);  // reset cache
-    wire[2] = (Wire){EQ, 0, {a, 0}, {false, false}};  // set rule: "<value> -> b"
-    printf("Part 2: %u\n", eval(1));  // 14134
+    memset(incache, 0, sizeof incache);          // reset cache
+    wire[CHARVAL('b')] = (Wire){.arg[0] = a};    // set rule: "<value> -> b"
+    printf("Part 2: %u\n", eval(CHARVAL('a')));  // 14134
 
     printf("Time: %.0f us\n", stoptimer_us());
     return 0;
