@@ -8,8 +8,6 @@ for i in range(cards):
     match = np.intersect1d(win[i], our[i], assume_unique=True).shape[0]
     if match > 0:
         score += 1 << (match - 1)
-        j = i + 1
-        if j < cards:
-            k = min(j + match, cards)
-            copies[j:k] += copies[i]
-print(score, np.sum(copies))
+        if i + 1 < cards:
+            copies[i + 1:min(i + 1 + match, cards)] += copies[i]
+print(score, np.sum(copies))  # 24733 5422730
