@@ -6,14 +6,26 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>  // qsort, binsearch
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-#define NAME "../aocinput/2023-19-example.txt"
-#define WFSZ 11
-#define WFLEN 4
-#define PARTS 5
+#define EXAMPLE 1
+
+// Input file
+#if EXAMPLE == 1
+    #define FNAME "../aocinput/2023-19-example.txt"
+    #define WORKFLOWS 11
+    #define PARTS 5
+#else
+    #define FNAME "../aocinput/2023-19-input.txt"
+    #define WORKFLOWS 541
+    #define PARTS 200
+#endif
+
+// Max. no. of rules per workflow
+#define RULES 4
 
 // Part rating category
 typedef enum cat {
@@ -35,21 +47,20 @@ typedef struct rule {
     Cmp cmp;
     unsigned val;
     Act act;
-    unsigned nextid;
     char nextname[4];
 } Rule;
 
 typedef struct workflow {
-    Rule rule[WFLEN];
-    unsigned id, len;
     char name[4];
+    unsigned rules;
+    Rule rule[RULES];
 } Workflow;
 
-static const char* cat2char = "xmas_";
-static const unsigned start = 'i' << 8 | 'n';
-static const unsigned accepted = 'A';
-static const unsigned rejected = 'R';
-static Workflow wf[WFSZ];
+static const char* cat2char = "_xmas";
+// static const unsigned start_id = 'i' << 8 | 'n';
+// static const unsigned accepted = 'A';
+// static const unsigned rejected = 'R';
+static Workflow wf[WORKFLOWS];
 static unsigned part[PARTS][4];
 
 static Cat char2cat(const char c)
@@ -65,66 +76,83 @@ static Cat char2cat(const char c)
 
 static void show(void)
 {
-    for (int i = 0 ; i < WFSZ; ++i) {
-        printf("%d: %s{", i, wf[i].name);
-        for (int j = 0; j < wf[i].len; ++j) {
+    for (int i = 0; i < WORKFLOWS; ++i) {
+        printf("%3d: %-3s { ", i, wf[i].name);
+        for (unsigned j = 0; j < wf[i].rules; ++j) {
             Cat cat = wf[i].rule[j].cat;
-            if (cat != NOCAT) {  // conditional
-                fputc(cat2char[cat], stdout);
-                // if (wf[i].rule[j].lower)
-                //     printf(">%d:", wf[i].rule[j].lower);
-                // if (wf[i].rule[j].upper)
-                //     printf("<%d:", wf[i].rule[j].upper);
+            if (cat != NOCAT)  // conditional
+                printf("%c %c %4u: ", cat2char[cat], wf[i].rule[j].cmp == LT ? '<' : '>', wf[i].rule[j].val);
+            switch (wf[i].rule[j].act) {
+                case REJECT: fputs("R  ", stdout); break;
+                case ACCEPT: fputs("A  ", stdout); break;
+                case GONEXT: printf("%-3s", wf[i].rule[j].nextname); break;
             }
-            printf("%s", wf[i].rule[j].nextname);
-            if (j != wf[i].len - 1)
-                printf(",");
+            if (j != wf[i].rules - 1)
+                printf(", ");
         }
-        printf("}\n");
+        printf(" }\n");
     }
     printf("\n");
     for (int i = 0; i < PARTS; ++i)
-        printf("{x=%d,m=%d,a=%d,s=%d}\n", part[i][0], part[i][1], part[i][2], part[i][3]);
-    printf("\n");
+        printf("%3d: { x=%4u, m=%4u, a=%4u, s=%4u }\n", i, part[i][0], part[i][1], part[i][2], part[i][3]);
+}
+
+static int cmpname(const void *p, const void *q)
+{
+    const Workflow * const a = (const Workflow * const)p;
+    const Workflow * const b = (const Workflow * const)q;
+    if (!strcmp(a->name, "in")) return -1;
+    if (!strcmp(b->name, "in")) return  1;
+    return strcmp(a->name, b->name);
 }
 
 int main(void)
 {
-    FILE* f = fopen(NAME, "r");
+    FILE* f = fopen(FNAME, "r");
     if (!f)
         return 1;
-    for (int i = 0 ; i < WFSZ; ++i) {
+    for (int i = 0; i < WORKFLOWS; ++i) {
         char *s, buf[16];
-        if (fscanf(f, " %4[^{]{", buf) == 1) {
+        if (fscanf(f, " %4[^{]{", buf) == 1)
             strcpy(wf[i].name, buf);
-            s = buf;
-            while (*s)
-                wf[i].id = wf[i].id << 8 | *s++;
-        }
-        int j = 0;
-        for (int c = ','; c == ',' && j < WFLEN && fscanf(f, " %15[^,}]", buf) == 1; ++j, c = fgetc(f)) {
+        unsigned j = 0;
+        for (int c = ','; c == ',' && j < RULES && fscanf(f, " %15[^,}]", buf) == 1; ++j, c = fgetc(f)) {
             if ((s = strchr(buf, ':'))) {
                 // conditional node
                 wf[i].rule[j].cat = char2cat(buf[0]);
-                // int* val = buf[1] == '>' ? &wf[i].rule[j].lower : &wf[i].rule[j].upper;
-                // s = &buf[2];
-                // while (*s != ':')
-                //     *val = *val * 10 + (*s++ & 15);
-                // ++s;  // to start of condition name
+                wf[i].rule[j].cmp = buf[1] == '<' ? LT : GT;
+                s = &buf[2];
+                while (*s != ':')
+                    wf[i].rule[j].val = wf[i].rule[j].val * 10 + (*s++ & 15);
+                ++s;  // skip ':' to start of action
             } else {
-                // unconditional node
-                wf[i].rule[j].cat = NOCAT;
-                s = buf;  // start of buf is start of condition name
+                // unconditional node, .cat=NOCAT, .cmp=NOCMP
+                s = buf;  // start of buf is start of action
             }
-            strcpy(wf[i].rule[j].nextname, s);
-            while (*s)
-                wf[i].rule[j].nextid = wf[i].rule[j].nextid << 8 | *s++;
+            switch (*s) {
+                case 'R': wf[i].rule[j].act = REJECT; break;
+                case 'A': wf[i].rule[j].act = ACCEPT; break;
+                default:
+                    wf[i].rule[j].act = GONEXT;
+                    strcpy(wf[i].rule[j].nextname, s);
+            }
         }
-        wf[i].len = j;
+        wf[i].rules = j;
     }
     for (int i = 0; i < PARTS; ++i)
-        fscanf(f, " {x=%d,m=%d,a=%d,s=%d}", &part[i][0], &part[i][1], &part[i][2], &part[i][3]);
+        fscanf(f, " {x=%u,m=%u,a=%u,s=%u}", &part[i][0], &part[i][1], &part[i][2], &part[i][3]);
     fclose(f);
+
+    qsort(wf, WORKFLOWS, sizeof *wf, cmpname);
+    for (int i = 0; i < WORKFLOWS; ++i) {
+        while (wf[i].rules > 1 && wf[i].rule[wf[i].rules - 1].act != GONEXT && wf[i].rule[wf[i].rules - 2].act == wf[i].rule[wf[i].rules - 1].act) {
+            wf[i].rule[wf[i].rules - 2] = wf[i].rule[wf[i].rules - 1];
+            --wf[i].rules;
+        }
+        if (wf[i].rules == 1 && wf[i].rule[0].act != GONEXT) {
+            // TODO: replace goto with direct reject/accept
+        }
+    }
     show();
 
     for (int i = 0; i < PARTS; ++i) {
