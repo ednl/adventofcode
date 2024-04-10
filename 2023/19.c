@@ -6,7 +6,7 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>  // qsort, binsearch
+#include <stdlib.h>  // qsort, bsearch
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -57,10 +57,8 @@ typedef struct workflow {
 } Workflow;
 
 static const char* cat2char = "_xmas";
-// static const unsigned start_id = 'i' << 8 | 'n';
-// static const unsigned accepted = 'A';
-// static const unsigned rejected = 'R';
 static Workflow wf[WORKFLOWS];
+static unsigned wfcount;
 static unsigned part[PARTS][4];
 
 static Cat char2cat(const char c)
@@ -72,6 +70,15 @@ static Cat char2cat(const char c)
         case 's': return S;
     }
     return NOCAT;
+}
+static unsigned findrule(const char * const name)
+{
+    for (unsigned i = 0; i < WORKFLOWS; ++i)
+        for (unsigned j = 0; j < wf[i].rules; ++j)
+            if (wf[i].rule[j].act == GONEXT && !strcmp(wf[i].rule[j].nextname, name)) {
+                return i << 16 | j;
+            }
+    return -1;
 }
 
 static void show(void)
