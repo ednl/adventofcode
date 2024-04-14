@@ -2,7 +2,9 @@
 #include <stdlib.h>    // atoi, free
 #include <stdint.h>    // uint64_t
 #include <inttypes.h>  // PRIu64
+#include "../startstoptimer.h"
 
+#define VALIDATE 0
 #define MEMSIZE 64
 
 typedef enum {
@@ -80,6 +82,7 @@ static uint64_t run(const unsigned int a)
     return reg[B];
 }
 
+#if VALIDATE
 static uint64_t collatz(uint64_t a)
 {
     uint64_t b = 0;
@@ -92,13 +95,18 @@ static uint64_t collatz(uint64_t a)
     }
     return b;
 }
+#endif
 
 int main(void)
 {
+    starttimer();
     progsize = parse("../aocinput/2015-23-input.txt");
     printf("Part 1: %"PRIu64"\n", run(0));  // 255
     printf("Part 2: %"PRIu64"\n", run(1));  // 334
+    printf("Time: %.0f µs\n", stoptimer_us());
+#if VALIDATE
     printf("Validation: %"PRIu64, collatz((((((((0+1)*3*3*3+1)*3+1)*3+1+1)*3+1+1)*3+1+1)*3+1+1)*3));
     printf(" %"PRIu64"\n", collatz((((((1*3*3*3*3+1+1)*3+1)*3+1+1)*3+1+1)*3+1)*3*3));
+#endif
     return 0;
 }
