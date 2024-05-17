@@ -4,16 +4,20 @@
  * https://adventofcode.com/2022/day/21
  * By: E. Dronkert https://github.com/ednl
  *
- * Benchmark with the internal timer on a Mac Mini M1 using this Bash oneliner:
- *   m=50000;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
- * gives a shortest runtime for my input file (not the example) of [TBD] µs.
- * On a Raspberry Pi 4 with the CPU in performance mode: [TBD] µs.
- *   echo performance | sudo tee /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
- *   /boot/config.txt: arm_boost=1, no overclock
+ * Compile:
+ *    clang -std=gnu17 -Ofast -march=native -Wall -Wextra 21.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wextra 21.c ../startstoptimer.c
+ * Get minimum runtime:
+ *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
+ * Minimum runtime:
+ *     Mac Mini 2020 (M1 3.2 GHz)          :   ? µs
+ *     Raspberry Pi 5 (2.4 GHz)            :   ? µs
+ *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :  99 µs
+ *     Raspberry Pi 4 (1.8 GHz)            :   ? µs
  */
 
 #include <stdio.h>
-#include <stdlib.h>  // qsort, bsearch
+#include <stdlib.h>  // qsort
 #include <stdint.h>
 #include "../startstoptimer.h"
 
@@ -27,27 +31,47 @@
 #endif
 
 typedef struct monkey {
-    uint32_t id, index;
+    int32_t id;
     union {
         int64_t val;
-        struct { uint32_t a, b; };
+        struct { int32_t a, b; };
     };
     char op;
 } Monkey;
 
 static Monkey monkey[N];
 
-static unsigned readnum(const char *s)
+static int binsearch(const int32_t id)
 {
-    unsigned n = 0;
-    while (*s >= '0' && *s <= '9')
+    int l = 0, r = N - 1;
+    if (id == monkey[l].id) return l;
+    if (id == monkey[r].id) return r;
+    // Now always true: monkey[l].id < id < monkey[r].id
+    while (r - l > 1) {  // adjacent means not found
+        int m = ((l + 1) >> 1) + (r >> 1);  // avoid index overflow
+        if      (id > monkey[m].id) l = m;
+        else if (id < monkey[m].id) r = m;
+        else return m;
+    }
+    return -1;  // should not happen for this data (famous last words)
+}
+
+// Much faster than atoi() but only valid for this data because every number is followed by a newline.
+// Slightly more general but still dependent on ASCII: while ((*s & 0xf0) == 0x30) ...;
+// Best and still faster: while (*s >= '0' && *s <= '9') n = n*10 + (*s++ - '0');
+static int readnum(const char *s)
+{
+    int n = 0;
+    while (*s != '\n')
         n = n * 10 + (*s++ & 15);
     return n;
 }
 
-static uint32_t hash(const char *s)
+// Interpret 4 chars as a 32-bit int (LSB or MSB doesn't matter).
+// Compile with -Wno-cast-align to avoid warning.
+static int32_t hash(const char *s)
 {
-    return *(const uint32_t *)s;
+    return *(const int32_t *)s;
 }
 
 static int cmp_monkies(const void *p, const void *q)
@@ -57,19 +81,13 @@ static int cmp_monkies(const void *p, const void *q)
     return 0;
 }
 
-static Monkey* getmonkey(const uint32_t id)
-{
-    const Monkey key = {.id = id};
-    return bsearch(&key, monkey, sizeof monkey / sizeof *monkey, sizeof *monkey, cmp_monkies);
-}
-
 static void parse(void)
 {
     FILE* f = fopen(NAME, "r");
     if (!f) return;
     char line[32];
-    const Monkey *const end = &monkey[N];
-    for (Monkey *m = monkey; m != end && fgets(line, sizeof line, f); ++m) {
+    Monkey *m = monkey;
+    for (int i = 0; i < N && fgets(line, sizeof line, f); ++i, ++m) {
         m->id = hash(line);
         const char *s = line + 6;
         if (*s >= 'a') {
@@ -78,37 +96,23 @@ static void parse(void)
             m->op = *(s + 5);
         } else {
             m->val = readnum(s);
-            m->op = ':';
+            m->op = '=';
         }
     }
     fclose(f);
     qsort(monkey, sizeof monkey / sizeof *monkey, sizeof *monkey, cmp_monkies);
-#if EXAMPLE
-    for (size_t i = 0; i < sizeof monkey / sizeof *monkey; ++i) {
-        printf("%3zu  %.4s: ", i + 1, (char *)&monkey[i].id);
-        if (monkey[i].op == ':')
-            printf("%lld\n", monkey[i].val);
-        else
-            printf("%.4s %c %.4s\n", (char *)&monkey[i].a, monkey[i].op, (char *)&monkey[i].b);
+    for (int i = 0; i < N; ++i) {
+        if (monkey[i].op != '=') {
+            monkey[i].a = binsearch(monkey[i].a);
+            monkey[i].b = binsearch(monkey[i].b);
+        }
     }
-#endif
-    // for (uint32_t i = 0; i < N; ++i)
-    //     monkey[i].index = i;
-    // for (uint32_t i = 0; i < N; ++i) {
-    //     if (monkey[i].op != ':') {
-    //         Monkey *m = getmonkey(monkey[i].a);
-    //         if (m) monkey[i].a = m->index;
-    //         m = getmonkey(monkey[i].b);
-    //         if (m) monkey[i].b = m->index;
-    //     }
-    // }
 }
 
-static int64_t getval(const uint32_t id)
+static int64_t getval(const int index)
 {
-    Monkey *m = getmonkey(id);
-    if (!m) return 0;
-    if (m->op == ':') return m->val;
+    const Monkey *const m = &monkey[index];
+    if (m->op == '=') return m->val;
     int64_t a = getval(m->a);
     const int64_t b = getval(m->b);
     switch (m->op) {
@@ -122,27 +126,29 @@ static int64_t getval(const uint32_t id)
 
 int main(void)
 {
-    starttimer();
     parse();
-    const char *rootname = "root";
-    const uint32_t rootid = hash(rootname);
-    printf("Part 1: %lld\n", getval(rootid));  // example: 152, input: 21120928600114
+    starttimer();
 
-    Monkey *const root = getmonkey(rootid);
-    root->op = '-';
+    const char *rootname = "root";
+    const int32_t rootid = hash(rootname);
+    const int rootindex = binsearch(rootid);
+    printf("Part 1: %lld\n", getval(rootindex));  // example: 152, input: 21120928600114
+
+    monkey[rootindex].op = '-';
     const char *humnname = "humn";
-    Monkey *const humn = getmonkey(hash(humnname));
-    int64_t x0 = humn->val, y0 = getval(rootid);
-    int64_t x1 = humn->val = 0, y1 = getval(rootid);
+    const int32_t humnid = hash(humnname);
+    const int humnindex = binsearch(humnid);
+    int64_t x0 = monkey[humnindex].val, y0 = getval(rootindex);
+    int64_t x1 = monkey[humnindex].val = 0, y1 = getval(rootindex);
     while (y1) {
-        double grad = (double)(y1 - y0) / (x1 - x0);
         int64_t tmp = x1;
-        x1 = humn->val = (int64_t)(x0 - y0 / grad);
+        x1 = monkey[humnindex].val = (int64_t)(x0 - y0 * ((double)(x1 - x0) / (y1 - y0)));
         x0 = tmp;
         y0 = y1;
-        y1 = getval(hash(rootname));
+        y1 = getval(rootindex);
     }
     printf("Part 2: %lld\n", x1);  // example: 301, input: 3453748220116
+
     printf("Time: %.0f us\n", stoptimer_us());
     return 0;
 }
