@@ -11,7 +11,7 @@
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
  *     Mac Mini 2020 (M1 3.2 GHz)          :   ? µs
- *     iMac 2013 (i5 Haswell 4570 3.2 GHz) : 608 µs
+ *     iMac 2013 (i5 Haswell 4570 3.2 GHz) : 607 µs
  *     Raspberry Pi 5 (2.4 GHz)            : 723 µs
  *     Raspberry Pi 4 (1.8 GHz)            :   ? µs
  */
@@ -122,7 +122,7 @@ int main(void)
     }
     fclose(f);
 
-    // Transform monkey array, use direct index instead of id
+    // Transform monkey array: use direct array index instead of "hash table" id
     qsort(monkey, sizeof monkey / sizeof *monkey, sizeof *monkey, cmp_monkies);
     for (int i = 0; i < N; ++i)
         if (monkey[i].op != '=') {
@@ -131,24 +131,20 @@ int main(void)
         }
 
     // Part 1
-    const char *rootname = "root";
-    const int32_t rootid = hash(rootname);
-    const int rootindex = binsearch(rootid);
-    printf("Part 1: %"PRId64"\n", getval(rootindex));  // example: 152, input: 21120928600114
+    const int root = binsearch(hash("root"));
+    printf("Part 1: %"PRId64"\n", getval(root));  // example: 152, input: 21120928600114
 
     // Part 2
-    monkey[rootindex].op = '-';
-    const char *humnname = "humn";
-    const int32_t humnid = hash(humnname);
-    const int humnindex = binsearch(humnid);
-    int64_t x0 = monkey[humnindex].val, y0 = getval(rootindex);
-    int64_t x1 = monkey[humnindex].val = 0, y1 = getval(rootindex);
-    while (y1) {
+    monkey[root].op = '-';  // difference should be zero
+    int64_t *const humn = &monkey[binsearch(hash("humn"))].val;
+    int64_t x0 = *humn, y0 = getval(root);      // first try at humn=<value from input file>
+    int64_t x1 = *humn = 0, y1 = getval(root);  // second try at humn=0
+    while (y1) {  // "gradient descent" by Newton's method; for my input, it takes just two steps
         int64_t tmp = x1;
-        x1 = monkey[humnindex].val = (int64_t)(x0 - y0 * ((double)(x1 - x0) / (y1 - y0)));
+        x1 = *humn = (int64_t)(x0 - y0 * ((double)(x1 - x0) / (y1 - y0)));
         x0 = tmp;
         y0 = y1;
-        y1 = getval(rootindex);
+        y1 = getval(root);
     }
     printf("Part 2: %"PRId64"\n", x1);  // example: 301, input: 3453748220116
 
