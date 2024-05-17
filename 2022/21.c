@@ -12,7 +12,7 @@
  * Minimum runtime:
  *     Mac Mini 2020 (M1 3.2 GHz)          :   ? µs
  *     iMac 2013 (i5 Haswell 4570 3.2 GHz) : 607 µs
- *     Raspberry Pi 5 (2.4 GHz)            : 723 µs
+ *     Raspberry Pi 5 (2.4 GHz)            : 715 µs
  *     Raspberry Pi 4 (1.8 GHz)            :   ? µs
  */
 
