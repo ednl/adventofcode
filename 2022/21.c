@@ -11,14 +11,15 @@
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
  *     Mac Mini 2020 (M1 3.2 GHz)          :   ? µs
- *     Raspberry Pi 5 (2.4 GHz)            :   ? µs
  *     iMac 2013 (i5 Haswell 4570 3.2 GHz) : 608 µs
+ *     Raspberry Pi 5 (2.4 GHz)            : 723 µs
  *     Raspberry Pi 4 (1.8 GHz)            :   ? µs
  */
 
 #include <stdio.h>
-#include <stdlib.h>  // qsort
-#include <stdint.h>
+#include <stdlib.h>    // qsort
+#include <stdint.h>    // int64_t, int32_t
+#include <inttypes.h>  // PRId64
 #include "../startstoptimer.h"
 
 #define EXAMPLE 0
@@ -133,7 +134,7 @@ int main(void)
     const char *rootname = "root";
     const int32_t rootid = hash(rootname);
     const int rootindex = binsearch(rootid);
-    printf("Part 1: %lld\n", getval(rootindex));  // example: 152, input: 21120928600114
+    printf("Part 1: %"PRId64"\n", getval(rootindex));  // example: 152, input: 21120928600114
 
     // Part 2
     monkey[rootindex].op = '-';
@@ -149,7 +150,7 @@ int main(void)
         y0 = y1;
         y1 = getval(rootindex);
     }
-    printf("Part 2: %lld\n", x1);  // example: 301, input: 3453748220116
+    printf("Part 2: %"PRId64"\n", x1);  // example: 301, input: 3453748220116
 
     printf("Time: %.0f us\n", stoptimer_us());
     return 0;
