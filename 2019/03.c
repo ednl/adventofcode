@@ -29,8 +29,8 @@ typedef enum dir {
     HORZ, VERT
 } Dir;
 
+// dir = wire segment is HORZ or VERT
 // len = total wire length from start to here
-// hor = wire segment is horizontal: 0=no, 1=yes
 typedef struct seg {
     Dir dir;
     int x, y, len;
