@@ -50,7 +50,7 @@ static const Vec delta[] = {{0,0},{0,-1},{0,1},{-1,0},{1,0}};
 static const int pdiff[] = {0, -W2, W2, -1, 1};
 static char pipe[H][W2];
 
-static void add_r(Vec* a, const Vec b)
+static void add_r(Vec *a, const Vec b)
 {
     a->x += b.x;
     a->y += b.y;
@@ -102,7 +102,7 @@ static State start(void)
 int main(void)
 {
     starttimer();
-    FILE* f = fopen(NAME, "r");
+    FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
 
     for (int i = 0; i < H; ++i)
@@ -110,7 +110,7 @@ int main(void)
     fclose(f);
 
     State s = start();
-    const char* p = &pipe[s.pos.y][s.pos.x];
+    const char *p = &pipe[s.pos.y][s.pos.x];
     int area = 0, border = 0;
     do {
         const Vec prev = s.pos;
