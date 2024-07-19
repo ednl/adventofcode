@@ -44,10 +44,10 @@ int main(void)
     while (n < N && fgets(boardingpass, sizeof boardingpass, f)) {
         int id = 0;
         for (int i = 0; i < 10; ++i)  // 10-bit binary number
-            id = id << 1 | (!(boardingpass[i] & 4));  // B or R is 1, F or L is 0
+            id = id << 1 | !(boardingpass[i] & 4);  // B or R is 1, F or L is 0
         if (id > maxid)
             maxid = id;
-        seat[n++] = id;
+        seat[n++] = id;  // save complete list for part 2
     }
     fclose(f);
     printf("Part 1: %d\n", maxid);  // 861
