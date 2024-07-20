@@ -20,7 +20,9 @@
 #include <stdlib.h>             // qsort
 #include "../startstoptimer.h"  // my own timing function
 
-#define N 1024
+#define INP "../aocinput/2020-05-input.txt"
+#define N 1024  // number of lines in my input file is 761
+#define LEN 16  // line length = 10x F/B/L/R + '\n' + '\0'
 static int seat[N];
 
 // Qsort helper function: sort ints ascending
@@ -36,11 +38,11 @@ static int cmp_int_asc(const void *p, const void *q)
 int main(void)
 {
     starttimer();
-    FILE *f = fopen("../aocinput/2020-05-input.txt", "r");
+    FILE *f = fopen(INP, "r");
     if (!f)
         return 1;
     int n = 0, maxid = 0;
-    char boardingpass[16];
+    char boardingpass[LEN];
     while (n < N && fgets(boardingpass, sizeof boardingpass, f)) {
         int id = 0;
         for (int i = 0; i < 10; ++i)  // 10-bit binary number
