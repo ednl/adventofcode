@@ -12,6 +12,7 @@
  * Minimum runtime:
  *     Mac Mini 2020 (M1 3.2 GHz)          :  3.78 ms
  *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :  5.39 ms
+ *     ThinkPad Ubuntu (i5 8250U 1.8 GHz)  :  6.55 ms
  *     Raspberry Pi 5 (2.4 GHz)            :  9.41 ms
  *     Raspberry Pi 4 (1.8 GHz)            : 55.4  ms
  */
