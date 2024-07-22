@@ -1,48 +1,41 @@
 #include <stdio.h>
-#include <stdlib.h>  // free
+#include <string.h>  // memset
 
-#define ALF 26
+#define LINELEN 32
+#define ANSWERS ('z' - 'a' + 1)
 
-static const char *inp = "../aocinput/2020-06-input.txt";
-static unsigned int question[ALF], part1, part2;  // static = init to zero
+static char yes[ANSWERS];
+static int any, all, groupsize;
 
-static void count_answers(unsigned int groupsize)
+static void count(void)
 {
-    for (unsigned int i = 0; i < ALF; ++i) {
-        if (question[i]) {
-            ++part1;          // count if any group member said yes
-            if (question[i] == groupsize) {
-                ++part2;      // count if all group members said yes
-            }
-            question[i] = 0;  // reset for next group
-        }
+    for (int i = 0; i < ANSWERS; ++i) {
+        any += yes[i] != 0;
+        all += yes[i] == groupsize;
     }
+    groupsize = 0;
+    memset(yes, 0, ANSWERS);
 }
 
 int main(void)
 {
-	FILE *fp;
-	size_t t = 0;
-	char *ch, *s = NULL;
-    unsigned int groupsize = 0;
+    FILE *f = fopen("../aocinput/2020-06-input.txt", "r");
+    if (!f)
+        return 1;
+    char buf[LINELEN];
+    while (fgets(buf, sizeof buf, f)) {
+        int i = 0;
+        for (const char *c = buf; *c != '\n'; ++c, ++i)
+            yes[*c - 'a']++;
+        if (i)
+            ++groupsize;
+        else
+            count();
+    }
+    fclose(f);
+    count();
 
-	if ((fp = fopen(inp, "r")) != NULL) {
-		while (getline(&s, &t, fp) > 0) {
-			ch = s;
-			while (*ch != '\n' && *ch != '\r' && *ch != '\0') {
-                question[*ch++ - 'a']++;  // record single answer
-			}
-            if (ch == s) {                // empty line = new group
-                count_answers(groupsize);
-                groupsize = 0;
-            } else {                      // count group members
-                ++groupsize;
-            }
-		}
-		free(s);
-		fclose(fp);
-	}
-    count_answers(groupsize);  // input does not end in empty line
-    printf("%u %u\n", part1, part2);
+    printf("Part 1: %d\n", any);  // 6587
+    printf("Part 2: %d\n", all);  // 3235
     return 0;
 }
