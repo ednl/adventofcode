@@ -4,23 +4,22 @@
 #define INPUTLEN 100  // number of lines in the input
 #define DATALEN (INPUTLEN + 2)  // 2 extra elements
 
-static const char *fname = "../aocinput/2020-10-input-ejolson.txt";
+static const char *fname = "../aocinput/2020-10-input.txt";
 static int data[DATALEN];
 static long *path = NULL;
 
 // Comparison function for qsort() of int array
-int cmp(const void* a, const void* b)
+int cmp(const void *p, const void *q)
 {
-    const int arg1 = *(const int*)a;
-    const int arg2 = *(const int*)b;
-
-    if (arg1 < arg2) return -1;
-    if (arg1 > arg2) return  1;
+    const int a = *(const int*)p;
+    const int b = *(const int*)q;
+    if (a < b) return -1;
+    if (a > b) return  1;
     return 0;
 }
 
 // Assumes data is sorted
-int indata(int k)
+int indata(const int k)
 {
     for (int i = 0; i < DATALEN; ++i) {
         if (data[i] > k)
@@ -38,11 +37,9 @@ int main(void)
 	size_t t = 0;
     int i = 0, j, pathlen;
 
-	if ((fp = fopen(fname, "r")) != NULL)
-	{
-		while (i < INPUTLEN && getline(&s, &t, fp) > 0) {
+	if ((fp = fopen(fname, "r"))) {
+		while (i < INPUTLEN && getline(&s, &t, fp) > 0)
 			data[i++] = atoi(s);
-        }
 		free(s);
 		fclose(fp);
 	}
@@ -53,7 +50,7 @@ int main(void)
 
     pathlen = data[DATALEN - 1] + 1;
     path = malloc(pathlen * sizeof *path);
-    if (path != NULL) {
+    if (path) {
         path[0] = 1;
         for (i = 1; i < pathlen; ++i) {
             path[i] = 0;
@@ -64,6 +61,5 @@ int main(void)
     }
     printf("%ld\n", path[pathlen - 1]);
     free(path);
-
     return 0;
 }
