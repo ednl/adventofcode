@@ -6,46 +6,60 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>  // strtoul
+#include <stdlib.h>  // atoi
 
-#define DIRS      (256ul)  // maximum number of subdirs (190 for my input)
-#define MAX1   (100000ul)  // part 1: max dir size to include in sum
-#define DISK (70000000ul)  // total disk size
-#define NEED (30000000ul)  // part 2: free space needed
+#define EXAMPLE 0
+#if EXAMPLE
+    #define INP "../aocinput/2022-07-example.txt"
+#else
+    #define INP "../aocinput/2022-07-input.txt"
+#endif
+
+#define DIRS      256  // maximum number of subdirs (190 for my input)
+#define MAX1   100000  // part 1: max dir size to include in sum
+#define DISK 70000000  // total disk size
+#define NEED 30000000  // part 2: free space needed
 
 static FILE *f;
-static size_t dircount, dirsize[DIRS];
+static int dircount, dirsize[DIRS];
 
-static size_t subdir(void)
+static int subdir(void)
 {
-    size_t sum = 0;
+    int sum = 0;
     char line[32];
     while (fgets(line, sizeof line, f))
         if (line[2] == 'c') {    // change directory
-            if (line[5] == '.')  // cd ..
+            if (line[5] == '.')  // "cd .." = up
                 return dirsize[dircount++] = sum;
-            else                // cd <subdir>
+            else                 // "cd <subdir>" = down
                 sum += subdir();
-        } else                  // file entry (or else strtoul()=0)
-            sum += strtoul(line, NULL, 10);
+        } else                   // file entry (or else atoi=0)
+            sum += atoi(line);
     return dirsize[dircount++] = sum;
 }
 
 int main(void)
 {
-    if (!(f = fopen("../aocinput/2022-07-input.txt", "r")))
+    if (!(f = fopen(INP, "r")))
         return 1;
-    size_t minsize = subdir() + NEED - DISK;
+    int minsize = subdir() + NEED - DISK;
     fclose(f);
 
-    size_t part1 = 0, part2 = DISK;
-    for (size_t i = 0; i < dircount; ++i) {
+#if EXAMPLE
+    puts("All dir sizes:");
+    for (int i = 0; i < dircount; ++i)
+        printf("%d %d\n", i, dirsize[i]);
+    printf("\n");
+#endif
+
+    int part1 = 0, part2 = DISK;
+    for (int i = 0; i < dircount; ++i) {
         if (dirsize[i] <= MAX1)
             part1 += dirsize[i];
         if (dirsize[i] >= minsize && dirsize[i] < part2)
             part2 = dirsize[i];
     }
-    printf("Part 1: %zu\n", part1);  // 1845346
-    printf("Part 2: %zu\n", part2);  // 3636703
+    printf("Part 1: %d\n", part1);  // example:    95437, input: 1845346
+    printf("Part 2: %d\n", part2);  // example: 24933642, input: 3636703
     return 0;
 }

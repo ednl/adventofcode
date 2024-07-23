@@ -1,3 +1,6 @@
+dirsizes = []
+inputfile = open("../aocinput/2022-07-input.txt")
+
 def subdir():
     sum = 0
     for line in inputfile:
@@ -14,9 +17,8 @@ def subdir():
     dirsizes.append(sum)
     return sum
 
-dirsizes = []
-inputfile = open("../aocinput/2022-07-input.txt")
+# Also fills dirsizes list
 minsize = subdir() + 30_000_000 - 70_000_000
 
-print(sum(x for x in dirsizes if x <= 100_000))  # 1845346
-print(min(x for x in dirsizes if x >= minsize))  # 3636703
+print(sum(x for x in dirsizes if x <= 100_000))  # example:    95437, input: 1845346
+print(min(x for x in dirsizes if x >= minsize))  # example: 24933642, input: 3636703
