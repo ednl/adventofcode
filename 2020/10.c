@@ -11,11 +11,11 @@ static long *path = NULL;
 // Comparison function for qsort() of int array
 int cmp(const void* a, const void* b)
 {
-    int arg1 = *(const int*)a;
-    int arg2 = *(const int*)b;
- 
+    const int arg1 = *(const int*)a;
+    const int arg2 = *(const int*)b;
+
     if (arg1 < arg2) return -1;
-    if (arg1 > arg2) return 1;
+    if (arg1 > arg2) return  1;
     return 0;
 }
 
@@ -57,11 +57,9 @@ int main(void)
         path[0] = 1;
         for (i = 1; i < pathlen; ++i) {
             path[i] = 0;
-            for (j = i - 3; j < i; ++j) {
-                if (indata(j)) {
+            for (j = i - 3; j < i; ++j)
+                if (indata(j))
                     path[i] += path[j];
-                }
-            }
         }
     }
     printf("%ld\n", path[pathlen - 1]);
