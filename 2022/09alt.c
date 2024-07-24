@@ -3,6 +3,7 @@
 #include <string.h>  // memmove, memset
 #include <stdint.h>  // int16_t, uint32_t
 #include <stdbool.h>
+#include "../startstoptimer.h"
 
 #define F "../aocinput/2022-09-input.txt"
 #define K 10    // max number of knots in rope
@@ -113,8 +114,10 @@ static size_t read(const char * const fname)
 
 int main(void)
 {
+    starttimer();
     size_t motioncount = read(F);
     printf("Part 1: %zu\n", simul(motioncount,  2));  // 6745
     printf("Part 2: %zu\n", simul(motioncount, 10));  // 2793
+    printf("Time: %.0f µs\n", stoptimer_us());  // M1: 1726 µs
     return 0;
 }

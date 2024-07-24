@@ -2,7 +2,7 @@
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "startstoptimer.h"
+#include "../startstoptimer.h"
 
 #define ABS(X) ((X) > 0 ? (X) : -(X))
 #define ARRLEN(x) (sizeof(x) / sizeof(0[x]))
@@ -103,7 +103,6 @@ main(void)
 	}
 	flush_buffer(buf1, buf2, buf_head, uniq);
 	printf("part1: %"PRIu64"\npart2: %"PRIu64"\n", uniq[0], uniq[1]);
-    double t = stoptimer_ms();
-    printf("Time: %.2f ms\n", t);
+    printf("Time: %.0f µs\n", stoptimer_us());  // M1: 4657 µs
     return 0;
 }

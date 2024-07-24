@@ -8,7 +8,7 @@
 #include <stdio.h>    // fopen, fclose, fgets, printf
 #include <stdlib.h>   // atoi, abs
 #include <stdbool.h>  // bool, true
-#include "startstoptimer.h"
+#include "../startstoptimer.h"
 
 #define EXAMPLE 0  // 0=use input file, 1=example 1, 2=example 2
 #if EXAMPLE == 1
@@ -234,7 +234,6 @@ int main(void)
 
     // Clean up
     free(seen);
-    double t = stoptimer_ms();
-    printf("Time: %.2f ms\n", t);
+    printf("Time: %.0f µs\n", stoptimer_us());  // M1: 372 µs
     return 0;
 }
