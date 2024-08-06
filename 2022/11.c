@@ -17,18 +17,18 @@
 #include <stdbool.h>   // bool
 #include <stdint.h>    // int64_t
 #include <inttypes.h>  // PRId64
-#include "startstoptimer.h"
+#include "../startstoptimer.h"
 
 #define MONKEYS (8)  // max number of monkeys
-#define ITEMS  (32)  // max number of items per monkey (power of 2=fast)
+#define ITEMS  (32)  // max number of items per monkey (power of 2=faster)
 
-typedef struct _Monkey {
+typedef struct monkey {
     int64_t item[ITEMS];  // buffer array
     int len;              // buffer content length
     int activity;         // sum of all buffer lengths during play = number of items inspected
     int param;            // parameter for add or mult
     int test;             // divisibility test number
-    struct _Monkey *yes, *no;  // target monkey numbers for divisible=yes/no
+    struct monkey *yes, *no;  // target monkey numbers for divisible=yes/no
     char op;              // operator: 0=add,1=mult,2=square
 } Monkey;
 
@@ -187,11 +187,11 @@ int main(void)
     printf("Part 1: %"PRId64"\n", play(20));     // 10605
     printf("Part 2: %"PRId64"\n", play(10000));  // 2713310158
 
-    starttimer();
     printf("\n---------- INPUT FILE ----------\n");
     read("../aocinput/2022-11-input.txt");
+    starttimer();
     printf("Part 1: %"PRId64"\n", play(20));     // 118674
     printf("Part 2: %"PRId64"\n", play(10000));  // 32333418600
-    printf("Time: %.2f ms\n", stoptimer_ms());
+    printf("Time: %.0f µs\n", stoptimer_us());
     return 0;
 }
