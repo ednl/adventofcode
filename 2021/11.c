@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <limits.h>  // INT_MIN
-#include "startstoptimer.h"
+#include "../startstoptimer.h"
 
 #define STEPS 100
 #define FLASH  10
 #define DIM    10
-static int oct[DIM + 2][DIM + 2] = {0};
+
+static int oct[DIM + 2][DIM + 2];
 
 static int cascade(void)
 {
@@ -58,16 +59,14 @@ int main(void)
 
     // Part 1
     int step = 0, total = 0;
-    while (step < STEPS) {
-        ++step;
+    for (; step < STEPS; ++step)
         total += cascade();
-    }
     printf("Part 1: %d\n", total);  // 1739
 
     // Part 2
-    while (++step && cascade() < DIM * DIM);
-    printf("Part 2: %d\n", step);  // 324
+    for (; cascade() < DIM * DIM; ++step);
+    printf("Part 2: %d\n", ++step);  // 324
 
-    printf("\nTime: %.1f µs\n", stoptimer_us());
+    printf("Time: %.0f µs\n", stoptimer_us());
     return 0;
 }
