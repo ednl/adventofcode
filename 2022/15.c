@@ -241,7 +241,7 @@ static int64_t part2(void)
     int x[N], y[N];
     for (int i = 0; i < N - 1; ++i)
         for (int j = i + 1; j < N; ++j) {
-            // Checking overlap not necessary if all solutions checked against sensors anyway
+            // Checking overlap is not necessary if all solutions are checked against sensors anyway
             if (square[i].l.x == square[j].r.x)// && overlap((Vec){square[i].r.y, square[i].l.y}, (Vec){square[j].r.y, square[j].l.y}))
                 x[nx++] = square[i].l.x;
             else if (square[i].r.x == square[j].l.x)// && overlap((Vec){square[i].r.y, square[i].l.y}, (Vec){square[j].r.y, square[j].l.y}))
