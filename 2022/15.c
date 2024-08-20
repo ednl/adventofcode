@@ -17,10 +17,11 @@
 #include <stdbool.h>
 #include <stdint.h>    // int64_t, INT64_C
 #include <inttypes.h>  // PRId64
-#include "startstoptimer.h"
+#include "../startstoptimer.h"
 
-#define EXAMPLE 0
-#if EXAMPLE == 1
+// Define here or on the command line: "clang -DEXAMPLE 15.c ../startstoptimer.c"
+//#define EXAMPLE
+#ifdef EXAMPLE
 #define NAME "../aocinput/2022-15-example.txt"
 #define N (14)   // number of sensors in example file
 #define Y (10)   // horizontal line of interest in example
@@ -97,14 +98,14 @@ static bool overlap(const Vec v, const Vec w)
     return v.x <= w.y && v.y >= w.x;
 }
 
-static int cmp_int(const void* p, const void* q)
+static int cmp_int(const void *p, const void *q)
 {
-    return sign(*(const int*)p - *(const int*)q);
+    return sign(*(const int *)p - *(const int *)q);
 }
 
 // Deduplicate array of ints
 // Returns: number of remaining (unique) ints
-static int dedup_int(int* const arr, const int len)
+static int dedup_int(int *const arr, const int len)
 {
     if (arr == NULL || len <= 0)
         return 0;
@@ -118,9 +119,9 @@ static int dedup_int(int* const arr, const int len)
     return i;
 }
 
-static int cmp_yx(const void* p, const void* q)
+static int cmp_yx(const void *p, const void *q)
 {
-    const Vec s = signdot(sub(*(const Vec*)p, *(const Vec*)q));
+    const Vec s = signdot(sub(*(const Vec *)p, *(const Vec *)q));
     if (s.y)
         return s.y;  // first sort on vy < wy
     return s.x;      // then sort on vx < wx
@@ -128,7 +129,7 @@ static int cmp_yx(const void* p, const void* q)
 
 // Deduplicate array of position vectors
 // Returns: number of remaining (unique) vectors
-static int dedup_vec(Vec* const arr, const int n)
+static int dedup_vec(Vec *const arr, const int n)
 {
     if (arr == NULL || n <= 0)
         return 0;
@@ -142,9 +143,9 @@ static int dedup_vec(Vec* const arr, const int n)
     return i;
 }
 
-static int cmp_xy(const void* p, const void* q)
+static int cmp_xy(const void *p, const void *q)
 {
-    const Vec s = signdot(sub(*(const Vec*)p, *(const Vec*)q));
+    const Vec s = signdot(sub(*(const Vec *)p, *(const Vec *)q));
     if (s.x)
         return s.x;  // first sort on vx < wx
     return -s.y;     // then sort on vy > wy
@@ -152,7 +153,7 @@ static int cmp_xy(const void* p, const void* q)
 
 // Join array of segments where overlapping
 // Returns: number of remaining (disjoint) segments
-static int join(Vec* const arr, const int n)
+static int join(Vec *const arr, const int n)
 {
     if (arr == NULL || n <= 0)
         return 0;
@@ -170,10 +171,10 @@ static int join(Vec* const arr, const int n)
 }
 
 // Return number of covered segments on line y=Y (possibly overlapping)
-static void read(const char* const name)
+static void read(const char *const name)
 {
     int i = 0;
-    FILE* f = fopen(name, "r");
+    FILE *f = fopen(name, "r");
     while (i < N && fscanf(f,
         "Sensor at x=%d, y=%d: closest beacon is at x=%d, y=%d ",
         &sensor[i].x, &sensor[i].y, &beacon[i].x, &beacon[i].y) == 4) {
@@ -283,6 +284,6 @@ int main(void)
     read(NAME);
     printf("Part 1: %d\n", part1());         // example=26, input=5838453
     printf("Part 2: %"PRId64"\n", part2());  // example=56000011, input=12413999391794
-    printf("Time: %.0f us\n", stoptimer_us());
+    printf("Time: %.0f µs\n", stoptimer_us());
     return 0;
 }
