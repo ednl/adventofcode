@@ -26,7 +26,7 @@
 #define BASE CHARVAL('z')           // 'z' - 'a' + 1 = 26 letters
 
 // Number of wires = 340 (my input: max. wire name "ma" = index 339)
-// To anticipate any two-letter wire name, change to "zz"
+// To anticipate _any_ two-letter wire name, change to "zz"
 #define N (BASE * CHARVAL('m') + CHARVAL('a') + 1)
 
 // EQ means a direct patch from one wire to another, or to a value
@@ -58,6 +58,7 @@ static uint16_t wireindex(char* wirename[])
 }
 
 // Read unsigned int value from string while advancing char pointer
+// Pre: **digits is a valid digit 0..9
 static uint16_t parseint(char* digits[])
 {
     int n = *(*digits)++ - '0';
@@ -70,11 +71,11 @@ static uint16_t parseint(char* digits[])
 // (max. recursion depth for my input = 40)
 static uint16_t eval(const uint16_t index)
 {
-    Wire* const w = &wire[index];
-    if (incache[index])  // shortcut if already evaluated
-        return w->val;
+    Wire *const w = &wire[index];  // convenient alias
+    if (incache[index])  // already evaluated?
+        return w->val;   // shortcut ("memoisation")
     uint16_t x = w->iswire[0] ? eval(w->arg[0]) : w->arg[0];
-    uint16_t y = w->iswire[1] ? eval(w->arg[1]) : w->arg[1];
+    const uint16_t y = w->iswire[1] ? eval(w->arg[1]) : w->arg[1];
     switch (w->func) {
         case EQ : break;  // wire patch or direct value
         case NOT: x =  ~x; break;
@@ -95,7 +96,7 @@ int main(void)
     if (!f) return 1;
 
     // Parse input file
-    char line[32];
+    char line[32];  // max line length in my input = 18 (+'\n\0' = 20)
     while (fgets(line, sizeof line, f)) {  // read with newline
         Wire w = {0};  // .func = EQ, .val = 0, .arg[] = 0, .iswire[] = false
         uint16_t args = 0;  // argument count
@@ -105,10 +106,9 @@ int main(void)
                 w.iswire[args] = true;
                 w.arg[args++] = wireindex(&s);
             } else if (*s >= '0' && *s <= '9') {  // argument is a number
-                w.arg[args++] = parseint(&s);     // from init: .iswire[] = false
+                w.arg[args++] = parseint(&s);     // already set: .iswire[] = false
             } else if (*s >= 'A' && *s <= 'Z') {  // input function name
                 switch (*s) {
-                    // EQ (patch / direct assignment) already covered by init: EQ=0
                     case 'N': w.func = NOT; break;
                     case 'A': w.func = AND; break;
                     case 'O': w.func = OR;  break;
@@ -117,7 +117,7 @@ int main(void)
                 }
                 while (*s != ' ') ++s;  // skip rest of function name
             } else if (*s == '-') {
-                s += 3;  // skip arrow and space
+                s += 3;  // skip arrow and space (patch / direct assignment already set: EQ=0)
                 wire[wireindex(&s)] = w;
             }
             ++s;  // skip space or newline
@@ -131,7 +131,7 @@ int main(void)
 
     // Part 2
     memset(incache, 0, sizeof incache);          // reset cache
-    wire[CHARVAL('b')] = (Wire){.arg[0] = a};    // set rule: "<value> -> b"
+    wire[CHARVAL('b')] = (Wire){.arg[0] = a};    // set rule: "<value_from_part1> -> b"
     printf("Part 2: %u\n", eval(CHARVAL('a')));  // 14134
 
     printf("Time: %.0f us\n", stoptimer_us());
