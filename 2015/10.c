@@ -15,7 +15,7 @@
 // Personalised input from AoC
 static const char *seed = "1113222113";
 
-static void looksay(const char * const a, char * const b, size_t * const len)
+static void looksay(const char *const a, char *const b, size_t *const len)
 {
     size_t i = 0, j, k = 0;
     while (i < *len) {
@@ -29,9 +29,9 @@ static void looksay(const char * const a, char * const b, size_t * const len)
     *len = k;
 }
 
-static size_t looksaytwice(char * const a, char * const b, size_t * const len, const size_t i0, const size_t i1)
+static size_t looksaytwice(char *const a, char *const b, size_t *const len, const size_t beg, const size_t end)
 {
-    for (size_t i = i0; i < i1; i += 2) {
+    for (size_t i = beg; i < end; i += 2) {
         looksay(a, b, len);
         looksay(b, a, len);
     }
@@ -62,8 +62,8 @@ int main(void)
     printf("Part 2: %zu\n", p2);  // 3579328
 
     // Approximation good to 5 decimals (rounded)
-    printf("Conway's Constant : %.9f\n", CONWAY);
-    printf("This approximation: %.9f\n", exp((log(p2) - log(p1)) / (ITER2 - ITER1)));
+    // printf("Conway's Constant : %.9f\n", CONWAY);
+    // printf("This approximation: %.9f\n", exp((log(p2) - log(p1)) / (ITER2 - ITER1)));
 
     free(a);
     free(b);
