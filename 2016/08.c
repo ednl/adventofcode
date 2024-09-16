@@ -10,24 +10,25 @@ static bool screen[ROWS][COLS], framebuf[ROWS][COLS];
 
 static void rotrow(const int row, const int amount)
 {
-    int i = COLS, j = COLS - amount;
-    while (i) {
-        framebuf[row][--i] = screen[row][--j];
-        if (!j)
-            j = COLS;
-    }
-    memcpy(screen, framebuf, sizeof screen);
+    int i = 0;
+    for (int j = amount; j < COLS; ++i, ++j)
+        framebuf[row][j] = screen[row][i];
+    for (int j = 0; i < COLS; ++i, ++j)
+        framebuf[row][j] = screen[row][i];
+    memcpy(screen[row], framebuf[row], sizeof screen[row]);
+    // memcpy(screen, framebuf, sizeof screen);
 }
 
 static void rotcol(const int col, const int amount)
 {
-    int i = ROWS, j = ROWS - amount;
-    while (i) {
-        framebuf[--i][col] = screen[--j][col];
-        if (!j)
-            j = ROWS;
-    }
-    memcpy(screen, framebuf, sizeof screen);
+    int i = 0;
+    for (int j = amount; j < ROWS; ++i, ++j)
+        framebuf[j][col] = screen[i][col];
+    for (int j = 0; i < ROWS; ++i, ++j)
+        framebuf[j][col] = screen[i][col];
+    for (i = 0; i < ROWS; ++i)
+        screen[i][col] = framebuf[i][col];
+    // memcpy(screen, framebuf, sizeof screen);
 }
 
 static void rect(const int w, const int h)
