@@ -35,9 +35,7 @@ static bool symboladjacent(const int r, const int c0, const int c1)
     for (int j = c0 - 1; j <= c1 + 1; ++j)
         if (issymbol(schematic[r - 1][j]) || issymbol(schematic[r + 1][j]))
             return true;
-    if (issymbol(schematic[r][c0 - 1]) || issymbol(schematic[r][c1 + 1]))
-        return true;
-    return false;
+    return issymbol(schematic[r][c0 - 1]) || issymbol(schematic[r][c1 + 1]);
 }
 
 // Convert to number from digit(s) forward
@@ -48,7 +46,7 @@ static int parse_from(const int r, int *const c)
 {
     int n = schematic[r][*c] & 15;
     while (*c < N && isdigit(schematic[r][*c + 1]))
-        n = n * 10 + (schematic[r][++(*c)] & 15);
+        n = n * 10 + (schematic[r][++*c] & 15);
     return n;
 }
 
@@ -84,15 +82,15 @@ static int parse_around(const int r, int c0, int c1)
 static int gearratio(const int r, const int c)
 {
     // Find pattern of digits around gear
-    int pat[3] = {0};
-    for (int i = r - 1, k = 0; i <= r + 1; ++i, ++k)
-        for (int j = c - 1; j <= c + 1; ++j)
-            pat[k] = pat[k] << 1 | isdigit(schematic[i][j]);
+    int pat = 0;
+    for (int i = r - 1; i < r + 2; ++i)
+        for (int j = c - 1; j < c + 2; ++j)
+            pat = pat << 1 | (isdigit(schematic[i][j]) != 0);
 
     // Count separate numbers around gear
     int nums = 0;
-    for (int i = 0; i < 3; ++i)
-        switch (pat[i]) {
+    for (int i = 0; i != 9; i += 3)
+        switch (pat >> i & 7) {
             case  0: break;
             case  5: nums += 2; break;
             default: nums += 1; break;
@@ -102,8 +100,8 @@ static int gearratio(const int r, const int c)
 
     // Parse 2 numbers and return product
     int gear[2] = {0};
-    for (int i = 0, k = r - 1, g = 0; i < 3; ++i, ++k)
-        switch (pat[i]) {
+    for (int i = 0, k = r + 1, g = 0; i != 9; i += 3, --k)
+        switch (pat >> i & 7) {
             case 0: continue;  // no numbers on this line                 000
             case 1: gear[g++] = parse_around(k, c + 1, c + 1); break;  // 001
             case 2: gear[g++] = parse_around(k, c    , c    ); break;  // 010
@@ -125,7 +123,7 @@ int main(void)
     memset(schematic, '.', sizeof schematic);  // init including padding
     for (int i = 1; i <= N; ++i) {
         fgets(schematic[i] + 1, N + 2, f);  // read line including newline
-        schematic[i][N + 1] = '.';  // reset padding at end of line
+        schematic[i][N + 1] = '.';  // reset padding at end of line '\n'->'.'
     }
     fclose(f);
 
