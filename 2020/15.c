@@ -19,6 +19,6 @@ int main(void)
 		lastnum = j ? i - j : 0;
 	}
 
-	printf("%u\n", lastnum);
+	printf("%u\n", lastnum);  // 2424
 	return 0;
 }
