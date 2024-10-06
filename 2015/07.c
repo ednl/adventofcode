@@ -5,8 +5,8 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -Ofast -march=native -Wall -Wextra 07.c ../startstoptimer.c
- *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wextra 07.c ../startstoptimer.c
+ *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 07.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 07.c ../startstoptimer.c
  * Get minimum runtime:
  *     m=999999;for((i=0;i<2000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
@@ -49,7 +49,7 @@ static bool incache[N];  // separate array for easy reset
 
 // Convert wire name to array index while advancing char pointer
 // E.g.: a=1, aa=27, zz=702 (max. index for my input: ma=339)
-static uint16_t wireindex(char* wirename[])
+static uint16_t wireindex(char *wirename[])
 {
     int id = CHARVAL(*(*wirename)++);
     if (**wirename >= 'a' && **wirename <= 'z')
@@ -59,7 +59,7 @@ static uint16_t wireindex(char* wirename[])
 
 // Read unsigned int value from string while advancing char pointer
 // Pre: **digits is a valid digit 0..9
-static uint16_t parseint(char* digits[])
+static uint16_t parseint(char *digits[])
 {
     int n = *(*digits)++ - '0';
     while (**digits >= '0' && **digits <= '9')
@@ -92,7 +92,7 @@ static uint16_t eval(const uint16_t index)
 int main(void)
 {
     starttimer();
-    FILE* f = fopen("../aocinput/2015-07-input.txt", "r");
+    FILE *f = fopen("../aocinput/2015-07-input.txt", "r");
     if (!f) return 1;
 
     // Parse input file
@@ -100,7 +100,7 @@ int main(void)
     while (fgets(line, sizeof line, f)) {  // read with newline
         Wire w = {0};  // .func = EQ, .val = 0, .arg[] = 0, .iswire[] = false
         uint16_t args = 0;  // argument count
-        char* s = line;
+        char *s = line;
         while (*s) {
             if (*s >= 'a' && *s <= 'z') {         // argument is a wire name
                 w.iswire[args] = true;

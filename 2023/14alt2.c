@@ -15,15 +15,15 @@ static int clen[N];
 
 int main(void)
 {
-    FILE* f = fopen(NAME, "r");
+    FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
 
     // Read rock/roll rows.
     char buf[128];
     for (int i = 0; i < N && fgets(buf, sizeof buf, f); ++i) {
         __uint128_t s = 0, r = 0;  // square, round
-        const char* end = buf + N;
-        for (const char* c = buf; c != end; ++c) {
+        const char *end = buf + N;
+        for (const char *c = buf; c != end; ++c) {
             s = s << 1 | (*c == '#');
             r = r << 1 | (*c == 'O');
         }

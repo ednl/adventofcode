@@ -23,10 +23,10 @@
 static uint16_t brick[N][6];
 static uint16_t level[M][M];
 
-static int z_asc(const void* p, const void* q)
+static int z_asc(const void *p, const void *q)
 {
-    const uint16_t* a = (const uint16_t*)p;
-    const uint16_t* b = (const uint16_t*)q;
+    const uint16_t *a = (const uint16_t*)p;
+    const uint16_t *b = (const uint16_t*)q;
     if (a[2] < b[2]) return -1;
     if (a[2] > b[2]) return  1;
     if (a[5] < b[5]) return -1;
@@ -36,12 +36,12 @@ static int z_asc(const void* p, const void* q)
 
 int main(void)
 {
-    FILE* f = fopen(NAME, "r");
+    FILE *f = fopen(NAME, "r");
     if (!f)
         return 1;
     char buf[32];
     for (int i = 0; i < N && fgets(buf, sizeof buf, f); ++i) {
-        char* s = buf;
+        char *s = buf;
         for (int j = 0; j < 6; ++j, ++s) {
             uint16_t x = 0;
             while (*s >= '0' && *s <= '9')

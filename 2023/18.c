@@ -9,8 +9,8 @@
  *     https://en.wikipedia.org/wiki/Pick%27s_theorem
  *
  * Compile:
- *    clang -std=gnu17 -Ofast -march=native -Wall -Wextra 18.c ../startstoptimer.c
- *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wextra 18.c ../startstoptimer.c
+ *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 18.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 18.c ../startstoptimer.c
  * Get minimum runtime:
  *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
@@ -59,7 +59,7 @@ static Dir char2dir(const char c)
 int main(void)
 {
     starttimer();
-    FILE* f = fopen(NAME, "r");
+    FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
 
     char dir;
@@ -72,14 +72,14 @@ int main(void)
     #if EXAMPLE || defined(DEBUG)
     const char *dir2char = "RDLU";
     for (int i = 0; i < N; ++i) {
-        const Dig* const t0 = &trench[0][i];
-        const Dig* const t1 = &trench[1][i];
+        const Dig *const t0 = &trench[0][i];
+        const Dig *const t1 = &trench[1][i];
         printf("%c %d | %c %6d\n", dir2char[t0->dir], t0->len, dir2char[t1->dir], t1->len);
     }
     printf("\n");
     #endif
 
-    const Dig* t = &trench[0][0];
+    const Dig *t = &trench[0][0];
     for (int part = 1; part <= 2; ++part) {
         int64_t a = 0, b = 0, y = 0;  // area, border, y-position
         for (int i = 0; i < N; ++i, ++t) {

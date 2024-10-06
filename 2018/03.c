@@ -4,19 +4,19 @@
  * https://adventofcode.com/2018/day/3
  * By: E. Dronkert https://github.com/ednl
  *
- * Benchmark on a Mac Mini M1, compiler Apple clang 14.0.3 with -Ofast -march=native:
+ * Benchmark on a Mac Mini M1, compiler Apple clang 14.0.3 with -O3 -march=native:
  *
  *     [TBD]
  *
  * Benchmark on an iMac (Late 2013, 3.2 GHz quad-core Core i5 "Haswell"),
- * compiler Apple clang 12.0.0 with -Ofast -march=native:
+ * compiler Apple clang 12.0.0 with -O3 -march=native:
  *
  *     $ hyperfine -N -w 200 -r 1000 ./a.out
  *     Benchmark 1: ./a.out
  *       Time (mean ± σ):       4.1 ms ±   0.5 ms    [User: 2.1 ms, System: 1.0 ms]
  *       Range (min … max):     3.4 ms …   6.2 ms    1000 runs
  *
- * Benchmark on a Raspberry Pi 4, compiler Debian gcc 10.2.1-6 with -Ofast -march=native
+ * Benchmark on a Raspberry Pi 4, compiler Debian gcc 10.2.1-6 with -O3 -march=native
  * and the CPU in performance mode:
  *
  *     echo performance | sudo tee /sys/devices/system/cpu/cpufreq/policy0/scaling_governor

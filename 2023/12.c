@@ -5,8 +5,8 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -Ofast -march=native -Wall -Wextra 12.c ../startstoptimer.c
- *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wextra 12.c ../startstoptimer.c
+ *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 12.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 12.c ../startstoptimer.c
  * Get minimum runtime:
  *     m=999999;for((i=0;i<1000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
@@ -46,7 +46,7 @@ typedef struct hashentry {
 } Hashentry;
 
 static Springs springs[N];
-static Hashentry* hashtable;
+static Hashentry *hashtable;
 static size_t hashcount, hashsize = 640;  // 640 = max hashcount for my input
 
 // Unique hash value for 0<=ipat<128, 0<=igrp<32
@@ -59,7 +59,7 @@ static int hashkey(const int ipat, const int igrp)
 // Searches for key in "hash table".
 // Return true if key exists (then also return value via reference).
 // WARNING: not a real hash table, just a binary search in sorted table.
-static bool hashfind(const int ipat, const int igrp, int64_t* val)
+static bool hashfind(const int ipat, const int igrp, int64_t *val)
 {
     if (!hashcount)  // empty table?
         return false;
@@ -94,7 +94,7 @@ static bool hashfind(const int ipat, const int igrp, int64_t* val)
 static inline bool hashinsert(size_t index, const int key, const int64_t val)
 {
     if (hashcount == hashsize) {  // table full?
-        Hashentry* p = realloc(hashtable, (hashsize <<= 1) * sizeof *hashtable);  // double the size
+        Hashentry *p = realloc(hashtable, (hashsize <<= 1) * sizeof *hashtable);  // double the size
         if (!p)
             return false;
         hashtable = p;
@@ -131,7 +131,7 @@ static bool hashsave(const int ipat, const int igrp, const int64_t val)
 }
 
 // Does group fit from index start?
-static inline bool itfits(const int start, const int end, const char* const pat)
+static inline bool itfits(const int start, const int end, const char *const pat)
 {
     for (int i = start + 1; i < end; ++i)
         if (pat[i] == '.')
@@ -139,7 +139,7 @@ static inline bool itfits(const int start, const int end, const char* const pat)
     return pat[end] != '#';
 }
 
-static int64_t arrangements(int ipat, int igrp, const Springs* const row)
+static int64_t arrangements(int ipat, int igrp, const Springs *const row)
 {
     if (igrp >= row->glen) {  // no more groups
         for (int i = ipat; i < row->plen; ++i)
@@ -174,7 +174,7 @@ static int64_t arrangements(int ipat, int igrp, const Springs* const row)
 
 static int64_t sumarr(const int n)
 {
-    const Springs* row = springs;
+    const Springs *row = springs;
     int64_t sum = 0, count;
     for (int i = 0; i < n; ++i, ++row) {
         hashcount = 0;  // clear hashtable for every row
@@ -193,24 +193,24 @@ static int64_t sumarr(const int n)
 }
 
 // Backwards cumulative sum of group lengths = how much to go
-static void togocount(Springs* const row)
+static void togocount(Springs *const row)
 {
     for (int i = row->glen - 1, prev = 0; i >= 0; --i)
         prev = (row->all[i] = row->grp[i] + prev + 1);  // +1 = group separator
 }
 
 // Parse input file, return lines read.
-static int read(const char* fname)
+static int read(const char *fname)
 {
-    FILE* f = fopen(fname, "r");
+    FILE *f = fopen(fname, "r");
     if (!f) { fputs("File not found.\n", stderr); return 0; }
 
     char buf[64];
     int i = 0;
-    Springs* row = springs;
+    Springs *row = springs;
     while (i < N && fgets(buf, sizeof buf, f)) {
-        const char* src = buf;
-        char* dst = row->pat;
+        const char *src = buf;
+        char *dst = row->pat;
         int len = 0;
         while (*src != ' ' && len < PLEN - 1) {
             *dst++ = *src++;  // copy pattern
@@ -246,16 +246,16 @@ int main(void)
     printf("Part 1: %"PRId64"\n", sumarr(rows));  // example: 21, input: 7705
 
     // Add 4 copies to pattern (with sep='?') and groups
-    Springs* row = springs;
+    Springs *row = springs;
     for (int i = 0; i < rows; ++i, ++row) {
-        const char* psrc = row->pat;
+        const char *psrc = row->pat;
         const size_t plen = (size_t)(row->plen - 1);  // remove added '.'
-        char* pdst = row->pat + plen;
+        char *pdst = row->pat + plen;
 
-        const int* gsrc = (int*)row->grp;
+        const int *gsrc = (int*)row->grp;
         const size_t glen = (size_t)row->glen;
         const size_t gsize = glen * sizeof *gsrc;
-        int* gdst = (int*)row->grp + glen;
+        int *gdst = (int*)row->grp + glen;
 
         for (int j = 0; j < 4; ++j, pdst += plen, gdst += glen) {
             *pdst++ = '?';

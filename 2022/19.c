@@ -23,7 +23,7 @@
 
 int main(void)
 {
-    FILE* f = fopen(NAME, "r");
+    FILE *f = fopen(NAME, "r");
     if (!f)
         return 1;
 

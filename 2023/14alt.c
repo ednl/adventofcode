@@ -5,8 +5,8 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -Ofast -march=native -Wall -Wextra 14alt.c ../startstoptimer.c
- *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wextra 14alt.c ../startstoptimer.c
+ *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 14alt.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 14alt.c ../startstoptimer.c
  * Get minimum runtime:
  *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
@@ -51,7 +51,7 @@ static bitmask tpat[P];  // transpose patterns
 
 static void init(void)
 {
-    FILE* f = fopen(NAME, "r");
+    FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return; }
     for (int i = 0; i < N; ++i)
         fgets(map[i], sizeof *map, f);

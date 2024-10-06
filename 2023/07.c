@@ -5,8 +5,8 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -Ofast -march=native -Wall -Wextra 07.c ../startstoptimer.c
- *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wextra 07.c ../startstoptimer.c
+ *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 07.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 07.c ../startstoptimer.c
  * Get minimum runtime:
  *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
@@ -54,7 +54,7 @@ typedef struct hand {
 // Complete game with all hands
 static Hand game[HANDS];
 
-static inline void swap(int* const a, int* const b)
+static inline void swap(int *const a, int *const b)
 {
     const int tmp = *a;
     *a = *b;
@@ -64,8 +64,8 @@ static inline void swap(int* const a, int* const b)
 // Qsort helper: sort game of hands by rank descending, deal descending
 static int strength_desc(const void *p, const void *q)
 {
-    const Hand* a = (const Hand*)p;
-    const Hand* b = (const Hand*)q;
+    const Hand *a = (const Hand*)p;
+    const Hand *b = (const Hand*)q;
     if (a->rank > b->rank) return -1;
     if (a->rank < b->rank) return  1;
     if (a->deal > b->deal) return -1;
@@ -91,7 +91,7 @@ static int facevalue(const char card)
 // Analyse & evaluate a hand by setting ::rank and ::deal
 // ::rank is primary sort where 'five of a kind' wins
 // ::deal is secondary sort on first cards in hand, then second, etc.
-static void analyse(Hand* const hand, const bool ispart2)
+static void analyse(Hand *const hand, const bool ispart2)
 {
     // Make sparse histogram of face values
     // and set ::deal (= hash of face values in order dealt)
@@ -151,7 +151,7 @@ static int winnings(const bool ispart2)
 int main(void)
 {
     starttimer();
-    FILE* f = fopen(NAME, "r");
+    FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
 
     for (int i = 0; i < HANDS; ++i)

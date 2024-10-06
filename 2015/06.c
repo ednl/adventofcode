@@ -5,8 +5,8 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -Ofast -march=native -Wall -Wextra 06.c ../startstoptimer.c
- *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wextra 06.c ../startstoptimer.c
+ *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 06.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 06.c ../startstoptimer.c
  * Get minimum runtime:
  *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
@@ -43,7 +43,7 @@ static int readnum(const char** s)
     return n;
 }
 
-static Range parse(const char* s)
+static Range parse(const char *s)
 {
     int a = readnum(&s);
     s += 1;  // skip comma
@@ -58,7 +58,7 @@ static Range parse(const char* s)
 int main(void)
 {
     starttimer();
-    FILE* f = fopen("../aocinput/2015-06-input.txt", "r");
+    FILE *f = fopen("../aocinput/2015-06-input.txt", "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
 
     Range r;

@@ -17,7 +17,7 @@ typedef struct {
 static AlphHist hist[ALPH_LEN] = {0};
 
 // Sort by count descending, letter ascending
-static int cmphist(const void* a, const void* b)
+static int cmphist(const void *a, const void *b)
 {
     const AlphHist *h1 = (const AlphHist*)a;
     const AlphHist *h2 = (const AlphHist*)b;

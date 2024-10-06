@@ -36,7 +36,7 @@ static const char add[5][5][2] = {
     {"00", "10", "20", "=1", "-1"}, // 2+=, 2+-, 2+0, 2+1, 2+2
 };
 
-static size_t rev(const char* const src, char* const dst)
+static size_t rev(const char *const src, char *const dst)
 {
     size_t i = strlen(src), j = 0;
     while (i)
@@ -59,7 +59,7 @@ static size_t ix(const char snafudigit)
 int main(void)
 {
     starttimer();
-    FILE* f = fopen(NAME, "r");
+    FILE *f = fopen(NAME, "r");
     if (!f)
         return 1;
 

@@ -5,8 +5,8 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -Ofast -march=native -Wall 15.c ../startstoptimer.c
- *    gcc   -std=gnu17 -Ofast -march=native -Wall 15.c ../startstoptimer.c
+ *    clang -std=gnu17 -O3 -march=native -Wall 15.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -O3 -march=native -Wall 15.c ../startstoptimer.c
  * Get minimum runtime:
  *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
@@ -44,7 +44,7 @@ typedef struct box {
 static Box box[N];
 
 // For my input, label is max. 6 chars long, regex=[a-z]{1,6}
-static int32_t label2id(const char* s)
+static int32_t label2id(const char *s)
 {
     int32_t id = 0;
     while (*s >= 'a' && *s <= 'z')
@@ -52,7 +52,7 @@ static int32_t label2id(const char* s)
     return id;
 }
 
-static uint8_t hash(const char* s)
+static uint8_t hash(const char *s)
 {
     uint8_t h = 0;
     while (*s) {
@@ -64,16 +64,16 @@ static uint8_t hash(const char* s)
 
 // Remove lens from box
 // Return true if found and removed, false if box empty or lens not in box
-static bool rem(const char* label)
+static bool rem(const char *label)
 {
-    Box* b = &box[hash(label)];
+    Box *b = &box[hash(label)];
     if (!b->count)
         return false;
     const int32_t id = label2id(label);
-    const Lens* end = b->lens + b->count;
-    for (Lens* lens = b->lens; lens != end; ++lens)
+    const Lens *end = b->lens + b->count;
+    for (Lens *lens = b->lens; lens != end; ++lens)
         if (lens->id == id) {
-            const Lens* next = lens + 1;
+            const Lens *next = lens + 1;
             if (next != end)
                 memcpy(lens, next, (size_t)(end - next) * sizeof *lens);
             --b->count;
@@ -84,13 +84,13 @@ static bool rem(const char* label)
 
 // Add lens to box
 // Return true if replaced or appended, false for memory allocation failure
-static bool add(const char* label, const uint8_t focal)
+static bool add(const char *label, const uint8_t focal)
 {
-    Box* b = &box[hash(label)];
+    Box *b = &box[hash(label)];
     const int32_t id = label2id(label);
-    const Lens* end = b->lens + M;
-    Lens* tail = b->lens + b->count;
-    for (Lens* lens = b->lens; lens != tail; ++lens)
+    const Lens *end = b->lens + M;
+    Lens *tail = b->lens + b->count;
+    for (Lens *lens = b->lens; lens != tail; ++lens)
         if (lens->id == id) {
             lens->focal = focal;  // replace
             return true;
@@ -115,7 +115,7 @@ static int power(void)
 int main(void)
 {
     starttimer();
-    FILE* f = fopen(NAME, "r");
+    FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
 
     char buf[16], *s = buf;

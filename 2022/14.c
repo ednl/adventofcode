@@ -38,7 +38,7 @@ typedef struct {
 } Vec;
 
 typedef struct {
-    uint8_t* grid;
+    uint8_t *grid;
     Vec min, max, dim;
     int size;
 } Cave;
@@ -64,7 +64,7 @@ static bool equal(const Vec a, const Vec b)
     return a.x == b.x && a.y == b.y;
 }
 
-static void addto(Vec* const a, const Vec b)
+static void addto(Vec *const a, const Vec b)
 {
     a->x += b.x;
     a->y += b.y;
@@ -96,7 +96,7 @@ static void place(const Vec p, const uint8_t material)
     cave.grid[gridindex(p)] = material;
 }
 
-static void makegrid(Cave* const c)
+static void makegrid(Cave *const c)
 {
     c->dim = sub(c->max, c->min);
     addto(&c->dim, (Vec){1,1});  // dim = max - min + 1
@@ -219,7 +219,7 @@ static void removesand(void)
 
 static void read(void)
 {
-    FILE* f = fopen(NAME, "r");
+    FILE *f = fopen(NAME, "r");
     if (!f)
         exit(1);
 

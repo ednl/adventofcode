@@ -20,7 +20,7 @@ static int prio(const char item)
 }
 
 // Set bit for each item in compartment (error=0, 'a'=1, 'b'=2, ..., 'A'=27, 'B'=28, ...)
-static uint64_t index(const char* compartment, const ssize_t size)
+static uint64_t index(const char *compartment, const ssize_t size)
 {
     if (compartment == NULL || size <= 0)
         return 0;  // error

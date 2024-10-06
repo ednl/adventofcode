@@ -30,18 +30,18 @@
 #define M (N + 2)  // plus 2 divider packets
 
 typedef struct _Elm {
-    struct _Elm* next;  // next element on same level, next=NULL: last element
-    struct _Elm* list;  // list=NULL: this is a value or empty list, list!=NULL: this is a list
+    struct _Elm *next;  // next element on same level, next=NULL: last element
+    struct _Elm *list;  // list=NULL: this is a value or empty list, list!=NULL: this is a list
     int value;  // -1: empty list, >=0: value
     bool divider;
 } Elm;
 
-static Elm* packet[M];  // room for all packets in input file plus 2 divider packets
+static Elm *packet[M];  // room for all packets in input file plus 2 divider packets
 static int refcount;
 
-static Elm* create(Elm* const prev)
+static Elm *create(Elm *const prev)
 {
-    Elm* e = calloc(1, sizeof(Elm));
+    Elm *e = calloc(1, sizeof(Elm));
     if (e)
         ++refcount;
     if (prev)            // there is another
@@ -49,7 +49,7 @@ static Elm* create(Elm* const prev)
     return e;
 }
 
-static void delete(Elm* e)
+static void delete(Elm *e)
 {
     if (!e)
         return;
@@ -59,12 +59,12 @@ static void delete(Elm* e)
     --refcount;
 }
 
-static Elm* parse(char** ps)
+static Elm *parse(char** ps)
 {
-    Elm* first = create(NULL);                // start with new element (delete if empty list)
+    Elm *first = create(NULL);                // start with new element (delete if empty list)
     if (!first)
         return NULL;
-    Elm* cur = first, *prev = NULL;
+    Elm *cur = first, *prev = NULL;
     int x, len = 0;
     while (**ps != '\n' && **ps != '\0') {    // should return earlier from ']'
         switch (*(*ps)++) {                   // also go to next char
@@ -98,7 +98,7 @@ static Elm* parse(char** ps)
     return first;                            // return element that is always created
 }
 
-static void val2list(Elm* const e)
+static void val2list(Elm *const e)
 {
     if (!e)
         return;
@@ -110,7 +110,7 @@ static void val2list(Elm* const e)
     e->value = 0;
 }
 
-static int cmp(Elm* const l, Elm* const r)
+static int cmp(Elm *const l, Elm *const r)
 {
     if (!l && !r)                          // left and right have both run out
         return 0;                          // list is equal, check later if sub list
@@ -143,15 +143,15 @@ static int cmp(Elm* const l, Elm* const r)
     return cmp(l->next, r->next);          // compare next elements in the list
 }
 
-static int qcmp(const void* a, const void* b)
+static int qcmp(const void *a, const void *b)
 {
-    Elm* const l = *(Elm* const *)a;
-    Elm* const r = *(Elm* const *)b;
+    Elm *const l = *(Elm *const *)a;
+    Elm *const r = *(Elm *const *)b;
     return cmp(l, r);
 }
 
 #if EXAMPLE == 1
-static void showlist(const Elm* const e)
+static void showlist(const Elm *const e)
 {
     if (!e)
         return;
@@ -179,19 +179,19 @@ static void showpacket(int i)
 }
 #endif
 
-static int read(const char* const name)
+static int read(const char *const name)
 {
-    FILE* f = fopen(name, "r");
+    FILE *f = fopen(name, "r");
     if (!f)
         return 0;
     int i = 0;
-    char* line = NULL;
+    char *line = NULL;
     size_t bufsz = 0;
     ssize_t len;
     while (i < N && (len = getline(&line, &bufsz, f)) > 0) {
         if (len == 1)
             continue;
-        char* s = line;
+        char *s = line;
         packet[i++] = parse(&s);
     }
     fclose(f);
@@ -199,9 +199,9 @@ static int read(const char* const name)
     return i;
 }
 
-static Elm* listlist(int value)
+static Elm *listlist(int value)
 {
-    Elm* e = create(NULL);
+    Elm *e = create(NULL);
     if (!e)
         return NULL;
     e->divider = true;

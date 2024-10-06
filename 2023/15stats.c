@@ -19,15 +19,15 @@ static Box box[256];
 
 int main(void)
 {
-    FILE* f = fopen(NAME, "r");
+    FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
 
     uint32_t count = 0;
-    Step* s = step;
+    Step *s = step;
     do {
         s->ord = count++;
-        char* lens = s->lens;
-        uint32_t* id = &s->id;
+        char *lens = s->lens;
+        uint32_t *id = &s->id;
         int c;
         while ((c = fgetc(f)) >= 'a') {
             *lens++ = (char)c;

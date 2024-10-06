@@ -5,8 +5,8 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -Ofast -march=native -Wall -Wextra 01.c ../startstoptimer.c
- *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wextra 01.c ../startstoptimer.c
+ *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 01.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 01.c ../startstoptimer.c
  * Get minimum runtime:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
@@ -28,7 +28,7 @@ static char input[N];  // complete input file as one blob
 
 // Forwards sliding window of compounded chars to look for substrings
 // between start (inclusive) and end (exclusive).
-static int lookfwd(const char* start, const char* const end, const int def)
+static int lookfwd(const char *start, const char *const end, const int def)
 {
     if (start + 3 > end) return def;
     // Startup 3/4/3.
@@ -76,7 +76,7 @@ static int lookfwd(const char* start, const char* const end, const int def)
 
 // Backwards sliding window of compounded chars to look for substrings
 // between start (inclusive) and end (exclusive).
-static int lookback(const char* start, const char* const end, const int def)
+static int lookback(const char *start, const char *const end, const int def)
 {
     if (start - 3 < end) return def;
     // Startup 3/4/3.
@@ -125,13 +125,13 @@ static int lookback(const char* start, const char* const end, const int def)
 int main(void)
 {
     starttimer();
-    FILE* f = fopen("../aocinput/2023-01-input.txt", "rb");  // fread requires binary mode
+    FILE *f = fopen("../aocinput/2023-01-input.txt", "rb");  // fread requires binary mode
     if (!f) { fputs("File not found.\n", stderr); return 1; }
     fread(input, sizeof input, 1, f);  // read whole file in one go
     fclose(f);
 
     int part1 = 0, part2 = 0;
-    for (const char* line = input, *end, *s1, *s2; *line; line = end + 2) {
+    for (const char *line = input, *end, *s1, *s2; *line; line = end + 2) {
         for (s1 = line; *s1 > '9'; ++s1);  // find first numerical digit (every line has at least one)
         const int d1 = (*s1 & 15) * 10;
         part1 += d1;

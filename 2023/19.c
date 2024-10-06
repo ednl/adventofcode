@@ -56,7 +56,7 @@ typedef struct workflow {
     Rule rule[RULES];
 } Workflow;
 
-static const char* cat2char = "_xmas";
+static const char *cat2char = "_xmas";
 static Workflow wf[WORKFLOWS];
 static unsigned part[PARTS][4];
 static unsigned wfcount, partcount;
@@ -74,7 +74,7 @@ static Cat char2cat(const char c)
 
 static bool parse(unsigned * const workflows, unsigned * const parts)
 {
-    FILE* f = fopen(FNAME, "r");
+    FILE *f = fopen(FNAME, "r");
     if (!f) { fprintf(stderr, "File not found: %s\n", FNAME); return false; }
 
     char *s, buf[16];

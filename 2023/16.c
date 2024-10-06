@@ -5,8 +5,8 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -Ofast -march=native -Wall -Wno-multichar 16.c ../startstoptimer.c
- *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wno-multichar 16.c ../startstoptimer.c
+ *    clang -std=gnu17 -O3 -march=native -Wall -Wno-multichar 16.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -O3 -march=native -Wall -Wno-multichar 16.c ../startstoptimer.c
  * Get minimum runtime:
  *     m=999999;for((i=0;i<500;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
@@ -102,7 +102,7 @@ static bool push(const Beam beam)
     return true;
 }
 
-static bool pop(Beam* beam)
+static bool pop(Beam *beam)
 {
     if (!stacklen)
         return false;
@@ -175,7 +175,7 @@ static int energize(Beam beam)
 int main(void)
 {
     starttimer();
-    FILE* f = fopen(NAME, "r");
+    FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
 
     for (int i = 0; i < N; ++i)

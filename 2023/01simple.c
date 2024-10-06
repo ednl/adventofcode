@@ -5,8 +5,8 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -Ofast -march=native -Wall -Wextra 01simple.c
- *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wextra 01simple.c
+ *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 01simple.c
+ *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 01simple.c
  */
 
 #include <stdio.h>

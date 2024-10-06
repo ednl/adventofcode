@@ -48,7 +48,7 @@ static Pos stack[S];        // stack of positions (x,y,z) for floodfill
 
 static size_t readinput(void)
 {
-    FILE* f = fopen(NAME, "r");
+    FILE *f = fopen(NAME, "r");
     if (!f)
         return 0;  // file not found = no data
     size_t n = 0;

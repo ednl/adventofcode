@@ -30,7 +30,7 @@ static bool intersect(const Cube *const a, const Cube *const b, Cube *const c)
 }
 
 // Find cube b in cube counter array a, return pointer to cube in a, or NULL
-static Cube* find(Cube *const a, const Cube *const b, const int alen)
+static Cube *find(Cube *const a, const Cube *const b, const int alen)
 {
     int i = 0;
     Cube *c = a;

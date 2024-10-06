@@ -173,7 +173,7 @@ static void md5(const char * const message, char * const digest, int stretch)
     while (stretch--) {
         memcpy(chunk + bytes, pad, (size_t)(64 - bytes));
 
-        // Store length of original message *in bits* in last 64 bits of chunk (little-endian!)
+        // Store length of original message *in bits *in last 64 bits of chunk (little-endian!)
         chunk[56] = (uint8_t)(bytes << 3);
         chunk[57] = (uint8_t)(bytes >> 5);
         // Because bytes <= 55, not needed:

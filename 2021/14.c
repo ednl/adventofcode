@@ -46,7 +46,7 @@ static inline int ix(const char c)
 
 // Find the transformed pair rules for every pair in the rule set
 // to initialise the left/right pointers.
-static Rule* findrule_c(const char a, const char b)
+static Rule *findrule_c(const char a, const char b)
 {
     for (int i = 0; i < RULES; ++i)
         if (rule[i].pair[0] == a && rule[i].pair[1] == b)
@@ -56,7 +56,7 @@ static Rule* findrule_c(const char a, const char b)
 
 // Find the corresponding rule for every element pair in the given polymer
 // to initialise its count.
-static inline Rule* findrule_s(const char *s)
+static inline Rule *findrule_s(const char *s)
 {
     return findrule_c(s[0], s[1]);
 }

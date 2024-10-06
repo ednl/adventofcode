@@ -24,7 +24,7 @@
 
 static int edge[E];
 
-static int asc(const void* p, const void* q)
+static int asc(const void *p, const void *q)
 {
     const int a = *(const int*)p;
     const int b = *(const int*)q;
@@ -33,18 +33,18 @@ static int asc(const void* p, const void* q)
     return 0;
 }
 
-static int hash(const char* s)
+static int hash(const char *s)
 {
     int id = 0;
-    for (const char* const end = s + 3; s != end; ++s)
+    for (const char *const end = s + 3; s != end; ++s)
         id = id * L + (*s - 'b');
     return id;
 }
 
 #if EXAMPLE || defined(DEBUG)
-static void unhash(int id, char* const s)
+static void unhash(int id, char *const s)
 {
-    for (char* t = s + 3; t != s; id /= L)
+    for (char *t = s + 3; t != s; id /= L)
         *(--t) = 'b' + id % L;
     *(s + 3) = '\0';
 }
@@ -52,13 +52,13 @@ static void unhash(int id, char* const s)
 
 int main(void)
 {
-    FILE* f = fopen(NAME, "r");
+    FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
     char buf[40];
     int e = 0;
     while (fgets(buf, sizeof buf, f)) {
         const int a = hash(buf);
-        const char* s = buf + 4;
+        const char *s = buf + 4;
         while (e < E && *s == ' ') {
             const int b = hash(s + 1);
             edge[e++] = a < b ? a * L3 + b : b * L3 + a;

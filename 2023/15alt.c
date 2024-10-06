@@ -5,8 +5,8 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -Ofast -march=native -Wall 15alt.c ../startstoptimer.c
- *    gcc   -std=gnu17 -Ofast -march=native -Wall 15alt.c ../startstoptimer.c
+ *    clang -std=gnu17 -O3 -march=native -Wall 15alt.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -O3 -march=native -Wall 15alt.c ../startstoptimer.c
  * Get minimum runtime:
  *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
@@ -41,7 +41,7 @@ typedef struct step {
 static Step step[N];
 
 #if EXAMPLE || defined(DEBUG)
-static int makelabel(int32_t id, char* label)
+static int makelabel(int32_t id, char *label)
 {
     char buf[8];
     int len = 0;
@@ -66,10 +66,10 @@ static void show(int n)
 }
 #endif
 
-static int cmp_id_ord(const void* p, const void* q)
+static int cmp_id_ord(const void *p, const void *q)
 {
-    const Step* const a = p;
-    const Step* const b = q;
+    const Step *const a = p;
+    const Step *const b = q;
     if (a->id  < b->id ) return -1;
     if (a->id  > b->id ) return  1;
     if (a->ord < b->ord) return -1;
@@ -77,10 +77,10 @@ static int cmp_id_ord(const void* p, const void* q)
     return 0;
 }
 
-static int cmp_box_ord(const void* p, const void* q)
+static int cmp_box_ord(const void *p, const void *q)
 {
-    const Step* const a = p;
-    const Step* const b = q;
+    const Step *const a = p;
+    const Step *const b = q;
     if (a->box < b->box) return -1;
     if (a->box > b->box) return  1;
     if (a->ord < b->ord) return -1;
@@ -91,10 +91,10 @@ static int cmp_box_ord(const void* p, const void* q)
 int main(void)
 {
     starttimer();
-    FILE* f = fopen(NAME, "r");
+    FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
 
-    char* line = NULL;
+    char *line = NULL;
     size_t bufsz;
     ssize_t len;
     if ((len = getline(&line, &bufsz, f)) < 1)  // read whole file (one line) at once
@@ -104,7 +104,7 @@ int main(void)
 
     int part1 = 0;
     int16_t count = 0;
-    const char* s = line;
+    const char *s = line;
     while (count < N) {
         int32_t id = 0;
         uint8_t hash = 0;

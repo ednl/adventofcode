@@ -43,18 +43,18 @@ typedef struct node {
 } Node;
 
 static const Vec delta[4] = {{0,-1},{0,1},{-1,0},{1,0}};  // up,down,left,right
-static const char* dirchar = "UDLR";
+static const char *dirchar = "UDLR";
 
 static char maze[N][N + 2];  // +2='\n\0'
 static Node node[N][N];
 
-static State* stack;
+static State *stack;
 static size_t ssize, slen;
 
-// static State* queue;
+// static State *queue;
 // static size_t qsize, qlen, qhead, qtail;
 
-static bool spop(State* const state)
+static bool spop(State *const state)
 {
     if (!stack || !slen) return false;  // empty stack
     *state = stack[--slen];
@@ -69,7 +69,7 @@ static bool spush(const State state)
         ssize = SSIZE;  // slen should still be zero
     } else if (slen == ssize) {  // stack is full
         size_t newsize = ssize << 1;  // ssize must be >0 already
-        State* p = realloc(stack, newsize * sizeof *stack);
+        State *p = realloc(stack, newsize * sizeof *stack);
         if (!p) { fputs("Could not reallocate stack.", stderr); return false; }
         stack = p;
         ssize = newsize;
@@ -78,7 +78,7 @@ static bool spush(const State state)
     return true;
 }
 
-// static bool qpop(State* const s)
+// static bool qpop(State *const s)
 // {
 //     if (!queue || qhead == qtail) return false;  // empty queue
 //     *s = queue[qtail++];
@@ -95,7 +95,7 @@ static bool spush(const State state)
 //         qsize = QSIZE;  // qhead,qtail,qlen should all still be zero
 //     } else if ((qhead + 1) % qsize == qtail) {  // queue is full
 //         size_t newsize = qsize << 1;  // qsize must be >0 already
-//         State* p = realloc(queue, newsize * sizeof *queue);
+//         State *p = realloc(queue, newsize * sizeof *queue);
 //         if (!p) { fputs("Could not reallocate queue.", stderr); return false; }
 //         queue = p;
 //         if (qtail) {
@@ -136,7 +136,7 @@ static void explore(const Vec start, const Dir dir, const Vec goal)
 
 int main(void)
 {
-    FILE* f = fopen(NAME, "r");
+    FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.", stderr); return 1; }
     for (int i = 0; i < N && fgets(maze[i], sizeof *maze, f); ++i);
     fclose(f);

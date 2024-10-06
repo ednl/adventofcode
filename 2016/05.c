@@ -53,7 +53,7 @@ static bool md5(void)
     int bytelen = sprintf((char*)chunk, "%s%u", DOORID, index++);
     memcpy(&chunk[bytelen], pad, (size_t)(64 - bytelen));
 
-    // Store length of original message *in bits* in last 64 bits of message (little-endian!)
+    // Store length of original message *in bits *in last 64 bits of message (little-endian!)
     chunk[56] = (unsigned char)(bytelen << 3);
     chunk[57] = (unsigned char)(bytelen >> 5);
     // Because bytelen <= 56, not needed:

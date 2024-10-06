@@ -5,8 +5,8 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -Ofast -march=native -Wall 11alt.c ../startstoptimer.c
- *    gcc   -std=gnu17 -Ofast -march=native -Wall 11alt.c ../startstoptimer.c
+ *    clang -std=gnu17 -O3 -march=native -Wall 11alt.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -O3 -march=native -Wall 11alt.c ../startstoptimer.c
  * Get minimum runtime:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
@@ -38,7 +38,7 @@ static int xcount[N], ycount[N], xshift[N], yshift[N];
 
 // Nifty algorithm by /u/NikitaSkybytskyi
 // https://www.reddit.com/r/adventofcode/comments/18fqxuq/an_on_algorithm_for_day_11/kcvwlev/
-static int64_t dist(int* pos, int* shift, int n, int64_t f)
+static int64_t dist(int *pos, int *shift, int n, int64_t f)
 {
     int64_t sum = 0, partial = 0;
     for (int i = 0; i < n; ++i) {
@@ -52,7 +52,7 @@ static int64_t dist(int* pos, int* shift, int n, int64_t f)
 int main(void)
 {
     starttimer();
-    FILE* f = fopen(NAME, "r");
+    FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
 
     for (int i = 0; i < N; ++i)
@@ -68,8 +68,8 @@ int main(void)
                 ++ycount[i];
             }
 
-    int* xpos = malloc((size_t)galaxies * sizeof *xpos);
-    int* ypos = malloc((size_t)galaxies * sizeof *ypos);
+    int *xpos = malloc((size_t)galaxies * sizeof *xpos);
+    int *ypos = malloc((size_t)galaxies * sizeof *ypos);
     for (int i = 0, k = 0; i < N; ++i)
         for (int j = 0; j < xcount[i]; ++j)
             xpos[k++] = i;

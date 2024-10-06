@@ -5,8 +5,8 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -Ofast -march=native -Wall -Wextra 08.c ../startstoptimer.c
- *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wextra 08.c ../startstoptimer.c
+ *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 08.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 08.c ../startstoptimer.c
  * Get minimum runtime:
  *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
@@ -78,7 +78,7 @@ static int node_asc(const void *p, const void *q)
 }
 
 // Convert 3 chars to int ID ("hash value")
-static int str2int(const char* s)
+static int str2int(const char *s)
 {
     int n = 0;
     for (int i = 0; i < 3; ++i)
@@ -120,7 +120,7 @@ static int nodeindex(const int n)
 // Return: number of steps
 static int walk(int i)
 {
-    const char* go = lr;  // start all searches from beginning of LR instructions
+    const char *go = lr;  // start all searches from beginning of LR instructions
     int steps = 0;
     while ((node[i][0] & 0xff) != 'Z') {
         i = node[i][(int)*go];  // *go is 1 for L, 2 for R
@@ -134,7 +134,7 @@ static int walk(int i)
 int main(void)
 {
     starttimer();
-    FILE* f = fopen(NAME, "r");
+    FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
 
     fgets(lr, sizeof lr, f);  // one long line of LR instructions, excludes '\n'

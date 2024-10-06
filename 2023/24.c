@@ -65,7 +65,7 @@ static Plane plane(const int i, const int j)
 
 int main(void)
 {
-    FILE* f = fopen(NAME, "r");
+    FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.", stderr); return 1; }
     for (int i = 0; i < N; ++i)
         fscanf(f, "%lld, %lld, %lld @ %lld, %lld, %lld", &p[i].x, &p[i].y, &p[i].z, &v[i].x, &v[i].y, &v[i].z);

@@ -28,7 +28,7 @@
 int main(void)
 {
     starttimer();
-    FILE* f = fopen(NAME, "r");
+    FILE *f = fopen(NAME, "r");
     if (!f)
         return 1;
     int len = 0, i = 0, j, c, buf[N], snafu[N] = {0};

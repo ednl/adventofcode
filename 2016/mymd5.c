@@ -61,7 +61,7 @@ void mymd5(const char * const message, char * const digest)
                 padded = true;
             }
             if (chunklen <= 56) {
-                // Store length of original message *in bits* in last 64 bits of chunk (little-endian!)
+                // Store length of original message *in bits *in last 64 bits of chunk (little-endian!)
                 chunklen = 56;
                 msglen <<= 3;  // byte count is now bit count (mod 2^64)
                 while (msglen) {

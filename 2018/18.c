@@ -5,14 +5,14 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Benchmark on an iMac (Late 2013, 3.2 GHz quad-core Core i5 "Haswell"),
- * compiler Apple clang 12.0.0 with -Ofast -march=native:
+ * compiler Apple clang 12.0.0 with -O3 -march=native:
  *
  *     $ hyperfine -N -w 20 -r 100 ./a.out
  *     Benchmark 1: ./a.out
  *       Time (mean ± σ):      23.1 ms ±   0.5 ms    [User: 21.2 ms, System: 0.7 ms]
  *       Range (min … max):    21.7 ms …  24.1 ms    100 runs
  *
- * Benchmark on a Raspberry Pi 4, compiler Debian gcc 10.2.1-6 with -Ofast -march=native
+ * Benchmark on a Raspberry Pi 4, compiler Debian gcc 10.2.1-6 with -O3 -march=native
  * and the CPU in performance mode:
  *
  *     echo performance | sudo tee /sys/devices/system/cpu/cpufreq/policy0/scaling_governor

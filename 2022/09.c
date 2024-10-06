@@ -24,7 +24,7 @@ static const char *inp[] = {
 };
 static const int N = sizeof inp / sizeof(char*);
 #elif EXAMPLE == 2
-static const char* inp[] = {
+static const char *inp[] = {
     "R 5",
     "U 8",
     "L 8",
@@ -54,7 +54,7 @@ typedef struct _Move {
 
 static Move move[N];  // translated instructions from input
 static Vec knot[K2];  // string of knots (K1 <= K2)
-static bool* seen;    // grid to keep track of visited locations
+static bool *seen;    // grid to keep track of visited locations
 static Vec dim;       // grid dimensions
 
 // Sign of x: x > 0 => +1, x == 0 => 0, x < 0 => -1

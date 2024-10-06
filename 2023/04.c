@@ -5,8 +5,8 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -Ofast -march=native -Wall -Wextra 04.c ../startstoptimer.c
- *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wextra 04.c ../startstoptimer.c
+ *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 04.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 04.c ../startstoptimer.c
  * Get minimum runtime:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
@@ -33,7 +33,7 @@ static int min(const int a, const int b)
 }
 
 // Convert 1 or 2 digits to number (' ' & 15 = 0, so leading space is fine)
-static inline int readnum(const char* s)
+static inline int readnum(const char *s)
 {
     return ((*s & 15) * 10) + (*(s + 1) & 15);
 }
@@ -41,14 +41,14 @@ static inline int readnum(const char* s)
 int main(void)
 {
     starttimer();
-    FILE* f = fopen(NAME, "r");
+    FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
 
     int part1 = 0, part2 = 0;
     char buf[128];  // every line is 116 chars + '\n\0'
     for (int card = 0; fgets(buf, sizeof buf, f); ) {  // read one line at a time
         memset(win, 0, sizeof win);       // reset winning number scoring
-        char* s = buf + 10;               // skip to first winning number
+        char *s = buf + 10;               // skip to first winning number
         for (; *s != '|'; s += 3)         // until '|', skip to next winning number
             win[readnum(s)] = true;       // mark as winning number
 

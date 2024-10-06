@@ -24,7 +24,7 @@ static const Vec starting = {0, 0}, destination = {N - 1, N - 1};
 static char map[N][N + 2];
 static bool seen[N][N][4];  // 4 directions
 static int dist[N][N];  // 0=infinity
-static Heap* heap;  // min heap
+static Heap *heap;  // min heap
 static int hlen, hsize;
 
 static int zip(const Cart state)
@@ -48,7 +48,7 @@ static bool push(const Heap entry)
 {
     if (hlen == HSIZE) {
         int newsize = hsize ? hsize << 1 : HSIZE;
-        Heap* p = realloc(heap, (size_t)newsize);
+        Heap *p = realloc(heap, (size_t)newsize);
         if (!p) { printf("!!! hsize=%d\n", hsize); return false; }
         heap = p;
         hsize = newsize;
@@ -63,7 +63,7 @@ static bool push(const Heap entry)
     return true;
 }
 
-static bool pop(Heap* entry)
+static bool pop(Heap *entry)
 {
     if (!hlen) return false;
     *entry = heap[0];
@@ -110,13 +110,13 @@ static Vec direction(const Vec a, const Vec b)
     return (Vec){sign(b.x - a.x), sign(b.y - a.y)};
 }
 
-static void add_r(Vec* const a, const Vec b)
+static void add_r(Vec *const a, const Vec b)
 {
     a->x += b.x;
     a->y += b.y;
 }
 
-static void mul_r(Vec* const a, const int mult)
+static void mul_r(Vec *const a, const int mult)
 {
     a->x *= mult;
     a->y *= mult;
@@ -147,7 +147,7 @@ static int dijkstra(Cart start)
 
 int main(void)
 {
-    FILE* f = fopen("../aocinput/2023-17-example.txt", "r");
+    FILE *f = fopen("../aocinput/2023-17-example.txt", "r");
     for (int i = 0; i < N; ++i)
         fgets(map[i], sizeof *map, f);
     fclose(f);

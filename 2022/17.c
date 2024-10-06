@@ -58,7 +58,7 @@ typedef struct {
 } State;
 
 // Rock shapes as defined by puzzle, but leading edge first (so, "upside down")
-static const char* shape[] = {
+static const char *shape[] = {
     ("####"),
     (".#.."
      "###."
@@ -80,10 +80,10 @@ static int8_t chamber[CHAMH];
 static int64_t top, base;
 static State state[8192];
 
-static Rock str2rock(const char* const s, const int id)
+static Rock str2rock(const char *const s, const int id)
 {
     Rock rk = {.id=id};
-    const char* pc = s;
+    const char *pc = s;
     int r = 0, c = 0, bits = 0;
     while (*pc != '\0' && r < RKDIM) {
         bits <<= 1;
@@ -130,9 +130,9 @@ static int makerocks(void)
     return i;
 }
 
-static int read(const char* const s)
+static int read(const char *const s)
 {
-    FILE* f = fopen(s, "r");
+    FILE *f = fopen(s, "r");
     if (!f)
         return 0;
     int i = 0, c;
@@ -171,7 +171,7 @@ static void show(const int64_t first, int64_t last)
 }
 #endif
 
-static void settle(const Rock* const r, const int x, const int64_t y)
+static void settle(const Rock *const r, const int x, const int64_t y)
 {
     int64_t h = y - base;
     for (int i = 0; i < r->h; ++i)
@@ -181,7 +181,7 @@ static void settle(const Rock* const r, const int x, const int64_t y)
         top = h;
 }
 
-static bool isfree(const Rock* const r, const int x, const int64_t y)
+static bool isfree(const Rock *const r, const int x, const int64_t y)
 {
     if (!r || x < 0 || x >= r->n)
         return false;
@@ -207,7 +207,7 @@ int main(void)
     int rockindex = 0, jetindex = 0;
     int64_t dropped = 0;
     for (; dropped < PART1; ++dropped) {
-        const Rock* const r = rock + rockindex;
+        const Rock *const r = rock + rockindex;
         int x = X0 + jet[jetindex];  // first move always possible
         if (++jetindex == jets)
             jetindex = 0;

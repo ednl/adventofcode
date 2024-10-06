@@ -5,14 +5,14 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Benchmark on an iMac (Late 2013, 3.2 GHz quad-core Core i5 "Haswell"),
- * compiler Apple clang 12.0.0 with -Ofast -march=native:
+ * compiler Apple clang 12.0.0 with -O3 -march=native:
  *
  *     $ hyperfine -N -w 100 -r 500 ./a.out
  *     Benchmark 1: ./a.out
  *       Time (mean ± σ):      11.2 ms ±   0.4 ms    [User: 9.6 ms, System: 0.7 ms]
  *       Range (min … max):    10.4 ms …  13.1 ms    500 runs
  *
- * Benchmark on a Raspberry Pi 4, compiler Debian gcc 10.2.1-6 with -Ofast -march=native
+ * Benchmark on a Raspberry Pi 4, compiler Debian gcc 10.2.1-6 with -O3 -march=native
  * and the CPU in performance mode:
  *
  *     echo performance | sudo tee /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
@@ -101,7 +101,7 @@ static bool islegal(const State s, const int elms)
 {
     for (int i = 0; i < s.diff; ++i) {  // check all single microchips
         const int m = s.pair[i].microchip;
-        for (int j = 0; j < elms; ++j)  // for *all* other generators
+        for (int j = 0; j < elms; ++j)  // for *all *other generators
             if (i != j && m == s.pair[j].generator)
                 return false;
     }

@@ -24,7 +24,7 @@ typedef struct ray {
     Vec pos, dir;
 } Ray;
 
-static const char* dir2char = "_UDLR";
+static const char *dir2char = "_UDLR";
 static const Vec delta[5] = {{0,0},{0,-1},{0,1},{-1,0},{1,0}};  // _,U,D,L,R
 
 static char grid[DIM][ROW];
@@ -42,7 +42,7 @@ static Vec turnright(const Vec dir)
     return (Vec){dir.y, -dir.x};
 }
 
-static bool pop(Ray* const ray)
+static bool pop(Ray *const ray)
 {
     if (!slen) return false;
     *ray = stack[--slen];
@@ -62,7 +62,7 @@ static void trace(const Ray ray)
 
 int main(void)
 {
-    FILE* f = fopen("../aocinput/2023-16-input.txt", "r");
+    FILE *f = fopen("../aocinput/2023-16-input.txt", "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
 
     for (int i = 0; i < N; ++i)

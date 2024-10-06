@@ -5,8 +5,8 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -Ofast -march=native -Wall -Wextra 13.c ../startstoptimer.c
- *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wextra 13.c ../startstoptimer.c
+ *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 13.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 13.c ../startstoptimer.c
  * Get minimum runtime:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
@@ -33,7 +33,7 @@
 static int map[N], rot[N];
 static bool transposed;
 
-static int stoi(const char* s)
+static int stoi(const char *s)
 {
     int val = 0;
     while (*s)
@@ -79,7 +79,7 @@ static int imperfections(const int val, const int len, const int pos)
     return __builtin_popcount((unsigned)((a ^ b) & mask));
 }
 
-static int findmirror(const int* mat, const int rows, const int cols, const int imperf)
+static int findmirror(const int *mat, const int rows, const int cols, const int imperf)
 {
     for (int j = 1; j < cols; ++j) {  // try mirror before column j
         int i = 0, count = 0;
@@ -91,7 +91,7 @@ static int findmirror(const int* mat, const int rows, const int cols, const int 
     return 0;
 }
 
-static void transpose(const int* src, int* dst, const int rows, const int cols)
+static void transpose(const int *src, int *dst, const int rows, const int cols)
 {
     for (int j = 0; j < cols; ++j) {
         int n = 0;
@@ -116,11 +116,11 @@ static int summarize(const int rows, const int cols, const int imperf)
 int main(void)
 {
     starttimer();
-    FILE* f = fopen(NAME, "r");
+    FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
 
     int len;
-    char* buf = NULL;
+    char *buf = NULL;
     size_t bufsz;
     int part1 = 0, part2 = 0, rows = 0, cols = 0;
     while ((len = (int)getline(&buf, &bufsz, f)) > 0) {

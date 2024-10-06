@@ -5,8 +5,8 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -Ofast -march=native -Wall -Wextra 14.c ../startstoptimer.c
- *    gcc   -std=gnu17 -Ofast -march=native -Wall -Wextra 14.c ../startstoptimer.c
+ *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 14.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 14.c ../startstoptimer.c
  * Get minimum runtime:
  *     m=999999;for((i=0;i<200;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
@@ -68,13 +68,13 @@ static void roll(const bool left)
                 rocks += map[i][end++] == 'O';  // count round rocks
             const int space = end - j - rocks;
             if (rocks && space) {
-                char* dst1 = &map[i][j];
+                char *dst1 = &map[i][j];
                 if (left) {
-                    char* dst2 = dst1 + rocks;
+                    char *dst2 = dst1 + rocks;
                     memset(dst1, 'O', (size_t)rocks);  // round rocks to the left
                     memset(dst2, '.', (size_t)space);  // open space to the right
                 } else {
-                    char* dst2 = dst1 + space;
+                    char *dst2 = dst1 + space;
                     memset(dst1, '.', (size_t)space);  // open space to the left
                     memset(dst2, 'O', (size_t)rocks);  // round rocks to the right
                 }
@@ -108,7 +108,7 @@ static void cycle(void)
 int main(void)
 {
     starttimer();
-    FILE* f = fopen(NAME, "r");
+    FILE *f = fopen(NAME, "r");
     if (!f)
         return 1;
     for (int i = 1; i < LIM; ++i)
