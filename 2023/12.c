@@ -239,7 +239,7 @@ int main(void)
 {
     starttimer();
     const int rows = read(NAME);
-    if (!rows)
+    if (rows < 1)
         return 1;
 
     hashtable = malloc(hashsize * sizeof *hashtable);
