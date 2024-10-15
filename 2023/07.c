@@ -100,7 +100,7 @@ static void analyse(Hand *const hand, const bool ispart2)
     for (int i = 0; i < HANDSIZE; ++i) {
         const int val = hand->card[i] == 'J' && ispart2 ? 0 : facevalue(hand->card[i]);
         hist[val]++;
-        hand->deal = (hand->deal << 4) | val;  // each value fits in 4 bits
+        hand->deal = hand->deal << 4 | val;  // each value fits in 4 bits
     }
 
     // Count jokers and remove them for part 2.
