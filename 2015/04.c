@@ -2,19 +2,17 @@
 #include <stdint.h>
 
 #define INPUT "iwrupvqb"
-#define MASK5 UINT32_C(0x00F0FFFF)
-#define MASK6 UINT32_C(0x00FFFFFF)
+#define MASK5 UINT32_C(0x00F0FFFF)  // little-endian hex digest starts with 5 zeros
+#define MASK6 UINT32_C(0x00FFFFFF)  // little-endian hex digest starts with 6 zeros
 
 // Ref.: https://en.wikipedia.org/wiki/MD5#Algorithm
-//   message must be null terminated string of any length
-//   returns first 32 bits of digest
-static uint32_t md5(const unsigned number)
+static uint32_t md5(unsigned number)
 {
     static const uint32_t rot[64] = {
-        7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,
-        5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,
-        4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,
-        6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21};
+        7,12,17,22, 7,12,17,22, 7,12,17,22, 7,12,17,22,
+        5, 9,14,20, 5, 9,14,20, 5, 9,14,20, 5, 9,14,20,
+        4,11,16,23, 4,11,16,23, 4,11,16,23, 4,11,16,23,
+        6,10,15,21, 6,10,15,21, 6,10,15,21, 6,10,15,21};
     static const uint32_t K[64] = {
         0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
         0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
@@ -35,10 +33,16 @@ static uint32_t md5(const unsigned number)
 
     uint8_t chunk[64] = INPUT;  // message is always shorter than 56 bytes, so this is the first and last chunk
     unsigned msglen = 8;  // INPUT is 8 chars long
-    sprintf((char *)&chunk[msglen], "%u", number);  // append number
-    while (chunk[++msglen]);  // find total message length
-    chunk[msglen] = UINT8_C(0x80);  // append magic stop byte
-    chunk[56] = (uint8_t)(msglen << 3);  // msglen in bits < 256 so only chunk[56] is ok
+    uint8_t buf[16];
+    unsigned digits = 0;
+    while (number) {
+        buf[digits++] = '0' | (number % 10u);
+        number /= 10u;
+    }
+    while (digits)
+        chunk[msglen++] = buf[--digits];
+    chunk[msglen] = 0x80;  // append magic stop byte
+    chunk[56] = msglen << 3;  // msglen in bits < 256 so only chunk[56] is ok
 
     // Break 512-bit message into sixteen 32-bit words M[j]
     uint32_t M[16];
@@ -50,7 +54,7 @@ static uint32_t md5(const unsigned number)
              | (uint32_t)chunk[k];
     }
 
-    uint32_t A = UINT32_C(0x67452301), B = UINT32_C(0xefcdab89), C = UINT32_C(0x98badcfe), D = UINT32_C(0x10325476);
+    uint32_t A = 0x67452301, B = 0xefcdab89, C = 0x98badcfe, D = 0x10325476;
     for (uint32_t i = 0; i < 64; ++i) {
         uint32_t F, g;
         switch (i >> 4) {
@@ -77,7 +81,7 @@ static uint32_t md5(const unsigned number)
         C = B;
         B += F << rot[i] | F >> (32 - rot[i]);
     }
-    return A + UINT32_C(0x67452301);  // first 8 hex digits of 32-char hex digest
+    return A + 0x67452301;  // first 8 hex digits of 32-char hex digest
 }
 
 int main(void)
