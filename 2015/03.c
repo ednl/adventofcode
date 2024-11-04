@@ -36,9 +36,9 @@ static int max(const int a, const int b)
 
 static Box walksize(const int skip, const int step)
 {
-    Vec pos = (Vec){0};
-    Vec min = (Vec){0};
-    Vec max = (Vec){0};
+    Vec pos = {0};
+    Vec min = {0};
+    Vec max = {0};
     for (int i = skip; i < N; i += step)
         switch (move[i]) {
             case '<': if (--pos.x < min.x) min.x = pos.x; break;
@@ -69,9 +69,9 @@ int main(void)
     const Box a = walksize(0, 1);  // part 1
     const Box b = walksize(0, 2);  // part 2a
     const Box c = walksize(1, 2);  // part 2b
-    const Box d = (Box){
-        (Vec){min(a.min.x, min(b.min.x, c.min.x)), min(a.min.y, min(b.min.y, c.min.y))},
-        (Vec){max(a.max.x, max(b.max.x, c.max.x)), max(a.max.y, max(b.max.y, c.max.y))}
+    const Box d = {
+        {min(a.min.x, min(b.min.x, c.min.x)), min(a.min.y, min(b.min.y, c.min.y))},
+        {max(a.max.x, max(b.max.x, c.max.x)), max(a.max.y, max(b.max.y, c.max.y))}
     };
     const int cols = d.max.x - d.min.x + 1;
     const int size = cols * (d.max.y - d.min.y + 1);
