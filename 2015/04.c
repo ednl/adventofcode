@@ -1,16 +1,14 @@
 #include <stdio.h>
 #include <stdint.h>
-#include <stdbool.h>
 
-static char input[16] = "iwrupvqb";
-static char *const number = input + 8;
-static const uint32_t zeromask5 = 0x00F0FFFFU;
-static const uint32_t zeromask6 = 0x00FFFFFFU;
+#define INPUT "iwrupvqb"
+#define MASK5 UINT32_C(0x00F0FFFF)
+#define MASK6 UINT32_C(0x00FFFFFF)
 
 // Ref.: https://en.wikipedia.org/wiki/MD5#Algorithm
 //   message must be null terminated string of any length
 //   returns first 32 bits of digest
-static uint32_t md5(const char *const message)
+static uint32_t md5(const unsigned number)
 {
     static const uint32_t rot[64] = {
         7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,
@@ -35,97 +33,59 @@ static uint32_t md5(const char *const message)
         0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1,
         0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391};
 
-    // a0, b0, c0, d0
-    uint32_t sum[4] = {0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476};
+    uint8_t chunk[64] = INPUT;  // message is always shorter than 56 bytes, so this is the first and last chunk
+    unsigned msglen = 8;  // INPUT is 8 chars long
+    sprintf((char *)&chunk[msglen], "%u", number);  // append number
+    while (chunk[++msglen]);  // find total message length
+    chunk[msglen] = UINT8_C(0x80);  // append magic stop byte
+    chunk[56] = (uint8_t)(msglen << 3);  // msglen in bits < 256 so only chunk[56] is ok
 
-    uint64_t msglen = 0;  // message length in bytes (later in bits mod 2^64)
-    const char *c = message;
-    bool padded = false, terminated = false;
-
-    // for each 512-bit (64-byte) chunk of padded message do
-    while (!terminated) {
-
-        size_t chunklen = 0;
-        uint8_t chunk[64] = {0};
-
-        while (*c && chunklen < 64)
-            chunk[chunklen++] = (uint8_t)*c++;
-        msglen += chunklen;
-
-        // Padding: append 0x80 and pad with 0x00 bytes so that the message length in bytes ≡ 56 (mod 64).
-        if (chunklen < 64) {
-            if (!padded) {
-                chunk[chunklen++] = 0x80;  // rest of chunk array is already zero from initialisation
-                padded = true;
-            }
-            if (chunklen <= 56) {
-                // Store length of original message *in bits *in last 64 bits of chunk (little-endian!)
-                chunklen = 56;
-                msglen <<= 3;  // byte count is now bit count (mod 2^64)
-                while (msglen) {
-                    chunk[chunklen++] = (uint8_t)msglen;  // use only the LSByte
-                    msglen >>= 8;  // next byte
-                }
-                terminated = true;
-            }
-        }
-
-        // Break 512-bit message into sixteen 32-bit words M[j]
-        uint32_t M[16];
-        for (int j = 0; j < 16; ++j) {
-            int k = j << 2;  // j * 4
-            M[j] = (uint32_t)chunk[k + 3] << 24  // high to low prec: cast, shift, or
-                 | (uint32_t)chunk[k + 2] << 16
-                 | (uint32_t)chunk[k + 1] <<  8
-                 | (uint32_t)chunk[k];
-        }
-
-        uint32_t A = sum[0], B = sum[1], C = sum[2], D = sum[3];
-        for (uint32_t i = 0; i < 64; ++i) {
-            uint32_t F, g;
-            switch (i >> 4) {
-                case 0:
-                    F = D ^ (B & (C ^ D));
-                    g = i;
-                    break;
-                case 1:
-                    F = C ^ (D & (B ^ C));
-                    g = (i * 5 + 1) & 0xf;
-                    break;
-                case 2:
-                    F = B ^ C ^ D;
-                    g = (i * 3 + 5) & 0xf;
-                    break;
-                default:
-                    F = C ^ (B | ~D);
-                    g = (i * 7) & 0xf;
-                    break;
-            }
-            F += A + K[i] + M[g];
-            A = D;
-            D = C;
-            C = B;
-            B += F << rot[i] | F >> (32 - rot[i]);
-        }
-        sum[0] += A;
-        sum[1] += B;
-        sum[2] += C;
-        sum[3] += D;
+    // Break 512-bit message into sixteen 32-bit words M[j]
+    uint32_t M[16];
+    for (int j = 0; j < 16; ++j) {
+        int k = j << 2;  // j * 4
+        M[j] = (uint32_t)chunk[k + 3] << 24  // high to low prec: cast, shift, or
+             | (uint32_t)chunk[k + 2] << 16
+             | (uint32_t)chunk[k + 1] <<  8
+             | (uint32_t)chunk[k];
     }
 
-    return sum[0];
+    uint32_t A = UINT32_C(0x67452301), B = UINT32_C(0xefcdab89), C = UINT32_C(0x98badcfe), D = UINT32_C(0x10325476);
+    for (uint32_t i = 0; i < 64; ++i) {
+        uint32_t F, g;
+        switch (i >> 4) {
+            case 0:
+                F = D ^ (B & (C ^ D));
+                g = i;
+                break;
+            case 1:
+                F = C ^ (D & (B ^ C));
+                g = (i * 5 + 1) & 0xf;
+                break;
+            case 2:
+                F = B ^ C ^ D;
+                g = (i * 3 + 5) & 0xf;
+                break;
+            default:
+                F = C ^ (B | ~D);
+                g = (i * 7) & 0xf;
+                break;
+        }
+        F += A + K[i] + M[g];
+        A = D;
+        D = C;
+        C = B;
+        B += F << rot[i] | F >> (32 - rot[i]);
+    }
+    return A + UINT32_C(0x67452301);  // first 8 hex digits of 32-char hex digest
 }
 
 int main(void)
 {
     unsigned n = 0;
-    do {
-        sprintf(number, "%u", ++n);
-    } while (md5(input) & zeromask5);
+    while (md5(++n) & MASK5);
     printf("Part 1: %u\n", n);  // 346386
-    do {
-        sprintf(number, "%u", ++n);
-    } while (md5(input) & zeromask6);
+    while (md5(++n) & MASK6);
     printf("Part 2: %u\n", n);  // 9958218
     return 0;
 }
