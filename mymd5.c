@@ -119,8 +119,8 @@ void mymd5(const char * const message, char * const digest)
     char *d = digest;
     for (int i = 0; i < 4; ++i)
         for (int j = 0; j < 4; ++j) {
-            *d++ = hexc(sum[i] >>  4 & 0xf);  // high to low prec: shift, and
-            *d++ = hexc(sum[i]       & 0xf);
+            *d++ = hexc(sum[i] >> 4 & 0xf);  // high to low prec: shift, and
+            *d++ = hexc(sum[i]      & 0xf);
             sum[i] >>= 8;
         }
     *d = '\0';  // digest[32] = NUL

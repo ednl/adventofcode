@@ -1,7 +1,7 @@
 #include <stdio.h>    // printf
 #include <string.h>   // strlen, memcpy
 #include <stdbool.h>  // bool
-#include "mymd5.h"
+#include "../mymd5.h"
 #include "../startstoptimer.h"
 
 #define N 4         // dimensions = 4x4
