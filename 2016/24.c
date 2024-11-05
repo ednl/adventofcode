@@ -63,7 +63,7 @@ static void flood(const int start)
 {
     memset(seen, 0, sizeof seen);
     seen[poi[start].y][poi[start].x] = true;
-    state_t s = (state_t){poi[start], 0};
+    state_t s = {poi[start], 0};
     enq(&queue, s);
     while (deq(&queue, &s)) {
         int c = grid[s.pos.y][s.pos.x];

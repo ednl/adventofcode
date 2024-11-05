@@ -62,8 +62,8 @@ int main(void)
 
     // Go to initial position in one big step
     // and determine spread of the points
-    Vec pmin = (Vec){INT_MAX, INT_MAX};
-    Vec pmax = (Vec){INT_MIN, INT_MIN};
+    Vec pmin = {INT_MAX, INT_MAX};
+    Vec pmax = {INT_MIN, INT_MIN};
     for (i = 0; i < N; ++i) {
         pos0[i].x += vel[i].x * t;
         pos0[i].y += vel[i].y * t;

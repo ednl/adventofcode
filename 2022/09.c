@@ -213,7 +213,7 @@ int main(void)
     }
 
     // Determine grid dimensions
-    Vec pos = (Vec){0, 0}, min = (Vec){0, 0}, max = (Vec){0, 0};
+    Vec pos = {0, 0}, min = {0, 0}, max = {0, 0};
     for (int i = 0; i < N; ++i) {
         addto(&pos, mult(move[i].dir, move[i].len));
         if (pos.x < min.x) min.x = pos.x;

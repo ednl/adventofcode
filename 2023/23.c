@@ -123,7 +123,7 @@ static bool isequal(const Vec a, const Vec b)
 static void explore(const Vec start, const Dir dir, const Vec goal)
 {
     int maxlen = 0;
-    State s = (State){start, 0};
+    State s = {start, 0};
     qpush(s);
     setseen(start);
     while (qpop(&s)) {

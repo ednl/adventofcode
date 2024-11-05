@@ -76,7 +76,7 @@ static size_t simul(const size_t motioncount, const int knots)
             rope[0].x += motion[i].dir.x;
             rope[0].y += motion[i].dir.y;
             for (int k = 1; k < knots; ++k) {
-                Vec dif = (Vec){rope[k - 1].x - rope[k].x, rope[k - 1].y - rope[k].y};
+                Vec dif = {rope[k - 1].x - rope[k].x, rope[k - 1].y - rope[k].y};
                 if (abs(dif.x) == 2 || abs(dif.y) == 2) {
                     rope[k].x += dif.x >= 1 ? 1 : (dif.x <= -1 ? -1 : 0);
                     rope[k].y += dif.y >= 1 ? 1 : (dif.y <= -1 ? -1 : 0);

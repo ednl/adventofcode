@@ -80,7 +80,7 @@ static inline char * id2name(const OpCode id)
 
 static inline Instr assemble(char *code)
 {
-    Instr ins = (Instr){NOP, -1, -1, 0, 0};  // if reg == -1 => use val
+    Instr ins = {NOP, -1, -1, 0, 0};  // if reg == -1 => use val
     int field = 0;
     char *s = strtok(code, " ");
     while (s) {

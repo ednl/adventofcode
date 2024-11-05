@@ -72,7 +72,7 @@ static inline size_t id2index(const OpCode id)
 
 static inline Instr assemble(char *code)
 {
-    Instr ins = (Instr){
+    Instr ins = {
         .op = NOP,
         .r0 = -1, .r1 = -1,
         .v0 =  0, .v1 =  0,

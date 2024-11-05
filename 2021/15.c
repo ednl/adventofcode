@@ -121,8 +121,8 @@ static int astar(const int mult)
     int f[mdim][mdim];
     int g[mdim][mdim];
     bool inq[mdim][mdim];
-    Point cur = (Point){0, 0};
-    Point end = (Point){mdim - 1, mdim - 1};
+    Point cur = {0, 0};
+    Point end = {mdim - 1, mdim - 1};
     PQ *pq = NULL;
 
     for (int i = 0; i < mdim; ++i) {
@@ -149,7 +149,7 @@ static int astar(const int mult)
         }
         inq[cur.y][cur.x] = false;
         for (size_t i = 0; i < sizeof nb / sizeof *nb; ++i) {
-            Point nxt = (Point){cur.x + nb[i].x, cur.y + nb[i].y};
+            Point nxt = {cur.x + nb[i].x, cur.y + nb[i].y};
             if (nxt.x >= 0 && nxt.y >= 0 && nxt.x < mdim && nxt.y < mdim) {
                 int nxtg = g[cur.y][cur.x] + cost[nxt.y][nxt.x];
                 if (nxtg < g[nxt.y][nxt.x]) {
@@ -174,8 +174,8 @@ static int dijkstra(const int mult)
     int edge[mdim][mdim];
     int dist[mdim][mdim];
     bool inq[mdim][mdim];
-    Point cur = (Point){0, 0};
-    Point end = (Point){mdim - 1, mdim - 1};
+    Point cur = {0, 0};
+    Point end = {mdim - 1, mdim - 1};
 
     for (int i = 0; i < mdim; ++i) {
         const int idiv = i / DIM;
@@ -196,7 +196,7 @@ static int dijkstra(const int mult)
         }
         inq[cur.y][cur.x] = false;
         for (size_t i = 0; i < sizeof nb / sizeof *nb; ++i) {
-            Point nxt = (Point){cur.x + nb[i].x, cur.y + nb[i].y};
+            Point nxt = {cur.x + nb[i].x, cur.y + nb[i].y};
             if (nxt.x >= 0 && nxt.y >= 0 && nxt.x < mdim && nxt.y < mdim) {
                 int nxtdist = dist[cur.y][cur.x] + edge[nxt.y][nxt.x];
                 if (nxtdist < dist[nxt.y][nxt.x]) {
