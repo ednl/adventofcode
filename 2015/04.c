@@ -1,5 +1,17 @@
+/**
+ * Advent of Code 2015
+ * Day 4: The Ideal Stocking Stuffer
+ * https://adventofcode.com/2015/day/4
+ * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 04.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 04.c ../startstoptimer.c
+ */
+
 #include <stdio.h>
 #include <stdint.h>
+#include "../startstoptimer.h"
 
 #define INPUT "iwrupvqb"
 #define MASK5 UINT32_C(0x00F0FFFF)  // little-endian hex digest starts with 5 zeros
@@ -86,10 +98,12 @@ static uint32_t md5(unsigned number)
 
 int main(void)
 {
+    starttimer();
     unsigned n = 0;
     while (md5(++n) & MASK5);
     printf("Part 1: %u\n", n);  // 346386
     while (md5(++n) & MASK6);
     printf("Part 2: %u\n", n);  // 9958218
+    printf("Time: %.2f s\n", stoptimer_s());
     return 0;
 }
