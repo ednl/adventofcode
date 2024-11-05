@@ -10,11 +10,11 @@
  * Get minimum runtime:
  *     m=999999;for((i=0;i<1000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
- *     Mac Mini 2020 (M1 3.2 GHz)                       :  ? ms
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :  ? ms
- *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz)         : 11 ms
- *     Raspberry Pi 5 (2.4 GHz)                         :  ? ms
- *     Raspberry Pi 4 (1.8 GHz)                         :  ? ms
+ *     Mac Mini 2020 (M1 3.2 GHz)                       :    ? ms
+ *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :    ? ms
+ *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz)         : 11.4 ms
+ *     Raspberry Pi 5 (2.4 GHz)                         :    ? ms
+ *     Raspberry Pi 4 (1.8 GHz)                         :    ? ms
  */
 
 #include <stdio.h>
@@ -60,16 +60,15 @@ static char next(const char a)
 
 static bool isvalid(const char pwd[static const LEN])
 {
-    bool twopair = false;
     for (int i = 0, k = 0; i < LEN - 1; ++i)
         if (pwd[i] == pwd[i + 1]) {
             if (!k)
                 k = pwd[i++];
-            else if ((twopair = k ^ pwd[i++]))
-                break;
+            else if (k ^ pwd[i++])
+                goto triplet;
         }
-    if (!twopair)
-        return false;
+    return false;
+triplet:
     for (int i = 0; i < LEN - 2; ++i)
         if (pwd[i] <= 'x' && next(pwd[i]) == pwd[i + 1] && next(pwd[i + 1]) == pwd[i + 2])
             return true;
@@ -85,8 +84,8 @@ int main(void)
         do {
             tostr(pwd, ++n);
         } while (!isvalid(pwd));
-        printf("Part %d: %s\n", i, pwd);
+        printf("Part %d: %s\n", i, pwd);  // hxbxxyzz, hxcaabcc
     }
-    printf("Time: %.0f ms\n", stoptimer_ms());
+    printf("Time: %.0f us\n", stoptimer_us());
     return 0;
 }
