@@ -1,9 +1,9 @@
 // https://en.wikipedia.org/wiki/Look-and-say_sequence
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <string.h>
+#include <stdlib.h>  // calloc, free
+#include <string.h>  // strcpy
+#include <math.h>    // exp, log
 
 // Problem parameters part 1 & 2
 #define ITER1  40

@@ -17,7 +17,7 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdlib.h>  // atoi
 #include "../permutations.h"
 #include "../startstoptimer.h"
 
