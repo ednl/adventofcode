@@ -5,14 +5,14 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 09.c ../permutations.c
- *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 09.c ../permutations.c
+ *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 09.c ../permutations.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 09.c ../permutations.c ../startstoptimer.c
  * Get minimum runtime:
  *     m=999999;for((i=0;i<2000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
  *     Mac Mini 2020 (M1 3.2 GHz)          :   ? µs
  *     iMac 2013 (i5 Haswell 4570 3.2 GHz) : 336 µs
- *     Raspberry Pi 5 (2.4 GHz)            :   ? µs
+ *     Raspberry Pi 5 (2.4 GHz)            : 474 µs
  *     Raspberry Pi 4 (1.8 GHz)            :   ? µs
  */
 
