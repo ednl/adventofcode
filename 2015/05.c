@@ -10,35 +10,60 @@
  */
 
 #include <stdio.h>
-#include <string.h>  // strchr
+#include <stdint.h>  // int16_t
 #include <stdbool.h>
+
+#define LEN 16  // string length of every line in input
 
 int main(void)
 {
     FILE *f = fopen("../aocinput/2015-05-input.txt", "r");
     if (!f)
         return 1;
-    char line[BUFSIZ];
-    int nice = 0;
+    char line[LEN << 1];
+    int nice1 = 0, nice2 = 0;
     while (fgets(line, sizeof line, f)) {
-        int vowels = 0;
-        bool repeated = false, naughty = false;
-        char *c = line;
-        while (*c) {
-            vowels += vowels < 3 && strchr("aeiou", *c) != NULL;
-            repeated = repeated || *c == *(c + 1);
-            if (!naughty)
-                switch (*c) {
+        // Part 1
+        bool repeat = false;
+        for (int i = 0; !repeat && i < LEN - 1; ++i)
+            repeat = line[i] == line[i + 1];
+        if (repeat) {
+            int vowels = 0;
+            for (int i = 0; vowels < 3 && i < LEN; ++i)
+                switch (line[i]) {
                     case 'a':
-                    case 'c':
-                    case 'p':
-                    case 'x': naughty = *(c + 1) == *c + 1; break;
+                    case 'e':
+                    case 'i':
+                    case 'o':
+                    case 'u': ++vowels; break;
                 }
-            ++c;
+            if (vowels == 3) {
+                bool naughty = false;
+                for (int i = 0; !naughty && i < LEN - 1; ++i)
+                    switch (line[i]) {
+                        case 'a':
+                        case 'c':
+                        case 'p':
+                        case 'x': naughty = line[i + 1] == line[i] + 1; break;
+                    }
+                nice1 += !naughty;
+            }
         }
-        nice += vowels >= 3 && repeated && !naughty;
+        // Part 2
+        bool between = false;
+        for (int i = 0; !between && i < LEN - 2; ++i)
+            between = line[i] == line[i + 2];
+        if (between) {
+            bool twopair = false;
+            for (int i = 0; !twopair && i < LEN - 3; ++i) {
+                const int16_t pair1 = *(int16_t *)&line[i];
+                for (int j = i + 2; !twopair && j < LEN - 1; ++j)
+                    twopair = pair1 == *(int16_t *)&line[j];
+            }
+            nice2 += twopair;
+        }
     }
     fclose(f);
-    printf("Part 1: %d\n", nice);  // 258
+    printf("%d %d\n", nice1, nice2);  // 258 53
     return 0;
 }
