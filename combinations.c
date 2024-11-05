@@ -1,4 +1,4 @@
-#include <stdlib.h>  // malloc
+#include <stdlib.h>  // malloc, free
 #include "combinations.h"
 
 // Successive calls give combinations of k indices from a set of n.

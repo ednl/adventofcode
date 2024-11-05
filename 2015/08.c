@@ -1,3 +1,20 @@
+/**
+ * Advent of Code 2015
+ * Day 8: Matchsticks
+ * https://adventofcode.com/2015/day/8
+ * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 08.c
+ *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 08.c
+ */
+
+#ifdef __STDC_ALLOC_LIB__
+#define __STDC_WANT_LIB_EXT2__ 1
+#else
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 
