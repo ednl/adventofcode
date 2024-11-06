@@ -9,15 +9,58 @@
  *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 04.c ../startstoptimer.c
  */
 
+#if __APPLE__
+    #include <sys/sysctl.h>  // sysctlbyname
+#elif __linux__
+    #define _GNU_SOURCE      // must come before all includes, not just sched.h
+    #include <sched.h>       // sched_getaffinity
+#endif
 #include <stdio.h>
-#include <stdint.h>
+#include <stdlib.h>          // exit, EXIT_FAILURE
+#include <stdint.h>          // uint8_t, uint32_t, UINT32_C
+#include <stdbool.h>         // bool, true, false
+#include <stdatomic.h>       // atomic_bool
+#include <pthread.h>         // pthread_create, pthread_join
 #include "../startstoptimer.h"
 
+// Personalised input from Advent of Code.
 #define INPUT "iwrupvqb"
-#define MASK5 UINT32_C(0x00F0FFFF)  // little-endian hex digest starts with 5 zeros
-#define MASK6 UINT32_C(0x00FFFFFF)  // little-endian hex digest starts with 6 zeros
+#define INPUTLEN 8
 
-// Ref.: https://en.wikipedia.org/wiki/MD5#Algorithm
+// Bit masks to match 5 or 6 zeros at start of 32 hex char digest (little-endian).
+#define MASK5 UINT32_C(0x00F0FFFF)
+#define MASK6 UINT32_C(0x00FFFFFF)
+
+// Arbitrary limit to avoid dynamic allocation of arg array.
+#define MAXTHREADS 32
+
+typedef struct data {
+    uint32_t start, step, mask, result;
+} Data;
+
+// Signal for other threads to exit when the desired value is found in one thread.
+static atomic_bool found = false;
+
+// Number of CPU cores available to this program.
+// Return: value between lo and hi, inclusive.
+static int coresavail(const int lo, const int hi)
+{
+    int n = 0;
+    #if __APPLE__
+        size_t size = sizeof n;
+        sysctlbyname("hw.activecpu", &n, &size, NULL, 0);
+    #elif __linux__
+        cpu_set_t set;
+        CPU_ZERO(&set);
+        sched_getaffinity(0, sizeof set, &set);
+        n = CPU_COUNT(&set);
+    #elif _WIN32
++       n = atoi(getenv("NUMBER_OF_PROCESSORS") ?: "1");
+    #endif
+    return n < lo ? lo : (n > hi ? hi : n);
+}
+
+// Adapted for one-pass short message from https://en.wikipedia.org/wiki/MD5#Algorithm
 static uint32_t md5(unsigned number)
 {
     static const uint32_t rot[64] = {
@@ -44,7 +87,7 @@ static uint32_t md5(unsigned number)
         0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391};
 
     uint8_t chunk[64] = INPUT;  // message is always shorter than 56 bytes, so this is the first and last chunk
-    unsigned msglen = 8;  // INPUT is 8 chars long
+    unsigned msglen = INPUTLEN;
     uint8_t buf[16];
     unsigned digits = 0;
     while (number) {
@@ -96,14 +139,50 @@ static uint32_t md5(unsigned number)
     return A + 0x67452301;  // first 8 hex digits of 32-char hex digest
 }
 
+// Parallel execution in separate threads.
+static void *loop(void *arg)
+{
+    Data *data = arg;
+    const uint32_t start = data->start;
+    const uint32_t step  = data->step;
+    const uint32_t mask  = data->mask;
+    while (!atomic_load(&found)) {
+        // TODO
+        atomic_store(&found, true);
+    }
+    data->result = 0;
+    return NULL;
+}
+
 int main(void)
 {
     starttimer();
-    unsigned n = 0;
-    while (md5(++n) & MASK5);
-    printf("Part 1: %u\n", n);  // 346386
-    while (md5(++n) & MASK6);
-    printf("Part 2: %u\n", n);  // 9958218
+
+     // Launch parallel threads.
+    const int threads = coresavail(1, MAXTHREADS);
+    pthread_t tid[MAXTHREADS];  // thread IDs
+    Data arg[MAXTHREADS];  // thread arguments going in and out
+    for (int i = 0; i < threads; ++i) {
+        arg[i] = (Data){
+            .start = i + 1,  // thread 0 starts with 1, thread 1 with 2, etc.
+            .step = threads,
+            .mask = MASK5
+        };  // output vars init to zero
+        if (pthread_create(&tid[i], NULL, loop, &arg[i])) {
+            fprintf(stderr, "Unable to launch thread %d of %d.\n", i + 1, threads);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    // Wait for all threads to finish.
+    for (int i = 0; i < threads; ++i)
+        pthread_join(tid[i], NULL);
+
+    // unsigned n = 0;
+    // while (md5(++n) & MASK5);
+    // printf("Part 1: %u\n", n);  // 346386
+    // while (md5(++n) & MASK6);
+    // printf("Part 2: %u\n", n);  // 9958218
     printf("Time: %.2f s\n", stoptimer_s());
     return 0;
 }
