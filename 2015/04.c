@@ -12,15 +12,15 @@
 #if __APPLE__
     #include <sys/sysctl.h>  // sysctlbyname
 #elif __linux__
-    #define _GNU_SOURCE      // must come before all includes, not just sched.h
-    #include <sched.h>       // sched_getaffinity
+    #define _GNU_SOURCE  // must come before all includes, not just sched.h
+    #include <sched.h>   // sched_getaffinity
 #endif
 #include <stdio.h>
-#include <stdlib.h>          // exit, EXIT_FAILURE
-#include <stdint.h>          // uint8_t, uint32_t, UINT32_C
-#include <stdbool.h>         // bool, true, false
-#include <stdatomic.h>       // atomic_bool
-#include <pthread.h>         // pthread_create, pthread_join
+#include <stdlib.h>     // exit, EXIT_FAILURE
+#include <stdint.h>     // uint8_t, uint32_t, UINT32_C
+#include <stdbool.h>    // bool, true, false
+#include <stdatomic.h>  // atomic_bool
+#include <pthread.h>    // pthread_create, pthread_join
 #include "../startstoptimer.h"
 
 // Personalised input from Advent of Code.
@@ -88,6 +88,7 @@ static uint32_t md5(unsigned number)
 
     uint8_t chunk[64] = INPUT;  // message is always shorter than 56 bytes, so this is the first and last chunk
     unsigned msglen = INPUTLEN;
+
     uint8_t buf[16];
     unsigned digits = 0;
     while (number) {
@@ -143,13 +144,15 @@ static uint32_t md5(unsigned number)
 static void *loop(void *arg)
 {
     Data *data = arg;
-    const uint32_t start = data->start;
-    const uint32_t step  = data->step;
-    const uint32_t mask  = data->mask;
+    uint32_t num = data->start;
+    const uint32_t step = data->step;
+    const uint32_t mask = data->mask;
+
     while (!atomic_load(&found)) {
-        // TODO
+        while (md5(++num) & MASK5);
         atomic_store(&found, true);
     }
+
     data->result = 0;
     return NULL;
 }
