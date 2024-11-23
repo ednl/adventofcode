@@ -13,8 +13,10 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
+#include <stdlib.h>    // atoi
+#include <stdint.h>    // int64_t
+#include <inttypes.h>  // PRId64
+#include "../startstoptimer.h"
 
 #define EXAMPLE 0
 #if EXAMPLE == 1
@@ -25,24 +27,25 @@
     #define N 5000
 #endif
 #define M (N - 1)
+#define OFS 1000
+#define OFS_A (OFS % N)
+#define OFS_B (OFS_A - N)
+#define REDUCED_OFS (OFS_A <= -OFS_B ? OFS_A : OFS_B)
 
-typedef struct link {
-    int prev, next;
-} Link;
+// Part 2
+#define KEY INT64_C(811589153)
+#define REDUCED_KEY (KEY % M)
+#define REPEAT 10
 
-typedef struct node {
-    int64_t val;
-    int shift, prev, next;
-} Node;
-
-static Node ring[N];
+static int64_t value[N];
+static int shift[N], prev[N], next[N];
 
 #if EXAMPLE
 static void show(void)
 {
-    printf("%2d", ring[0].val);
-    for (int i = ring[0].next; i; i = ring[i].next)
-        printf(",%2d", ring[i].val);
+    printf("%2"PRId64, value[0]);
+    for (int i = next[0]; i; i = next[i])
+        printf(",%2"PRId64, value[i]);
     putchar('\n');
 }
 #endif
@@ -58,67 +61,103 @@ static int closest(const int64_t x)
     return b <= -a ? b : a;
 }
 
-static Link walk(int index, int steps)
+static int parse(void)
 {
-    if (steps < 0) {
-        do {
-            index = ring[index].prev;
-        } while (++steps);
-        return (Link){ring[index].prev, index};
+    FILE *f = fopen(NAME, "r");
+    if (!f)
+        return -1;  // file not found
+    char buf[8];
+    int zeroindex = -1;
+    for (int i = 0; i < N && fgets(buf, sizeof buf, f); ++i) {
+        value[i] = atoi(buf);
+        shift[i] = closest(value[i]);
+        prev[i] = i - 1;
+        next[i] = i + 1;
+        if (!value[i])
+            zeroindex = i;
     }
+    fclose(f);
+    if (zeroindex < 0)
+        return -2;  // wrong file
+    prev[0] = M;
+    next[M] = 0;
+#if EXAMPLE
+    show();
+#endif
+    return zeroindex;  // zeroindex>=0: success
+}
+
+static void move(const int index, int steps)
+{
+    int left, right;
     if (steps > 0) {
-        do {
-            index = ring[index].next;
-        } while (--steps);
-        return (Link){index, ring[index].next};
+        left = next[index];
+        while (--steps)
+            left = next[left];
+        right = next[left];
+    } else if (steps < 0) {
+        right = prev[index];
+        while (++steps)
+            right = prev[right];
+        left = prev[right];
+    } else
+        return;
+    // Remove
+    next[prev[index]] = next[index];
+    prev[next[index]] = prev[index];
+    // Insert
+    next[left ] = index;
+    prev[right] = index;
+    // Anchor
+    prev[index] = left;
+    next[index] = right;
+#if EXAMPLE
+    show();
+#endif
+}
+
+static int decrypt(const int startindex)
+{
+    int sum = 0;
+    for (int i = 0, j = startindex; i < 3; ++i) {
+        #if REDUCED_OFS > 0
+            for (int k = REDUCED_OFS; k; --k)
+                j = next[j];
+        #elif REDUCED_OFS < 0
+            for (int k = REDUCED_OFS; k; ++k)
+                j = prev[j];
+        #endif
+        sum += value[j];
     }
-    return (Link){ring[index].prev, ring[index].next};
+    return sum;
 }
 
 int main(void)
 {
-    FILE *f = fopen(NAME, "r");
-    if (!f)
-        return 1;
-    char buf[8];
-    int zero = -1;
-    for (int i = 0; i < N && fgets(buf, sizeof buf, f); ++i) {
-        const int val = atoi(buf);
-        if (!val)
-            zero = i;
-        ring[i] = (Node){val, closest(val), i - 1, i + 1};
-    }
-    fclose(f);
-    if (zero < 0)
-        return 2;
-    ring[0].prev = M;
-    ring[M].next = 0;
-#if EXAMPLE
-    show();
-#endif
+    starttimer();
+    const int zeroindex = parse();
+    if (zeroindex < 0)
+        return zeroindex;
 
     for (int i = 0; i < N; ++i)
-        if (ring[i].shift) {
-            const Link link = walk(i, ring[i].shift);
-            ring[ring[i].prev].next = ring[i].next;
-            ring[ring[i].next].prev = ring[i].prev;
-            ring[link.prev].next = i;
-            ring[link.next].prev = i;
-            ring[i].prev = link.prev;
-            ring[i].next = link.next;
-#if EXAMPLE
-            show();
-#endif
-        }
+        move(i, shift[i]);
+    printf("Part 1: %d\n", decrypt(zeroindex));  // example=4-3+2=3, input=4066
+    // printf("Time: %.1f ms\n", stoptimer_ms());
 
-    int sum = 0;
-    const int a = 1000 % N;
-    const int b = a - N;
-    const int step = a <= -b ? a : b;
-    for (int i = 0; i < 3; ++i) {
-        zero = step > 0 ? (walk(zero, step)).prev : (walk(zero, step)).next;
-        sum += ring[zero].val;
+    // Reset
+    // starttimer();
+    for (int i = 0; i < N; ++i) {
+        shift[i] = closest(shift[i] * REDUCED_KEY);
+        prev[i] = i - 1;
+        next[i] = i + 1;
     }
-    printf("Part 1: %d\n", sum);  // example=4-3+2=3, input=?
+    prev[0] = M;
+    next[M] = 0;
+
+    for (int k = 0; k < REPEAT; ++k)
+        for (int i = 0; i < N; ++i)
+            move(i, shift[i]);
+    printf("Part 2: %"PRId64"\n", decrypt(zeroindex) * KEY);  // example=1623178306, input=6704537992933
+    printf("Time: %.0f ms\n", stoptimer_ms());
     return 0;
 }
