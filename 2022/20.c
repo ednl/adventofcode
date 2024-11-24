@@ -4,12 +4,16 @@
  * https://adventofcode.com/2022/day/20
  * By: E. Dronkert https://github.com/ednl
  *
- * Benchmark with the internal timer on a Mac Mini M1 using this Bash oneliner:
- *   m=50000;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
- * gives a shortest runtime for my input file (not the example) of [TBD] µs.
- * On a Raspberry Pi 4 with the CPU in performance mode: [TBD] µs.
- *   echo performance | sudo tee /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
- *   /boot/config.txt: arm_boost=1, no overclock
+ * Compile:
+ *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 20.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 20.c ../startstoptimer.c
+ * Get minimum runtime:
+ *     m=999999;for((i=0;i<200;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
+ * Minimum runtime:
+ *     Mac Mini 2020 (M1 3.2 GHz)          :  85 ms
+ *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :   ? ms
+ *     Raspberry Pi 5 (2.4 GHz)            :   ? ms
+ *     Raspberry Pi 4 (1.8 GHz)            :   ? ms
  */
 
 #include <stdio.h>
@@ -33,24 +37,23 @@
 #define REDUCED_OFS (OFS_A <= -OFS_B ? OFS_A : OFS_B)
 
 // Part 2
-#define KEY INT64_C(811589153)
-#define REDUCED_KEY (KEY % M)
 #define REPEAT 10
+#define KEY 811589153
+#define REDUCED_KEY (KEY % M)
 
-static int64_t value[N];
-static int shift[N], prev[N], next[N];
+static int value[N], shift[N], prev[N], next[N];
 
-#if EXAMPLE
+#ifdef SHOW
 static void show(void)
 {
-    printf("%2"PRId64, value[0]);
+    printf("%2d", value[0]);
     for (int i = next[0]; i; i = next[i])
-        printf(",%2"PRId64, value[i]);
+        printf(",%2d", value[i]);
     putchar('\n');
 }
 #endif
 
-static int closest(const int64_t x)
+static int closest(const int x)
 {
     const int a = x % M;
     if (a >= 0) {
@@ -81,7 +84,7 @@ static int parse(void)
         return -2;  // wrong file
     prev[0] = M;
     next[M] = 0;
-#if EXAMPLE
+#ifdef SHOW
     show();
 #endif
     return zeroindex;  // zeroindex>=0: success
@@ -89,31 +92,21 @@ static int parse(void)
 
 static void move(const int index, int steps)
 {
-    int left, right;
-    if (steps > 0) {
-        left = next[index];
-        while (--steps)
-            left = next[left];
-        right = next[left];
-    } else if (steps < 0) {
-        right = prev[index];
-        while (++steps)
-            right = prev[right];
-        left = prev[right];
-    } else
-        return;
+    int p = prev[index], n = next[index];
     // Remove
-    next[prev[index]] = next[index];
-    prev[next[index]] = prev[index];
+    next[p] = n;
+    prev[n] = p;
+    // Find
+    if (steps >= 0)
+        while (steps--) p = next[p];
+    else
+        while (steps++) p = prev[p];
+    n = next[p];
     // Insert
-    next[left ] = index;
-    prev[right] = index;
-    // Anchor
-    prev[index] = left;
-    next[index] = right;
-#if EXAMPLE
-    show();
-#endif
+    next[p] = index;
+    prev[n] = index;
+    prev[index] = p;
+    next[index] = n;
 }
 
 static int decrypt(const int startindex)
@@ -139,25 +132,38 @@ int main(void)
     if (zeroindex < 0)
         return zeroindex;
 
-    for (int i = 0; i < N; ++i)
+    // Part 1
+    for (int i = 0; i < N; ++i) {
         move(i, shift[i]);
-    printf("Part 1: %d\n", decrypt(zeroindex));  // example=4-3+2=3, input=4066
-    // printf("Time: %.1f ms\n", stoptimer_ms());
+    #ifdef SHOW
+        show();
+    #endif
+    }
+    printf("Part 1: %d\n", decrypt(zeroindex));  // example=3, input=4066
 
     // Reset
-    // starttimer();
     for (int i = 0; i < N; ++i) {
-        shift[i] = closest(shift[i] * REDUCED_KEY);
+        shift[i] = closest(shift[i] * REDUCED_KEY);  // new shift value for part 2
         prev[i] = i - 1;
         next[i] = i + 1;
     }
     prev[0] = M;
     next[M] = 0;
 
-    for (int k = 0; k < REPEAT; ++k)
+    // Part 2
+    for (int k = 0; k < REPEAT; ++k) {
         for (int i = 0; i < N; ++i)
             move(i, shift[i]);
-    printf("Part 2: %"PRId64"\n", decrypt(zeroindex) * KEY);  // example=1623178306, input=6704537992933
+    #ifdef SHOW
+        show();
+    #endif
+    }
+    printf("Part 2: %"PRId64"\n", (int64_t)KEY * decrypt(zeroindex));  // example=1623178306, input=6704537992933
+
+#if EXAMPLE
+    printf("Time: %.0f us\n", stoptimer_us());
+#else
     printf("Time: %.0f ms\n", stoptimer_ms());
+#endif
     return 0;
 }
