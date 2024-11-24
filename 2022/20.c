@@ -79,9 +79,6 @@ static int parse(void)
     fclose(f);
     prev[0] = M;
     next[M] = 0;
-#ifdef SHOW
-    show();
-#endif
     return zeroindex;
 }
 
