@@ -31,7 +31,7 @@
     #define N 5000
 #endif
 
-// Ring buffer with N values has N-1 different rotations.
+// Ring buffer with N values has N-1 connections.
 #define M (N - 1)
 
 // Last step of "decryption" algo = sum values n*OFS away from zero for n=1,2,3.
@@ -45,13 +45,13 @@
 #define KEY 811589153
 #define REDUCED_KEY (KEY % M)
 
-// Seperate value and shift arrays to minimise no. of rotations.
+// Seperate value and shift arrays to minimise no. of steps in circular buffer.
 static int value[N], shift[N], prev[N], next[N];
 
-// Select smallest absolute no. of rotations for circular buffer.
+// Smallest absolute no. of steps in circular buffer.
 static int centered_remainder(const int x)
 {
-    const int a = x % M;
+    const int a = x % M;  // truncated remainder
     if (a >= 0) {
         const int b = a - M;
         return a <= -b ? a : b;
