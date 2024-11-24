@@ -11,7 +11,7 @@
  *     m=999999;for((i=0;i<200;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
  *     Mac Mini 2020 (M1 3.2 GHz)          :  85 ms
- *     iMac 2013 (i5 Haswell 4570 3.2 GHz) : 106 ms
+ *     iMac 2013 (i5 Haswell 4570 3.2 GHz) : 105 ms
  *     Raspberry Pi 5 (2.4 GHz)            : 144 ms
  *     Raspberry Pi 4 (1.8 GHz)            : 263 ms
  */
@@ -30,7 +30,11 @@
     #define NAME "../aocinput/2022-20-input.txt"
     #define N 5000
 #endif
+
+// Ring buffer with N values has N-1 different rotations.
 #define M (N - 1)
+
+// Last step of "decryption" algo = sum values n*OFS away from zero for n=1,2,3.
 #define OFS 1000
 #define OFS_A (OFS % N)
 #define OFS_B (OFS_A - N)
@@ -41,19 +45,11 @@
 #define KEY 811589153
 #define REDUCED_KEY (KEY % M)
 
+// Seperate value and shift arrays to minimise no. of rotations.
 static int value[N], shift[N], prev[N], next[N];
 
-#ifdef SHOW
-static void show(void)
-{
-    printf("%2d", value[0]);
-    for (int i = next[0]; i; i = next[i])
-        printf(",%2d", value[i]);
-    putchar('\n');
-}
-#endif
-
-static int closest(const int x)
+// Select smallest absolute no. of rotations for circular buffer.
+static int centered_remainder(const int x)
 {
     const int a = x % M;
     if (a >= 0) {
@@ -64,32 +60,32 @@ static int closest(const int x)
     return b <= -a ? b : a;
 }
 
+// Read input file and return index of zero value.
 static int parse(void)
 {
     FILE *f = fopen(NAME, "r");
     if (!f)
         return -1;  // file not found
     char buf[8];
-    int zeroindex = -1;
+    int zeroindex = -1;  // no zero found
     for (int i = 0; i < N && fgets(buf, sizeof buf, f); ++i) {
         value[i] = atoi(buf);
-        shift[i] = closest(value[i]);
+        shift[i] = centered_remainder(value[i]);
         prev[i] = i - 1;
         next[i] = i + 1;
         if (!value[i])
             zeroindex = i;
     }
     fclose(f);
-    if (zeroindex < 0)
-        return -2;  // wrong file
     prev[0] = M;
     next[M] = 0;
 #ifdef SHOW
     show();
 #endif
-    return zeroindex;  // zeroindex>=0: success
+    return zeroindex;
 }
 
+// Also works for steps=0 to avoid check on every call, bc it only happens once.
 static void move(const int index, int steps)
 {
     int p = prev[index], n = next[index];
@@ -109,6 +105,7 @@ static void move(const int index, int steps)
     next[index] = n;
 }
 
+// Sum values 1000,2000,3000 away from zero.
 static int decrypt(const int startindex)
 {
     int sum = 0;
@@ -133,17 +130,13 @@ int main(void)
         return zeroindex;
 
     // Part 1
-    for (int i = 0; i < N; ++i) {
+    for (int i = 0; i < N; ++i)
         move(i, shift[i]);
-    #ifdef SHOW
-        show();
-    #endif
-    }
     printf("Part 1: %d\n", decrypt(zeroindex));  // example=3, input=4066
 
     // Reset
     for (int i = 0; i < N; ++i) {
-        shift[i] = closest(shift[i] * REDUCED_KEY);  // new shift value for part 2
+        shift[i] = centered_remainder(shift[i] * REDUCED_KEY);  // new shift value for part 2
         prev[i] = i - 1;
         next[i] = i + 1;
     }
@@ -151,13 +144,9 @@ int main(void)
     next[M] = 0;
 
     // Part 2
-    for (int k = 0; k < REPEAT; ++k) {
+    for (int k = 0; k < REPEAT; ++k)
         for (int i = 0; i < N; ++i)
             move(i, shift[i]);
-    #ifdef SHOW
-        show();
-    #endif
-    }
     printf("Part 2: %"PRId64"\n", (int64_t)KEY * decrypt(zeroindex));  // example=1623178306, input=6704537992933
 
 #if EXAMPLE
