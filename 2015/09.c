@@ -5,8 +5,8 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 09.c ../permutations.c ../startstoptimer.c
- *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 09.c ../permutations.c ../startstoptimer.c
+ *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 09.c ../combperm.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 09.c ../combperm.c ../startstoptimer.c
  * Get minimum runtime:
  *     m=999999;for((i=0;i<2000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
@@ -17,9 +17,9 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>  // atoi
-#include "../permutations.h"
-#include "../startstoptimer.h"
+#include <stdlib.h>             // atoi
+#include "../combperm.h"        // my own permutations function
+#include "../startstoptimer.h"  // my own timing function
 
 #define N 8
 static int dist[N][N];

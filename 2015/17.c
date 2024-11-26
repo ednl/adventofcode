@@ -5,8 +5,8 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 17.c ../combinations.c ../startstoptimer.c
- *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 17.c ../combinations.c ../startstoptimer.c
+ *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 17.c ../combperm.c ../startstoptimer.c
+ *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 17.c ../combperm.c ../startstoptimer.c
  * Get minimum runtime:
  *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
@@ -19,7 +19,7 @@
 
 #include <stdio.h>              // fopen, fclose, fscanf, printf
 #include <stdlib.h>             // qsort
-#include "../combinations.h"    // my own combinations function
+#include "../combperm.h"        // my own combinations function
 #include "../startstoptimer.h"  // my own timing function
 
 #define N       20  // number of lines in input file

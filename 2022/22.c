@@ -17,34 +17,93 @@
  */
 
 #include <stdio.h>
+#include <string.h>  // memset
 
 #define EXAMPLE 1
 #if EXAMPLE == 1
     #define NAME "../aocinput/2022-22-example.txt"
-    #define ROWS 12
-    #define COLS 16
+    #define X 16
+    #define Y 12
 #else
     #define NAME "../aocinput/2022-22-input.txt"
-    #define ROWS 200
-    #define COLS 150
+    #define X 150
+    #define Y 200
 #endif
 
+#define DIRSIZE 4
+typedef enum dir {
+    EAST = 0, SOUTH, WEST, NORTH
+} Dir;
+
 typedef struct pos {
-    int row, col;
+    int x, y;
 } Pos;
 
-static char grid[ROWS][COLS + 2];  // +\n\0
+// East and south are positive, west and north negative.
+// Order is like 'enum dir': east, south, west, north.
+static const Pos step[DIRSIZE] = {{1,0},{0,1},{-1,0},{-1,0}};
+
+static char map[Y + 2][X + 3];  // +spaces +\0
+
+static char peek(const Pos pos)
+{
+    return map[pos.y][pos.x];
+}
+
+static void poke(const Pos pos, const char tile)
+{
+    map[pos.y][pos.x] = tile;
+}
+
+static Dir turn(const Dir facing, const char letter)
+{
+    switch (letter) {
+        case 'R': return (facing + 1) % DIRSIZE;
+        case 'L': return (facing - 1 + DIRSIZE) % DIRSIZE;
+        default : return facing;
+    }
+}
+
+// Add positions
+static Pos add(const Pos p, const Pos q)
+{
+    return (Pos){p.x + q.x, p.y + q.y};
+}
+
+// Add positions by reference
+static void add_r(Pos *const p, const Pos q)
+{
+    p->x += q.x;
+    p->y += q.y;
+}
+
+static int move(Pos *const start, const Dir facing, const int amount)
+{
+    return amount;
+}
 
 int main(void)
 {
+    memset(map, ' ', sizeof map);
+    for (int y = 0; y < Y + 2; ++y)
+        poke((Pos){0, y}, '\0');
+
     FILE *f = fopen(NAME, "r");
     if (!f) return 1;
-    for (int i = 0; i < ROWS; ++i)
-        fgets(grid[i], sizeof *grid, f);
+    for (int y = 1; y <= Y; ++y)
+        fgets(&map[y][1], X + 2, f);
     fclose(f);
-    Pos pos = {0};
-    while (grid[0][pos.col] != '.')
-        pos.col++;
+
+    for (int y = 1; y <= Y; ++y) {
+        //
+    }
+
+    for (int y = 0; y < Y + 2; ++y)
+        printf("%s", map[y]);
+
+    Pos pos = {1, 1};
+    while (map[pos.y][pos.x] != '.')
+        pos.x++;
 
     int part1 = 0;
     printf("Part 1: %d\n", part1);  // example=1000*6+4*8+0=6032, input=?
