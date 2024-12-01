@@ -8,13 +8,13 @@
  *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 01.c ../startstoptimer.c
  *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 01.c ../startstoptimer.c
  * Get minimum runtime:
- *     m=999999;for((i=0;i<2000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime:
- *     Mac Mini 2020 (M1 3.2 GHz)                       :   ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)                       : 108 µs
  *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz)         : 181 µs
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :   ? µs
- *     Raspberry Pi 5 (2.4 GHz)                         :   ? µs
- *     Raspberry Pi 4 (1.8 GHz)                         :   ? µs
+ *     Raspberry Pi 5 (2.4 GHz)                         : 189 µs
+ *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 237 µs
+ *     Raspberry Pi 4 (1.8 GHz)                         : 504 µs
  */
 
 #include <stdio.h>
@@ -23,7 +23,7 @@
 
 #define FNAME "../aocinput/2024-01-input.txt"
 #define FSIZE 16384  // >= input file size in bytes
-#define N     1000   // lines in input file
+#define N     1000   // number of lines in input file
 
 static char input[FSIZE];
 static int a[N], b[N];  // two columns of numbers
