@@ -59,18 +59,15 @@ static bool issafe(const int *const level, const int count, const int skip)
     const int end = count - 1 - (skip == count - 1);  // limit for i when comparing level[i] and level[i+1]
     const int len = count - 1 - (skip >= 0 && skip < count);  // number of intervals between levels
     int sumchange = 0;
-    bool safe = true;
     for (int i = 0; i < end; ++i)
         if (i != skip) {
             const int j = skip != i + 1 ? i + 1 : i + 2;  // compare with next level, or skip 1
             sumchange += change(level[i], level[j]);      // -1,0,+1
             const int distance = abs(level[i] - level[j]);
-            if (distance < MINDIST || distance > MAXDIST) {
-                safe = false;
-                break;
-            }
+            if (distance < MINDIST || distance > MAXDIST)
+                return false;
         }
-    return safe && abs(sumchange) == len;  // changes must be all -1 or all +1
+    return abs(sumchange) == len;  // changes must be all -1 or all +1
 }
 
 int main(void)
