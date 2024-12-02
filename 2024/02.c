@@ -53,10 +53,10 @@ static inline int cmp(const int a, const int b)
 // Is this report safe? It has 'count' levels. If 0<=skip<count, skip that index.
 static bool issafe(const int *const level, const int count, const int skip)
 {
-    const int end = skip == count - 1 ? count - 2 : count - 1;
-    const int len = skip < 0 ? count - 1 : count - 2;
-    bool safe = true;
+    const int end = count - 1 - (skip == count - 1);
+    const int len = count - 1 - (skip >= 0 && skip < count);
     int sum = 0;
+    bool safe = true;
     for (int i = 0; safe && i < end; ++i)
         if (i != skip) {
             const int j = skip != i + 1 ? i + 1 : i + 2;
