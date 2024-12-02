@@ -15,7 +15,7 @@
  * Minimum runtime measurements:
  *     Mac Mini 2020 (M1 3.2 GHz)                       :  90 µs
  *     Raspberry Pi 5 (2.4 GHz)                         : 126 µs
- *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz)         : 175 µs
+ *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz)         : 171 µs
  *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 229 µs
  *     Raspberry Pi 4 (1.8 GHz)                         : 404 µs
  */
@@ -57,16 +57,16 @@ static inline int change(const int a, const int b)
 static bool issafe(const int *const level, const int count, const int skip)
 {
     const int end = count - 1 - (skip == count - 1);  // limit for i when comparing level[i] and level[i+1]
-    const int len = count - 1 - (skip >= 0 && skip < count);  // number of intervals between levels
     int sumchange = 0;
     for (int i = 0; i < end; ++i)
         if (i != skip) {
-            const int j = skip != i + 1 ? i + 1 : i + 2;  // compare with next level, or skip 1
-            sumchange += change(level[i], level[j]);      // -1,0,+1
+            const int j = i + 1 + (skip == i + 1);  // compare with next level, or skip 1
             const int distance = abs(level[i] - level[j]);
             if (distance < MINDIST || distance > MAXDIST)
                 return false;
+            sumchange += change(level[i], level[j]);  // -1,0,+1
         }
+    const int len = count - 1 - (skip != -1);  // number of intervals between levels
     return abs(sumchange) == len;  // changes must be all -1 or all +1
 }
 
