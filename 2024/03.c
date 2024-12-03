@@ -30,10 +30,10 @@
 #define FSIZE (5 << 12)  // 20480 >= input file size in bytes
 
 // Match 4 characters at once, interpreted as 32-bit int (little-endian)
-#define MUL  0x286c756d  // (*(int *)"mul("
-#define DO   0x29286f64  // (*(int *)"do()"
-#define DON  0x276e6f64  // (*(int *)"don'"
-#define DONT 0x00292874  // (*(int *)"t()"
+#define MUL  0x286c756d  // *(int *)"mul("
+#define DO   0x29286f64  // *(int *)"do()"
+#define DON  0x276e6f64  // *(int *)"don'"
+#define DONT 0x00292874  // *(int *)"t()"
 #define MASK ((1 << 24) - 1)  // "'t()" is 3 bytes, so disregard MSB
 
 static char input[FSIZE];
@@ -89,7 +89,7 @@ int main(void)
                 enabled = false;
             }
             break;
-        default:
+        default:  // no instruction found, go to next char
             ++c;
         }
     }
