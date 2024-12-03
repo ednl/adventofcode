@@ -36,6 +36,9 @@
 #define DONT 0x00292874  // *(int *)"t()"
 #define MASK ((1 << 24) - 1)  // "'t()" is 3 bytes, so disregard MSB
 
+// Don't rely on undefined behaviour
+typedef int unaligned_int __attribute__((aligned(1)));
+
 static char input[FSIZE];
 
 // Parse non-negative integer, update char pointer
@@ -78,7 +81,7 @@ int main(void)
     int sum1 = 0, sum2 = 0, mul;
     bool enabled = true;  // "At the beginning, mul instructions are enabled."
     for (const char *c = input; *c; ) {
-        switch (*(int *)c) {  // interpret char pointer as 32-bit int pointer
+        switch (*(unaligned_int *)c) {  // interpret char pointer as unaligned 32-bit int pointer
         case MUL:  // "mul("
             c += 4;
             if ((mul = pair(&c))) {
@@ -92,7 +95,7 @@ int main(void)
             break;
         case DON:  // "don'"
             c += 4;
-            if ((*(int *)c & MASK) == DONT) {  // disregard MSB = match 3 chars
+            if ((*(unaligned_int *)c & MASK) == DONT) {  // disregard MSB = match 3 chars
                 c += 3;
                 enabled = false;
             }
