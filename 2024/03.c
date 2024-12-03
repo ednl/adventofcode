@@ -16,14 +16,41 @@
  *     Mac Mini 2020 (M1 3.2 GHz)                       :   ? µs
  *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz)         :   ? µs
  *     Raspberry Pi 5 (2.4 GHz)                         :   ? µs
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :   ? µs
+ *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :  86 µs
  *     Raspberry Pi 4 (1.8 GHz)                         :   ? µs
  */
 
 #include <stdio.h>
+#include <stdint.h>
+#include <stdbool.h>
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
 #define FNAME "../aocinput/2024-03-input.txt"
-#define N 1000  // lines in input file
+#define FSIZE (5 << 12)  // 20480 > inpput file size
+
+#define MUL  (*(int32_t *)"mul(")
+#define DO   (*(int32_t *)"do()")
+#define DONT (*(int64_t *)"don't()")
+#define MASK ((1LL << 56) - 1)  // "don't()" is 7 bytes
+
+static char input[FSIZE];
+
+// Parse 1-3 digit positive number, update char pointer, return 0 if incorrect
+static int num(const char **const c, const char sep)
+{
+    if (**c < '1' || **c > '9')
+        return 0;
+    int x = *(*c)++ & 15;
+    for (int i = 0; i < 2 && **c >= '0' && **c <= '9'; ++i)
+        x = x * 10 + (*(*c)++ & 15);
+    if (**c == sep) {
+        ++(*c);
+        return x;
+    }
+    return 0;
+}
 
 int main(void)
 {
@@ -31,18 +58,44 @@ int main(void)
     starttimer();
 #endif
 
-    // Parse input file
-    FILE *f = fopen(FNAME, "r");
+    // Read input file
+    FILE *f = fopen(FNAME, "rb");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
-    char buf[BUFSIZ];
-    for (int i = 0; fgets(buf, sizeof buf, f); ++i) {
-        //TODO
-    }
+    fread(input, sizeof input, 1, f);  // read whole file at once
     fclose(f);
 
-    // Part 1
-    int part1 = 0;
-    printf("Part 1: %d\n", part1);  // ?
+    int sum1 = 0, sum2 = 0;
+    bool enabled = true;
+    for (const char *c = input; *c; ) {
+        switch (*c) {
+        case 'm':
+            if (*(int32_t *)c == MUL) {
+                c += 4;
+                int a, b;
+                if ((a = num(&c, ',')) && (b = num(&c, ')'))) {
+                    const int mul = a * b;
+                    sum1 += mul;
+                    sum2 += mul * enabled;
+                }
+            } else
+                ++c;
+            break;
+        case 'd':
+            if (*(int32_t *)c == DO) {
+                enabled = true;
+                c += 4;
+            } else if ((*(int64_t *)c & MASK) == DONT) {
+                enabled = false;
+                c += 7;
+            } else
+                ++c;
+            break;
+        default:
+            ++c;
+            break;
+        }
+    }
+    printf("%d %d\n", sum1, sum2);  // 181345830 98729041
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());

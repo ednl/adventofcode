@@ -21,6 +21,9 @@
  */
 
 #include <stdio.h>
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
 #define FNAME "../aocinput/2024-04-input.txt"
 #define N 1000  // lines in input file
