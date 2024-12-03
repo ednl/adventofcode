@@ -38,19 +38,28 @@
 
 static char input[FSIZE];
 
-// Parse 1-3 digit positive number, update char pointer, return 0 if incorrect
-static int num(const char **const c, const char sep)
+// Parse non-negative integer, update char pointer
+// NB: my input contains only numbers 1-999, already restricted to allowed range
+static inline int num(const char **const c)
 {
-    if (**c < '1' || **c > '9')  // only positive numbers = must start with 1..9
-        return 0;
-    int x = *(*c)++ & 15;  // first digit
-    for (int i = 0; i < 2 && **c >= '0' && **c <= '9'; ++i)  // max 2 more digits
+    int x = 0;
+    while (**c >= '0' && **c <= '9')
         x = x * 10 + (*(*c)++ & 15);
-    if (**c == sep) {  // must be followed by either ',' or ')'
-        ++(*c);  // skip correct separator
-        return x;
-    }
-    return 0;
+    return x;
+}
+
+// Parse 2 numbers, update char pointer, return product or 0 if incorrect
+static inline int pair(const char **const c)
+{
+    const int a = num(c);
+    if (!a || **c != ',')  // must be followed by comma
+        return 0;
+    ++(*c);  // skip comma
+    const int b = num(c);
+    if (!b || **c != ')')  // must be followed by parenthesis
+        return 0;
+    ++(*c);  // skip closing parenthesis
+    return a * b;
 }
 
 int main(void)
@@ -66,14 +75,13 @@ int main(void)
     fclose(f);
 
     // Matchy matchy
-    int sum1 = 0, sum2 = 0, a, b;
+    int sum1 = 0, sum2 = 0, mul;
     bool enabled = true;  // "At the beginning, mul instructions are enabled."
     for (const char *c = input; *c; ) {
         switch (*(int *)c) {  // interpret char pointer as 32-bit int pointer
         case MUL:  // "mul("
             c += 4;
-            if ((a = num(&c, ',')) && (b = num(&c, ')'))) {
-                const int mul = a * b;
+            if ((mul = pair(&c))) {
                 sum1 += mul;
                 sum2 += mul * enabled;
             }
