@@ -1,15 +1,15 @@
 /**
  * Advent of Code 2024
- * Day 5: ?
- * https://adventofcode.com/2024/day/5
+ * Day 6: ?
+ * https://adventofcode.com/2024/day/6
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -Wall -Wextra 05.c
- *    gcc   -std=gnu17 -Wall -Wextra 05.c
+ *    clang -std=gnu17 -Wall -Wextra 06.c
+ *    gcc   -std=gnu17 -Wall -Wextra 06.c
  * Enable timer:
- *    clang -DTIMER -O3 -march=native 05.c ../startstoptimer.c
- *    gcc   -DTIMER -O3 -march=native 05.c ../startstoptimer.c
+ *    clang -DTIMER -O3 -march=native 06.c ../startstoptimer.c
+ *    gcc   -DTIMER -O3 -march=native 06.c ../startstoptimer.c
  * Get minimum runtime from timer output:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
@@ -26,10 +26,10 @@
 
 #define EXAMPLE 1
 #if EXAMPLE
-    #define FNAME "../aocinput/2024-05-example.txt"
+    #define FNAME "../aocinput/2024-06-example.txt"
     #define N 10  // lines in example file
 #else
-    #define FNAME "../aocinput/2024-05-input.txt"
+    #define FNAME "../aocinput/2024-06-input.txt"
     #define N 1000  // lines in input file
 #endif
 
