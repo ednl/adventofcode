@@ -36,7 +36,7 @@
     #define N 140  // square char matrix in input file
 #endif
 #define FSIZE (N * (N + 1))   // input file size in bytes
-#define SLEN 4                // search string length ("XMAS" or "SAMX")
+#define SLEN 4                // search string length
 #define SKIP (SLEN - 1)       // safety border
 #define DIAGROWS (N * 2 - 1)  // row count of grid rotated by 45 degrees
 #define DIAGSKIP (DIAGROWS - SKIP * 2)  // rows in diag that can hold search string
@@ -58,7 +58,7 @@ static char grid[N][N];
 static char copy[N][N];
 static char diag[DIAGROWS][N];
 
-// Discrete rotation of 'src' (=grid or copy) left by 45 degrees: src(x,y) -> diag(x+y,N-1-x+y)
+// Discrete rotation left by 45 degrees: src(x,y) -> diag(x+y,N-1-x+y)
 // Return pointer to first row with enough data to hold search string
 static char *rot45(const char *const src)
 {
@@ -82,20 +82,19 @@ static int count(const char *arr, const int rows, const int cols)
     #endif
         // End of row with room for 4 chars from a, including a
         const char *const end = arr + cols - SKIP;
-        while (arr < end) {
+        while (arr < end)
             switch (*(unaligned_int32_t *)arr) {
             case XMAS:
             case SAMX:
-                arr += 3;  // words can overlap by 1
+                arr += SKIP;  // words can overlap by 1
                 ++sum;
             #if EXAMPLE
                 ++part;
             #endif
                 break;
             default:
-                ++arr;
+                ++arr;  // word not found, go to next char
             }
-        }
         arr = end + SKIP;  // next row
     #if EXAMPLE
         if (part)
