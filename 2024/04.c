@@ -27,7 +27,7 @@
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 0
+#define EXAMPLE 1
 #if EXAMPLE
     #define FNAME "../aocinput/2024-04-example.txt"
     #define N 10  // square char matrix in example file
@@ -37,7 +37,7 @@
 #endif
 #define FSIZE (N * (N + 1))   // input file size in bytes
 #define SLEN 4                // search string length
-#define SKIP (SLEN - 1)       // safety border
+#define SKIP (SLEN - 1)       // safety margin
 #define DIAGROWS (N * 2 - 1)  // row count of grid rotated by 45 degrees
 #define DIAGSKIP (DIAGROWS - SKIP * 2)  // rows in diag that can hold search string
 
@@ -59,6 +59,7 @@ static char copy[N][N];
 static char diag[DIAGROWS][N];
 
 // Discrete rotation left by 45 degrees: src(x,y) -> diag(x+y,N-1-x+y)
+// Divide new x-coordinate by 2 to skip empty columns
 // Return pointer to first row with enough data to hold search string
 static char *rot45(const char *const src)
 {
@@ -78,7 +79,7 @@ static int count(const char *arr, const int rows, const int cols)
     #if EXAMPLE
         int part = 0;  // count rows separately
         for (int j = 0; j < cols; ++j)  // print row
-            putchar(arr[j] ? arr[j] : '_');
+            putchar(arr[j] ? arr[j] : '.');
     #endif
         // End of row with room for 4 chars from a, including a
         const char *const end = arr + cols - SKIP;
