@@ -1,6 +1,6 @@
 /**
  * Advent of Code 2024
- * Day 4: ?
+ * Day 4: Ceres Search
  * https://adventofcode.com/2024/day/4
  * By: E. Dronkert https://github.com/ednl
  *
@@ -21,12 +21,74 @@
  */
 
 #include <stdio.h>
+#include <string.h>  // memcpy
+#include <stdint.h>  // int32_t
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
-#define FNAME "../aocinput/2024-04-input.txt"
-#define N 1000  // lines in input file
+#define EXAMPLE 1
+#if EXAMPLE
+    #define FNAME "../aocinput/2024-04-example.txt"
+    #define N 10  // square char matrix in example file
+#else
+    #define FNAME "../aocinput/2024-04-input.txt"
+    #define N 140  // square char matrix in input file
+#endif
+
+// Interpret 4 chars as 32-bit int (little-endian)
+#define XMAS INT32_C(0x53414d58)  // *(int *)"XMAS"
+#define SAMX INT32_C(0x584d4153)  // *(int *)"SAMX"
+
+// Tell compiler int pointer is unaligned
+typedef int32_t unaligned_int32_t __attribute__((aligned(1)));
+
+static char input[N * (N + 1)];
+static char grid1[N][N];
+static char grid2[N][N];
+
+// Rotate left by 90 degrees: (x,y) -> (139-y,x)
+static char *rot(char *const restrict dst, const char *const restrict src)
+{
+    for (int y = 0; y < N; ++y) {
+        const int dx = N - 1 - y;
+        const int dy = N * y;
+        for (int x = 0; x < N; ++x)
+            dst[N * x + dx] = src[dy + x];
+    }
+    return dst;
+}
+
+static int count(const char *a)
+{
+    int n = 0;
+    for (int i = 0; i < N; ++i) {  // for each row
+        const char *const end = a + N - 4;  // end of row
+        while (a < end) {
+            switch (*(unaligned_int32_t *)a) {
+                case XMAS:
+                case SAMX:
+                    ++n;
+                    a += 3;
+                    break;
+                default:
+                    ++a;
+            }
+        }
+        a = end + 4;
+    }
+    return n;
+}
+
+static void show(char a[N][N])
+{
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < N; ++j)
+            putchar(a[i][j]);
+        putchar('\n');
+    }
+    putchar('\n');
+}
 
 int main(void)
 {
@@ -34,18 +96,21 @@ int main(void)
     starttimer();
 #endif
 
-    // Parse input file
-    FILE *f = fopen(FNAME, "r");
+    // Read input file
+    FILE *f = fopen(FNAME, "rb");  // fread() requires binary mode
     if (!f) { fputs("File not found.\n", stderr); return 1; }
-    char buf[BUFSIZ];
-    for (int i = 0; fgets(buf, sizeof buf, f); ++i) {
-        //TODO
-    }
+    fread(input, sizeof input, 1, f);  // read whole file at once
     fclose(f);
 
+    for (int i = 0; i < N; ++i)
+        memcpy(&grid1[i][0], &input[i * (N + 1)], N);
+
     // Part 1
-    int part1 = 0;
-    printf("Part 1: %d\n", part1);  // ?
+    int sum = count(&grid1[0][0]);
+    sum += count(rot(&grid2[0][0], &grid1[0][0]));
+    show(grid1);
+    show(grid2);
+    printf("Part 1: %d\n", sum);  // example: 18, input: ?
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
