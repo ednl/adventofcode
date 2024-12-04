@@ -10,7 +10,7 @@
  * Get minimum runtime from timer output:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Mac Mini 2020 (M1 3.2 GHz)                       : 220 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)                       : 194 µs
  *     Raspberry Pi 5 (2.4 GHz)                         : 301 µs
  *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 373 µs
  *     Raspberry Pi 4 (1.8 GHz)                         : 644 µs
@@ -30,6 +30,7 @@
     #define N 140
 #endif
 #define M (N + 1)  // +newline
+#define X (('M' + 'S') << 1)  // X-MAS corners for part 2
 
 static char g[N][M];  // grid
 
@@ -58,12 +59,8 @@ int main(void)
     sum = 0;
     for (int i = 1; i < N - 1; ++i)
         for (int j = 1; j < N - 1; ++j)
-            if (g[i][j] == 'A') {
-                sum += g[i-1][j-1] == 'M' && g[i-1][j+1] == 'M' && g[i+1][j-1] == 'S' && g[i+1][j+1] == 'S';
-                sum += g[i-1][j-1] == 'M' && g[i-1][j+1] == 'S' && g[i+1][j-1] == 'M' && g[i+1][j+1] == 'S';
-                sum += g[i-1][j-1] == 'S' && g[i-1][j+1] == 'M' && g[i+1][j-1] == 'S' && g[i+1][j+1] == 'M';
-                sum += g[i-1][j-1] == 'S' && g[i-1][j+1] == 'S' && g[i+1][j-1] == 'M' && g[i+1][j+1] == 'M';
-            }
+            if (g[i][j] == 'A')
+                sum += g[i-1][j-1] + g[i-1][j+1] + g[i+1][j-1] + g[i+1][j+1] == X && g[i-1][j-1] != g[i+1][j+1];
     printf("%d\n", sum);  // example: 9, input: 1871
     printf("Time: %.0f us\n", stoptimer_us());
     return 0;
