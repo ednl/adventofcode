@@ -89,7 +89,7 @@ int main(void)
             // ordering is transitive (if a<b and b<c then a<c) and so, for the final
             // order to be uniquely determined, there can be no loops. Or at least not
             // across the middle element we want; but my input was nice enough.
-            if (rule[page[i][j]][page[i][j - 1]]) {
+            if (rule[ page[i][j] ][ page[i][j - 1] ]) {
                 // Pages out of order, so this is part 2
                 qsort(&page[i][0], pagecount[i], sizeof **page, cmp);
                 sum2 += page[i][pagecount[i] >> 1];  // pick middle element
