@@ -15,7 +15,7 @@
  * Minimum runtime measurements:
  *     Mac Mini 2020 (M1 3.2 GHz)                       : 102 µs
  *     Raspberry Pi 5 (2.4 GHz)                         : 159 µs
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 253 µs
+ *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 241 µs
  *     Raspberry Pi 4 (1.8 GHz)                         : 528 µs
  */
 
@@ -90,11 +90,11 @@ int main(void)
     for (int i = 0; i < UPDATES; ++i) {
         bool ordered = true;
         for (int j = 1; j < pages[i]; ++j)
-            for (int k = 0; k < j; ++k)
-                if (rule[page[i][j]][page[i][k]]) {  // rule for other way around
-                    ordered = false;
-                    goto done;
-                }
+            // No need to check every pair; ordering is transitive
+            if (rule[page[i][j]][page[i][j - 1]]) {  // rule says they must be swapped
+                ordered = false;
+                goto done;
+            }
     done:;
         if (ordered) {
             sum1 += page[i][pages[i] >> 1];
