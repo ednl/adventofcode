@@ -40,7 +40,7 @@
 // rule[n][m] is true when n comes before m
 static bool rule[100][100];
 static int page[UPDATES][PAGES];
-static int pages[UPDATES];
+static int pagecount[UPDATES];
 
 // Parse 2-digit number
 static inline int num(const char *const s)
@@ -81,7 +81,7 @@ int main(void)
                 page[i][n++] = num(s);
                 s += 3;
             }
-            pages[i++] = n;
+            pagecount[i++] = n;
         }
     }
     fclose(f);
@@ -89,18 +89,20 @@ int main(void)
     int sum1 = 0, sum2 = 0;
     for (int i = 0; i < UPDATES; ++i) {
         bool ordered = true;
-        for (int j = 1; j < pages[i]; ++j)
-            // No need to check every pair; ordering is transitive
-            if (rule[page[i][j]][page[i][j - 1]]) {  // rule says they must be swapped
+        for (int j = 1; j < pagecount[i]; ++j)
+            // No need to check every pair, only consecutive ones; without loops,
+            // ordering is transitive (if a<b and b<c then a<c) and so, for the final
+            // order to be uniquely determined, there can be no loops. Or at least not
+            // across the middle element we want; but my input was nice enough.
+            if (rule[page[i][j]][page[i][j - 1]]) {  // rule says they must be swapped?
                 ordered = false;
-                goto done;
+                break;
             }
-    done:;
         if (ordered) {
-            sum1 += page[i][pages[i] >> 1];
+            sum1 += page[i][pagecount[i] >> 1];
         } else {
-            qsort(page[i], pages[i], sizeof **page, cmp);
-            sum2 += page[i][pages[i] >> 1];
+            qsort(&page[i][0], pagecount[i], sizeof **page, cmp);
+            sum2 += page[i][pagecount[i] >> 1];
         }
     }
     printf("%d %d\n", sum1, sum2);  // example: 143 123, input: 5747 5502
