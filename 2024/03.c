@@ -41,7 +41,7 @@ typedef int unaligned_int __attribute__((aligned(1)));
 
 static char input[FSIZE];
 
-// Parse non-negative integer, update char pointer
+// Parse consecutive digits as integer, update char pointer
 // NB: my input contains only numbers 1-999, already restricted to allowed range
 static inline int num(const char **const c)
 {
@@ -51,7 +51,7 @@ static inline int num(const char **const c)
     return x;
 }
 
-// Parse 2 numbers, update char pointer, return product or 0 if incorrect
+// Parse 2 numbers, update char pointer, return product, or 0 if incorrect
 static inline int pair(const char **const c)
 {
     const int a = num(c);

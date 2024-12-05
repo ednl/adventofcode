@@ -18,6 +18,8 @@
  *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 360 µs
  *     Raspberry Pi 4 (1.8 GHz)                         : 820 µs
  *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz)         :   ? µs
+ *
+ * Faster and way simpler version without rotations, see: 04simple.c
  */
 
 #include <stdio.h>
