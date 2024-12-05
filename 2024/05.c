@@ -37,10 +37,10 @@
     #define PAGES   23
 #endif
 
-// rule[n][m] is true when n comes before m
-static bool rule[100][100];
-static int page[UPDATES][PAGES];
-static int pagecount[UPDATES];
+// rule[a][b] is true when a should come before b
+static bool rule[100][100];       // every pair of 2-digit numbers (and 1)
+static int page[UPDATES][PAGES];  // every page of every "update"
+static int pagecount[UPDATES];    // actual number of pages in this "update"
 
 // Parse 2-digit number
 static inline int num(const char *const s)
@@ -69,18 +69,14 @@ int main(void)
     if (!f) { fputs("File not found.\n", stderr); return 1; }
     char buf[BUFSIZ];
     for (int i = 0; fgets(buf, sizeof buf, f); ) {
-        if (buf[0] == '\n')
+        if (buf[0] == '\n')  // empty line
             continue;
-        if (buf[2] == '|')
-            rule[num(buf)][num(buf + 3)] = true;
-        else {
-            page[i][0] = num(buf);
-            int n = 1;
-            const char *s = buf + 3;
-            while (*s) {
+        if (buf[2] == '|')  // rule, with pair a|b
+            rule[num(buf)][num(buf + 3)] = true;  // pair must be ordered as a<b
+        else {  // "update", with page numbers as CSV
+            int n = 0;
+            for (const char *s = buf; *s; s += 3)
                 page[i][n++] = num(s);
-                s += 3;
-            }
             pagecount[i++] = n;
         }
     }
@@ -88,22 +84,20 @@ int main(void)
 
     int sum1 = 0, sum2 = 0;
     for (int i = 0; i < UPDATES; ++i) {
-        bool ordered = true;
         for (int j = 1; j < pagecount[i]; ++j)
             // No need to check every pair, only consecutive ones; without loops,
             // ordering is transitive (if a<b and b<c then a<c) and so, for the final
             // order to be uniquely determined, there can be no loops. Or at least not
             // across the middle element we want; but my input was nice enough.
-            if (rule[page[i][j]][page[i][j - 1]]) {  // rule says they must be swapped?
-                ordered = false;
-                break;
+            if (rule[page[i][j]][page[i][j - 1]]) {
+                // Pages out of order, so this is part 2
+                qsort(&page[i][0], pagecount[i], sizeof **page, cmp);
+                sum2 += page[i][pagecount[i] >> 1];  // pick middle element
+                goto next_i;  // break + continue
             }
-        if (ordered) {
-            sum1 += page[i][pagecount[i] >> 1];
-        } else {
-            qsort(&page[i][0], pagecount[i], sizeof **page, cmp);
-            sum2 += page[i][pagecount[i] >> 1];
-        }
+        // All pages were ordered, so this is part 1
+        sum1 += page[i][pagecount[i] >> 1];  // pick middle element
+    next_i:;
     }
     printf("%d %d\n", sum1, sum2);  // example: 143 123, input: 5747 5502
 
