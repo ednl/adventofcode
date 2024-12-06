@@ -20,6 +20,7 @@
  */
 
 #include <stdio.h>
+#include <stdbool.h>
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
@@ -27,11 +28,72 @@
 #define EXAMPLE 1
 #if EXAMPLE
     #define FNAME "../aocinput/2024-06-example.txt"
-    #define N 10  // lines in example file
+    #define N 10  // rows and cols of example grid
 #else
     #define FNAME "../aocinput/2024-06-input.txt"
-    #define N 1000  // lines in input file
+    #define N 130  // rows and cols of input grid
 #endif
+#define FSIZE N * (N + 1)  // square grid +newline
+#define DIRSIZE 4
+
+typedef struct vec {
+    int x, y;
+} Vec;
+
+typedef enum dir {
+    UP, RIGHT, DOWN, LEFT
+} Dir;
+
+// Same order as enum dir
+static const Vec step[DIRSIZE] = {{0,-1}, {1,0}, {0,1}, {-1,0}};
+
+// Grid, extra newline per row, size in bytes = FSIZE
+static char map[N][N + 1];
+
+static bool ismap(const Vec pos)
+{
+    return pos.x >= 0 && pos.x < N && pos.y >= 0 && pos.y < N;
+}
+
+static char peek(const Vec pos)
+{
+    return map[pos.y][pos.x];
+}
+
+static void poke(const Vec pos, const char c)
+{
+    map[pos.y][pos.x] = c;
+}
+
+static Vec add(const Vec a, const Vec b)
+{
+    return (Vec){a.x + b.x, a.y + b.y};
+}
+
+static bool findstart(Vec *const pos)
+{
+    for (int i = 0; i < N; ++i)
+        for (int j = 0; j < N; ++j)
+            if (map[i][j] == '^') {
+                *pos = (Vec){j, i};
+                return true;
+            }
+    return false;
+}
+
+// Turn right
+static void turn(Dir *dir)
+{
+    *dir = (*dir + 1) & DIRSIZE;
+
+}
+
+// Rotate in positive direction with inverted y-axis = turn right
+// up(0,-1) -> rt(1,0) -> dn(0,1) -> lf(-1,0) -> up(0,-1)
+// static void turn(Vec *const a)
+// {
+//     *a = (Vec){-a->y, a->x};
+// }
 
 int main(void)
 {
@@ -39,18 +101,30 @@ int main(void)
     starttimer();
 #endif
 
-    // Parse input file
-    FILE *f = fopen(FNAME, "r");
+    // Read input file
+    FILE *f = fopen(FNAME, "rb");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
-    char buf[BUFSIZ];
-    for (int i = 0; fgets(buf, sizeof buf, f); ++i) {
-        //TODO
-    }
+    fread(map, FSIZE, 1, f);
     fclose(f);
 
+    // Find starting position
+    Vec pos = {0};
+    if (!findstart(&pos)) { fputs("Starting position not found.\n", stderr); return 2; }
+
     // Part 1
-    int part1 = 0;
-    printf("Part 1: %d\n", part1);  // ?
+    Dir dir = UP;  // start heading up
+    Vec next;
+    next = add(pos, step[dir]);
+    // for (int i = 0; i < 3 && peek(next) == '#'; ++i) {
+    //     turn(&dir);
+    //     next = add(pos, dir);
+    // }
+
+    int visited = 0;
+    for (int i = 0; i < N; ++i)
+        for (int j = 0; j < N; ++j)
+            visited += map[i][j] == 'X';
+    printf("Part 1: %d\n", visited);  // example: 41, input: ?
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
