@@ -25,7 +25,7 @@
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 1
+#define EXAMPLE 0
 #if EXAMPLE
     #define FNAME "../aocinput/2024-06-example.txt"
     #define N 10  // rows and cols of example grid
@@ -35,6 +35,10 @@
 #endif
 #define FSIZE N * (N + 1)  // square grid +newline
 #define DIRSIZE 4
+#define START '^'
+#define FREE '.'
+#define WALL '#'
+#define OBSTR 'O'
 
 typedef struct vec {
     int x, y;
@@ -45,6 +49,7 @@ typedef enum dir {
 } Dir;
 
 // Same order as enum dir
+static const char *head = "^>v<";
 static const Vec step[DIRSIZE] = {{0,-1}, {1,0}, {0,1}, {-1,0}};
 
 // Grid, extra newline per row, size in bytes = FSIZE
@@ -74,26 +79,30 @@ static bool findstart(Vec *const pos)
 {
     for (int i = 0; i < N; ++i)
         for (int j = 0; j < N; ++j)
-            if (map[i][j] == '^') {
+            if (map[i][j] == START) {
                 *pos = (Vec){j, i};
                 return true;
             }
     return false;
 }
 
-// Turn right
-static void turn(Dir *dir)
+static Dir turn(const Dir dir)
 {
-    *dir = (*dir + 1) & DIRSIZE;
-
+    return (dir + 1) & (DIRSIZE - 1);
 }
 
-// Rotate in positive direction with inverted y-axis = turn right
-// up(0,-1) -> rt(1,0) -> dn(0,1) -> lf(-1,0) -> up(0,-1)
-// static void turn(Vec *const a)
-// {
-//     *a = (Vec){-a->y, a->x};
-// }
+#if EXAMPLE
+static void show(void)
+{
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < N; ++j)
+            putchar(map[i][j]);
+        putchar('\n');
+    }
+    putchar('\n');
+    putchar('\n');
+}
+#endif
 
 int main(void)
 {
@@ -106,25 +115,40 @@ int main(void)
     if (!f) { fputs("File not found.\n", stderr); return 1; }
     fread(map, FSIZE, 1, f);
     fclose(f);
+#if EXAMPLE
+    show();
+#endif
 
     // Find starting position
-    Vec pos = {0};
-    if (!findstart(&pos)) { fputs("Starting position not found.\n", stderr); return 2; }
+    Vec start = {0};
+    if (!findstart(&start)) { fputs("Starting position not found.\n", stderr); return 2; }
 
-    // Part 1
+    // Do the walk
+    Vec pos = start, next;
     Dir dir = UP;  // start heading up
-    Vec next;
-    next = add(pos, step[dir]);
-    // for (int i = 0; i < 3 && peek(next) == '#'; ++i) {
-    //     turn(&dir);
-    //     next = add(pos, dir);
-    // }
+    while (ismap((next = add(pos, step[dir])))) {
+        if (peek(next) != WALL) {
+            //TODO: check for previous heading for part 2
+            poke(pos, dir);  // save last direction
+            pos = next;
+        } else
+            dir = turn(dir);
+        poke(pos, head[dir]);
+    }
+    poke(pos, dir);
+#if EXAMPLE
+    show();
+#endif
 
-    int visited = 0;
+    // Count visited tiles
+    int visit = 0;
+    int obstr = 0;
     for (int i = 0; i < N; ++i)
-        for (int j = 0; j < N; ++j)
-            visited += map[i][j] == 'X';
-    printf("Part 1: %d\n", visited);  // example: 41, input: ?
+        for (int j = 0; j < N; ++j) {
+            visit += map[i][j] < DIRSIZE;
+            obstr += map[i][j] == OBSTR;
+        }
+    printf("%d %d\n", visit, obstr);  // example: 41 6, input: ?
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
