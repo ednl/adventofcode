@@ -108,12 +108,12 @@ static Dir turn(const Dir dir)
 
 static void sethist(const Pos pos, const Dir dir)
 {
-    hist[pos.y][pos.x] |= 1 << dir;
+    hist[pos.y][pos.x] |= (1 << dir);
 }
 
 static bool isdupe(const Pos pos, const Dir dir)
 {
-     return hist[pos.y][pos.x] & 1 << dir;
+     return hist[pos.y][pos.x] & (1 << dir);
 }
 
 // Part 1: add position to path, save direction on grid
@@ -126,15 +126,29 @@ static bool save(const Pos pos, const Dir dir)
     return isnew;
 }
 
+static int walk(Pos pos, Dir dir)
+{
+    int visited = 0;
+    Pos next;
+    while (ismap((next = go(pos, dir))))
+        if (look(next) != WALL) {  // can we go ahead?
+            visited += save(pos, dir);
+            pos = next;  // one step ahead
+        } else
+            dir = turn(dir);  // wall in front: turn right
+    visited += save(pos, dir);  // last tile before going off the map
+    return visited;
+}
+
 static bool hasloop(const int index)
 {
     // Reset all history and recreate to here
     memset(hist, 0, sizeof hist);
-    for (int i = 0; i < index; ++i)
+    for (int i = 0; i < index - 1; ++i)
         sethist(path[i].pos, path[i].dir);
     // Starting position and direction
     Pos pos = path[index - 1].pos, next;
-    Dir dir = turn(path[index - 1].dir);  // new obstruction in front
+    Dir dir = path[index - 1].dir;
     // Walk until loop found or fallen off map
     while (ismap((next = go(pos, dir))))
         if (look(next) != WALL) {
@@ -160,20 +174,12 @@ int main(void)
     fclose(f);
 
     // Find starting position
-    Pos pos = {0}, next;
+    Pos pos = {0};
     Dir dir = UP;  // start in up direction, next is right
     if (!findstart(&pos)) { fputs("Starting position not found.\n", stderr); return 2; }
 
     // Walk in circles until we fall off the map
-    int visited = 0;
-    while (ismap((next = go(pos, dir))))
-        if (look(next) != WALL) {  // can we go ahead?
-            visited += save(pos, dir);
-            pos = next;  // one step ahead
-        } else
-            dir = turn(dir);  // wall in front: turn right
-    visited += save(pos, dir);  // last tile before going off the map
-    printf("Part 1: %d\n", visited);  // example: 41, input: 5331
+    printf("Part 1: %d\n", walk(pos, dir));  // example: 41, input: 5331
 
     int loops = 0;
     for (int i = 1; i < pathlen; ++i) {
@@ -184,7 +190,7 @@ int main(void)
     printf("Part 2: %d\n", loops);  // example: 6, input: (520 too low, 2094 too high)
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+    printf("Time: %.0f ms\n", stoptimer_ms());
 #endif
     return 0;
 }
