@@ -140,12 +140,11 @@ static int walk(Pos pos, Dir dir)
     return visited;
 }
 
+// Try obstruction at path index [1..pathlen)
 static bool hasloop(const int index)
 {
-    // Reset all history and recreate to here
+    // Reset all history
     memset(hist, 0, sizeof hist);
-    for (int i = 0; i < index - 1; ++i)
-        sethist(path[i].pos, path[i].dir);
     // Starting position and direction
     Pos pos = path[index - 1].pos, next;
     Dir dir = path[index - 1].dir;
