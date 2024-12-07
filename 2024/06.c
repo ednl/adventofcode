@@ -20,6 +20,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>  // memset
 #include <stdbool.h>
 #ifdef TIMER
     #include "../startstoptimer.h"
@@ -34,75 +35,117 @@
     #define N 130  // rows and cols of input grid
 #endif
 #define FSIZE N * (N + 1)  // square grid +newline
-#define DIRSIZE 4
-#define START '^'
-#define FREE '.'
 #define WALL '#'
-#define OBSTR 'O'
-
-typedef struct vec {
-    int x, y;
-} Vec;
+#define FREE '.'
 
 typedef enum dir {
     UP, RIGHT, DOWN, LEFT
 } Dir;
 
+typedef struct pos {
+    int x, y;
+} Pos;
+
+typedef struct state {
+    Pos pos;
+    Dir dir;
+} State;
+
 // Same order as enum dir
-static const char *head = "^>v<";
-static const Vec step[DIRSIZE] = {{0,-1}, {1,0}, {0,1}, {-1,0}};
+// static const char *head = "^>v<";
+static const Pos step[] = {{0,-1}, {1,0}, {0,1}, {-1,0}};
 
 // Grid, extra newline per row, size in bytes = FSIZE
 static char map[N][N + 1];
 
-static bool ismap(const Vec pos)
-{
-    return pos.x >= 0 && pos.x < N && pos.y >= 0 && pos.y < N;
-}
+// bit 0-3 set = been here going u/d/l/r
+static char hist[N][N];
 
-static char peek(const Vec pos)
-{
-    return map[pos.y][pos.x];
-}
+static State path[N * N];
+static int pathlen;
 
-static void poke(const Vec pos, const char c)
-{
-    map[pos.y][pos.x] = c;
-}
-
-static Vec add(const Vec a, const Vec b)
-{
-    return (Vec){a.x + b.x, a.y + b.y};
-}
-
-static bool findstart(Vec *const pos)
+// Look for '^', set pos, return false if not found
+static bool findstart(Pos *const pos)
 {
     for (int i = 0; i < N; ++i)
         for (int j = 0; j < N; ++j)
-            if (map[i][j] == START) {
-                *pos = (Vec){j, i};
+            if (map[i][j] == '^') {
+                *pos = (Pos){j, i};
                 return true;
             }
     return false;
 }
 
-static Dir turn(const Dir dir)
+// Still on the map?
+static bool ismap(const Pos pos)
 {
-    return (dir + 1) & (DIRSIZE - 1);
+    return pos.x >= 0 && pos.x < N && pos.y >= 0 && pos.y < N;
 }
 
-#if EXAMPLE
-static void show(void)
+// Look at the map
+static char look(const Pos pos)
 {
-    for (int i = 0; i < N; ++i) {
-        for (int j = 0; j < N; ++j)
-            putchar(map[i][j]);
-        putchar('\n');
-    }
-    putchar('\n');
-    putchar('\n');
+    return map[pos.y][pos.x];
 }
-#endif
+
+// Mark the map
+static void mark(const Pos pos, const char c)
+{
+    map[pos.y][pos.x] = c;
+}
+
+// Take one step in direction, return new position
+static Pos go(const Pos pos, const Dir dir)
+{
+    return (Pos){pos.x + step[dir].x, pos.y + step[dir].y};
+}
+
+// Turn right, return new direction
+static Dir turn(const Dir dir)
+{
+    return (dir + 1) & 3;
+}
+
+static void sethist(const Pos pos, const Dir dir)
+{
+    hist[pos.y][pos.x] |= 1 << dir;
+}
+
+static bool isdupe(const Pos pos, const Dir dir)
+{
+     return hist[pos.y][pos.x] & 1 << dir;
+}
+
+// Part 1: add position to path, save direction on grid
+// Return true (+1) if never visited before
+static bool save(const Pos pos, const Dir dir)
+{
+    const bool isnew = !hist[pos.y][pos.x];
+    path[pathlen++] = (State){pos, dir};
+    sethist(pos, dir);
+    return isnew;
+}
+
+static bool hasloop(const int index)
+{
+    // Reset all history and recreate to here
+    memset(hist, 0, sizeof hist);
+    for (int i = 0; i < index; ++i)
+        sethist(path[i].pos, path[i].dir);
+    // Starting position and direction
+    Pos pos = path[index - 1].pos, next;
+    Dir dir = turn(path[index - 1].dir);  // new obstruction in front
+    // Walk until loop found or fallen off map
+    while (ismap((next = go(pos, dir))))
+        if (look(next) != WALL) {
+            if (isdupe(pos, dir))
+                return true;
+            sethist(pos, dir);
+            pos = next;
+        } else
+            dir = turn(dir);  // wall in front: turn right
+    return false;
+}
 
 int main(void)
 {
@@ -115,40 +158,30 @@ int main(void)
     if (!f) { fputs("File not found.\n", stderr); return 1; }
     fread(map, FSIZE, 1, f);
     fclose(f);
-#if EXAMPLE
-    show();
-#endif
 
     // Find starting position
-    Vec start = {0};
-    if (!findstart(&start)) { fputs("Starting position not found.\n", stderr); return 2; }
+    Pos pos = {0}, next;
+    Dir dir = UP;  // start in up direction, next is right
+    if (!findstart(&pos)) { fputs("Starting position not found.\n", stderr); return 2; }
 
-    // Do the walk
-    Vec pos = start, next;
-    Dir dir = UP;  // start heading up
-    while (ismap((next = add(pos, step[dir])))) {
-        if (peek(next) != WALL) {
-            //TODO: check for previous heading for part 2
-            poke(pos, dir);  // save last direction
-            pos = next;
+    // Walk in circles until we fall off the map
+    int visited = 0;
+    while (ismap((next = go(pos, dir))))
+        if (look(next) != WALL) {  // can we go ahead?
+            visited += save(pos, dir);
+            pos = next;  // one step ahead
         } else
-            dir = turn(dir);
-        poke(pos, head[dir]);
-    }
-    poke(pos, dir);
-#if EXAMPLE
-    show();
-#endif
+            dir = turn(dir);  // wall in front: turn right
+    visited += save(pos, dir);  // last tile before going off the map
+    printf("Part 1: %d\n", visited);  // example: 41, input: 5331
 
-    // Count visited tiles
-    int visit = 0;
-    int obstr = 0;
-    for (int i = 0; i < N; ++i)
-        for (int j = 0; j < N; ++j) {
-            visit += map[i][j] < DIRSIZE;
-            obstr += map[i][j] == OBSTR;
-        }
-    printf("%d %d\n", visit, obstr);  // example: 41 6, input: ?
+    int loops = 0;
+    for (int i = 1; i < pathlen; ++i) {
+        mark(path[i].pos, WALL);  // try obstruction in the path here
+        loops += hasloop(i);
+        mark(path[i].pos, FREE);  // reset obstruction
+    }
+    printf("Part 2: %d\n", loops);  // example: 6, input: (520 too low, 2094 too high)
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
