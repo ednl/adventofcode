@@ -20,7 +20,8 @@
  */
 
 #include <stdio.h>
-#include <stdint.h>  // int64_t
+#include <stdlib.h>    // atoll
+#include <stdint.h>    // int64_t
 #include <inttypes.h>  // PRId64
 #include <stdbool.h>
 #ifdef TIMER
@@ -30,7 +31,7 @@
 #define EXAMPLE 0
 #if EXAMPLE
     #define FNAME "../aocinput/2024-07-example.txt"
-    #define N 9  // lines in input file
+    #define N 9  // lines in example file
 #else
     #define FNAME "../aocinput/2024-07-input.txt"
     #define N 850  // lines in input file
@@ -39,53 +40,51 @@
 
 typedef struct equation {
     int64_t test;
-    int testlen, count;
+    int maxlen, count;
     int num[M], len[M];
+    int64_t maxadd[M], maxmul[M];
 } Equation;
 
 static const int pow3[M] = {1, 3, 9, 27, 81, 243, 729, 2187, 6561, 19683, 59049, 177147};
-static const int64_t pow10[] = {1LL, 10LL, 100LL, 1000LL, 10000LL, 100000LL, 1000000LL,
-    10000000LL, 100000000LL, 1000000000LL, 10000000000LL, 100000000000LL, 1000000000000LL,
-    10000000000000LL, 100000000000000LL, 1000000000000000LL, 10000000000000000LL,
-    100000000000000000LL, 1000000000000000000LL
-};
+static const int64_t pow10[] = {INT64_C(1), INT64_C(10), INT64_C(100), INT64_C(1000),
+    INT64_C(10000), INT64_C(100000), INT64_C(1000000), INT64_C(10000000), INT64_C(100000000),
+    INT64_C(1000000000), INT64_C(10000000000), INT64_C(100000000000), INT64_C(1000000000000),
+    INT64_C(10000000000000), INT64_C(100000000000000), INT64_C(1000000000000000),
+    INT64_C(10000000000000000), INT64_C(100000000000000000), INT64_C(1000000000000000000)};
 
 static Equation equation[N];
-
-static int intlen(int64_t x)
-{
-    if (x < 0) return 0;
-    if (!x) return 1;
-    int len = 1;
-    x /= 10;
-    while (x % 10) {
-        ++len;
-        x /= 10;
-    }
-    return len;
-}
-
-static int64_t add(const int64_t a, const int64_t b)
-{
-    return a + b;
-}
-
-static int64_t mul(const int64_t a, const int64_t b)
-{
-    return a * b;
-}
-
-static int64_t cat(const int64_t a, const int64_t b)
-{
-    return a + b;
-}
 
 static inline int64_t reduce2(const int *const num, const int count, int pat)
 {
     int64_t r = num[0];
     for (int i = 1; i < count; ++i, pat >>= 1)
-        if (pat & 1) r *= num[i];
-        else         r += num[i];
+        switch (pat & 1) {
+            case 0: r += num[i]; break;
+            case 1: r *= num[i]; break;
+        }
+    return r;
+}
+
+static inline int64_t reduce3(const Equation *const eq, int pat)
+{
+    int64_t r = eq->num[0];
+    int len = eq->len[0];
+    for (int i = 1; i < eq->count; ++i, pat /= 3)
+        switch (pat % 3) {
+            case 0:
+                if (r > eq->maxadd[i]) return 0;
+                r += eq->num[i];
+                break;
+            case 1:
+                if (r > eq->maxmul[i]) return 0;
+                r *= eq->num[i];
+                break;
+            case 2:
+                len += eq->len[i];
+                if (len > eq->maxlen) return 0;
+                r = r * pow10[eq->len[i]] + eq->num[i];
+                break;
+        }
     return r;
 }
 
@@ -99,48 +98,54 @@ int main(void)
     FILE *f = fopen(FNAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
     char buf[BUFSIZ];
-
     for (int i = 0; i < N && fgets(buf, sizeof buf, f); ++i) {
-        const char *c = buf;
         Equation *const eq = &equation[i];
+        const char *c = buf;
         eq->test = *c++ & 15;
-        while (*c != ':')
+        int len = 1;
+        while (*c != ':') {
             eq->test = eq->test * 10 + (*c++ & 15);
-        c++;
+            ++len;
+        }
+        eq->maxlen = len;
+        ++c;  // skip ':'
         while (*c++ == ' ' && eq->count < M) {
             int x = *c++ & 15;
-            while (*c >= '0' && *c <= '9')
+            len = 1;
+            while (*c >= '0' && *c <= '9') {
                 x = x * 10 + (*c++ & 15);
-            eq->num[eq->count++] = x;
+                ++len;
+            }
+            eq->num[eq->count] = x;
+            eq->len[eq->count] = len;
+            eq->maxadd[eq->count] = eq->test - x;
+            eq->maxmul[eq->count] = eq->test / x;
+            eq->count++;
         }
     }
     fclose(f);
 
-    // Part 1
     int64_t cal1 = 0, cal2 = 0;
     for (int i = 0; i < N; ++i) {
-        const int64_t test = equation[i].test;
-        const int count = equation[i].count;
-        const int *const num = equation[i].num;
-        const int end = 1 << (count - 1);
-        bool found = false;
-        for (int pat = 0; pat < end; ++pat) {
-            if (reduce2(num, count, pat) == test) {
-                found = true;
-                break;
+        const Equation *const eq = &equation[i];
+        const int end2 = 1 << (eq->count - 1);
+        for (int pat = 0; pat < end2; ++pat) {
+            if (reduce2(eq->num, eq->count, pat) == eq->test) {
+                cal1 += eq->test;
+                cal2 += eq->test;
+                goto next_i;  // break + continue
             }
         }
-        if (found) {
-            cal1 += test;
-            cal2 += test;
-        } else {
-            //TODO
-        }
+        const int end3 = pow3[eq->count - 1];
+        for (int pat = 0; pat < end3; ++pat)
+            if (reduce3(eq, pat) == eq->test)
+                cal2 += eq->test;
+    next_i:;
     }
-    printf("%"PRId64" %"PRId64"\n", cal1, cal2);  // test: 3749 11387, input: 303766880536 ?
+    printf("%"PRId64" %"PRId64"\n", cal1, cal2);  // test: 3749 11387, input: 303766880536 (351666462220445 too high)
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+    printf("Time: %.0f ms\n", stoptimer_ms());
 #endif
     return 0;
 }
