@@ -14,9 +14,9 @@
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Mac Mini 2020 (M1 3.2 GHz)                       :  8 µs
- *     Raspberry Pi 5 (2.4 GHz)                         :  ? µs
- *     Raspberry Pi 4 (1.8 GHz)                         :  ? µs
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :  ? µs
+ *     Raspberry Pi 5 (2.4 GHz)                         : 19 µs
+ *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 27 µs
+ *     Raspberry Pi 4 (1.8 GHz)                         : 63 µs
  */
 
 #include <stdio.h>
@@ -28,12 +28,12 @@
 #define EXAMPLE 0
 #if EXAMPLE
     #define FNAME "../aocinput/2024-08-example.txt"
-    #define N 12
+    #define N 12  // rows and cols of square grid in example file
 #else
     #define FNAME "../aocinput/2024-08-input.txt"
-    #define N 50
+    #define N 50  // rows and cols of square grid in input file
 #endif
-#define FSIZE (N * (N + 1))
+#define FSIZE (N * (N + 1))  // file size in bytes (rows +newline)
 
 #define M 4  // max antenna count per frequency (4 for my input)
 #define NUM ('9' - '0' + 1)  // different numbers = 10
@@ -52,8 +52,8 @@ typedef struct antenna {
 } Antenna;
 
 static char map[N][N + 1];      // antenna map (input file)
-static Antenna antenna[FRQ];    // antenna positions per frequency
-static bool antinode[2][N][N];  // two antinode maps for part 1 & 2
+static Antenna antenna[FRQ];    // antenna positions grouped by frequency
+static bool antinode[2][N][N];  // two antinode maps for parts 1 & 2
 
 // Hash antenna name to frequency (=index 0..61)
 static int freq(const char name)
@@ -92,7 +92,7 @@ static int sum(const void *const a)
 
 int main(void)
 {
-    // Read input file
+    // Read input file as one chunk
     FILE *f = fopen(FNAME, "rb");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
     fread(map, FSIZE, 1, f);
@@ -108,30 +108,30 @@ int main(void)
             if (map[i][j] != SPC) {
                 Antenna *const a = &antenna[freq(map[i][j])];
                 a->pos[a->count++] = (Vec){j, i};
-                antinode[1][i][j] = true;  // part 2
+                antinode[1][i][j] = true;  // antennae are antinodes in part 2
             }
 
     for (int i = 0; i < FRQ; ++i) {
         const Antenna *const a = &antenna[i];
         for (int j = 0; j < a->count; ++j)
             for (int k = 0; k < j; ++k) {
-                const Vec dif = sub(a->pos[j], a->pos[k]);
+                const Vec diff = sub(a->pos[j], a->pos[k]);
                 // One Direction
-                Vec pos = add(a->pos[j], dif);
+                Vec pos = add(a->pos[j], diff);
                 if (ismap(pos)) {
                     antinode[0][pos.y][pos.x] = true;  // part 1
                     do {
                         antinode[1][pos.y][pos.x] = true;  // part 2
-                        pos = add(pos, dif);
+                        pos = add(pos, diff);
                     } while (ismap(pos));
                 }
                 // Backstreet Boys
-                pos = sub(a->pos[k], dif);
+                pos = sub(a->pos[k], diff);
                 if (ismap(pos)) {
                     antinode[0][pos.y][pos.x] = true;  // part 1
                     do {
                         antinode[1][pos.y][pos.x] = true;  // part 2
-                        pos = sub(pos, dif);
+                        pos = sub(pos, diff);
                     } while (ismap(pos));
                 }
 

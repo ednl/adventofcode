@@ -16,7 +16,7 @@
  *     Mac Mini 2020 (M1 3.2 GHz)                       :  262 µs
  *     Raspberry Pi 5 (2.4 GHz)                         :  429 µs
  *     Raspberry Pi 4 (1.8 GHz)                         : 1045 µs
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 1070 µs
+ *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 1070 µs (strangely slow, normally closer to Pi5)
  */
 
 #include <stdio.h>
