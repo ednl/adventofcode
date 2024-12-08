@@ -40,7 +40,7 @@
 #define LET ('Z' - 'A' + 1)  // different letters = 26
 #define ALF (NUM + LET)  // different alphanumeric chars = 36
 #define FRQ (ALF + LET)  // different frequencies (bandwidth) = 62
-#define SPC '.'
+#define SPC '.'  // free space
 
 typedef struct vec {
     int x, y;
@@ -108,31 +108,31 @@ int main(void)
             if (map[i][j] != SPC) {
                 Antenna *const a = &antenna[freq(map[i][j])];
                 a->pos[a->count++] = (Vec){j, i};
-                antinode[1][i][j] = true;  // antennae are antinodes in part 2
+                antinode[1][i][j] = true;  // antennas are also antinodes in part 2
             }
 
     for (int i = 0; i < FRQ; ++i) {
         const Antenna *const a = &antenna[i];
-        for (int j = 0; j < a->count; ++j)
-            for (int k = 0; k < j; ++k) {
-                const Vec diff = sub(a->pos[j], a->pos[k]);
+        for (int j = 1; j < a->count; ++j)  // for every antenna j in [1..count)
+            for (int k = 0; k < j; ++k) {  // consider every unique pair with k in [0..j)
+                const Vec diff = sub(a->pos[j], a->pos[k]);  // vector from [k] to [j]
                 // One Direction
-                Vec pos = add(a->pos[j], diff);
+                Vec pos = add(a->pos[j], diff);  // one step from [j] away from [k]
                 if (ismap(pos)) {
                     antinode[0][pos.y][pos.x] = true;  // part 1
                     do {
                         antinode[1][pos.y][pos.x] = true;  // part 2
-                        pos = add(pos, diff);
-                    } while (ismap(pos));
+                        pos = add(pos, diff);  // more steps in same direction
+                    } while (ismap(pos));  // until we fall off the map
                 }
-                // Backstreet Boys
-                pos = sub(a->pos[k], diff);
+                // Backstreet Boys (I mean, opposite direction)
+                pos = sub(a->pos[k], diff);  // one step from [k] away from [j]
                 if (ismap(pos)) {
                     antinode[0][pos.y][pos.x] = true;  // part 1
                     do {
                         antinode[1][pos.y][pos.x] = true;  // part 2
-                        pos = sub(pos, diff);
-                    } while (ismap(pos));
+                        pos = sub(pos, diff);  // more steps in same direction
+                    } while (ismap(pos));  // until we fall off the map
                 }
 
             }
