@@ -48,6 +48,20 @@ int main(void)
     starttimer();
 #endif
 
+    size_t chksum = 0;
+    size_t beg = 0, end = N - 1;  // inclusive range
+    size_t pos = 0;
+    while (beg < end) {
+        if (beg & 1) {
+            // free space
+        } else {
+            size_t id = beg >> 1;
+            size_t len = map[beg] & 15;
+            chksum += id * pos * len + id * ((len * (len - 1)) >> 1);
+            pos += len;
+        }
+        ++beg;
+    }
     printf("%.3s\n", &map[N - 3]);
 
 #ifdef TIMER
