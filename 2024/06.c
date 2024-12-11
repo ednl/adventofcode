@@ -1,6 +1,6 @@
 /**
  * Advent of Code 2024
- * Day 6: ?
+ * Day 6: Guard Gallivant
  * https://adventofcode.com/2024/day/6
  * By: E. Dronkert https://github.com/ednl
  *

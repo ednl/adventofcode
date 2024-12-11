@@ -13,10 +13,10 @@
  * Get minimum runtime from timer output:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Mac Mini 2020 (M1 3.2 GHz)                       :  80 µs
- *     Raspberry Pi 5 (2.4 GHz)                         : 121 µs
- *     Raspberry Pi 4 (1.8 GHz)                         : 299 µs
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :   ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)                       :  59 µs
+ *     Raspberry Pi 5 (2.4 GHz)                         :   ? µs
+ *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 123 µs
+ *     Raspberry Pi 4 (1.8 GHz)                         :   ? µs
  */
 
 #include <stdio.h>
@@ -35,107 +35,70 @@
     #define N 45
 #endif
 #define FSIZE (N * (N + 1))
-#define QSIZE 32  // max needed for my input: 27
-#define QMASK (QSIZE - 1)  // QSIZE must be power of 2 => mask of all ones
+#define SSIZE 32
 #define START '0'
 #define GOAL  '9'
 
 typedef struct vec {
-    int i, j;
+    int x, y;
 } Vec;
 
-typedef struct queue {
-    int len, pop, ins;
-    Vec q[QSIZE];
-} Queue;
-
-// Right, left, down, up (order doesn't matter)
-static const Vec step[] = {{0,1},{0,-1},{1,0},{-1,0}};
+typedef struct stack {
+    size_t len;
+    Vec mem[SSIZE];
+} Stack;
 
 static char map[N][N + 1];  // input file
-static bool seen[N][N];  // explored goals for part 1
-static Queue queue;
+static bool seen[N][N];  // which destinations already visited? (part 1)
+static Stack stack;
 
-static void qreset(Queue *const q)
+static bool push(const int x, const int y)
 {
-    q->len = q->pop = q->ins = 0;
-    memset(seen, 0, sizeof seen);
-}
-
-// Dequeue = pop off the tail of the queue
-static bool deq(Queue *const q, Vec *const val)
-{
-    if (!q || !q->len)
+    if (stack.len == SSIZE)
         return false;
-    q->len--;
-    *val = q->q[q->pop++];
-    q->pop &= QMASK;  // QSIZE must be power of 2 so QMASK is all ones
+    stack.mem[stack.len++] = (Vec){x, y};
     return true;
 }
 
-// Enqueue = push onto the head of the queue
-static bool enq(Queue *const q, const Vec val)
+static bool pop(int *const restrict x, int *const restrict y)
 {
-    if (!q || q->len == QSIZE) {
-        putchar('q');  // major error
+    if (!stack.len)
         return false;
-    }
-    q->len++;
-    q->q[q->ins++] = val;
-    q->ins &= QMASK;  // QSIZE must be power of 2 so QMASK is all ones
+    const Vec val = stack.mem[--stack.len];
+    *x = val.x;
+    *y = val.y;
     return true;
 }
 
-static Vec add(const Vec a, const Vec b)
-{
-    return (Vec){a.i + b.i, a.j + b.j};
-}
-
-static bool ismap(const Vec pos)
-{
-    return pos.i >= 0 && pos.i < N && pos.j >= 0 && pos.j < N;
-}
-
-static char peek(const Vec pos)
-{
-    return map[pos.i][pos.j];
-}
-
-static bool haveseen(const Vec pos)
-{
-    return seen[pos.i][pos.j];
-}
-
-static void markseen(const Vec pos)
-{
-    seen[pos.i][pos.j] = true;
-}
-
-// BFS (breadth-first search) with "mark explored" only for part 1.
+// Depth-first search (DFS)
 static Vec findtrails(const int row, const int col)
 {
-    Vec count = {0};  // results for part 1 and 2
-    qreset(&queue);  // also resets 'seen'
-    Vec pos = {row, col};
-    enq(&queue, pos);
-    while (deq(&queue, &pos)) {
-        const char height = peek(pos);
-        if (height == GOAL) {
-            if (!haveseen(pos)) {
-                markseen(pos);
-                ++count.i;  // part 1
+    Vec count = {0};
+    int i = row, j = col;
+    memset(seen, 0, sizeof seen);  // part 1
+    do {
+        const char alt = map[i][j];
+        if (alt == GOAL) {
+            if (!seen[i][j]) {  // part 1
+                seen[i][j] = true;
+                ++count.x;
             }
-            ++count.j;  // part 2
+            ++count.y;  // part 2
         } else {
-            const char uphill = height + 1;
-            for (int i = 0; i < 4; ++i) {
-                const Vec next = add(pos, step[i]);
-                if (ismap(next) && peek(next) == uphill)
-                    enq(&queue, next);
-            }
+            const char up = alt + 1;
+            if (i > 0     && map[i - 1][j] == up) push(i - 1, j);
+            if (i < N - 1 && map[i + 1][j] == up) push(i + 1, j);
+            if (j > 0     && map[i][j - 1] == up) push(i, j - 1);
+            if (j < N - 1 && map[i][j + 1] == up) push(i, j + 1);
         }
-    }
+    } while (pop(&i, &j));
     return count;
+}
+
+static void add_r(Vec *const a, const Vec b)
+{
+    a->x += b.x;
+    a->y += b.y;
 }
 
 int main(void)
@@ -153,8 +116,8 @@ int main(void)
     for (int i = 0; i < N; ++i)
         for (int j = 0; j < N; ++j)
             if (map[i][j] == START)
-                sum = add(sum, findtrails(i, j));
-    printf("%d %d\n", sum.i, sum.j);  // example: 36 81, input: 552 1225
+                add_r(&sum, findtrails(i, j));
+    printf("%d %d\n", sum.x, sum.y);  // 552 1225
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
