@@ -26,7 +26,6 @@
 
 #define EXAMPLE 1
 #if EXAMPLE
-    #define FNAME "../aocinput/2024-09-example.txt"
     #define N 19
     static const char *map = "2333133121414131402";
 #else
@@ -39,7 +38,8 @@
 int main(void)
 {
 #if !EXAMPLE
-    FILE *f = fopen("../aocinput/2024-09-input.txt", "rb");
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) { fprintf(stderr, "File not found: %s\n", FNAME); return 1; }
     fread(map, sizeof map, 1, f);
     fclose(f);
 #endif
