@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Mac Mini 2020 (M1 3.2 GHz)                       :  309 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)                       :  275 µs
  *     Raspberry Pi 5 (2.4 GHz)                         :  576 µs
  *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :    ? µs
  *     Raspberry Pi 4 (1.8 GHz)                         : 1392 µs
@@ -43,10 +43,10 @@
 #define RGT (1 << 3)  // bit 3
 
 // Diagonal directions
-#define T_L (TOP | LFT)
-#define B_L (BTM | LFT)
-#define T_R (TOP | RGT)
-#define B_R (BTM | RGT)
+#define TL (TOP | LFT)
+#define BL (BTM | LFT)
+#define TR (TOP | RGT)
+#define BR (BTM | RGT)
 
 typedef struct vec {
     int x, y;
@@ -104,35 +104,23 @@ static Vec price(int i, int j)
         if (same(i, j - 1, plant)) { nb[i][j] |= LFT; push(i, j - 1); } else ++perim;
         if (same(i, j + 1, plant)) { nb[i][j] |= RGT; push(i, j + 1); } else ++perim;
         // Part 2
-        // Concave ("inside") corners are always formed by 3 plants, so they are counted 3x
-        // => also count convex ("outside") corners 3x, and divide by 3 afterwards
-        // "7JLF" are angle shapes of three plants with a concave corner
-        switch (nb[i][j] & T_L) {                                    // top & left
-            case   0: corners += 3; break;                           // convex (x3)
-            case TOP:                                                // concave 7
-            case LFT: corners +=  same(i - 1, j - 1, plant); break;  // concave L
-            case T_L: corners += !same(i - 1, j - 1, plant); break;  // concave J
+        switch (nb[i][j] & TL) {
+            case 0: ++corners; break;
+            case TL: corners += !same(i - 1, j - 1, plant); break;
         }
-        switch (nb[i][j] & B_L) {                                    // bottom & left
-            case   0: corners += 3; break;                           // convex (x3)
-            case BTM:                                                // concave J
-            case LFT: corners +=  same(i + 1, j - 1, plant); break;  // concave F
-            case B_L: corners += !same(i + 1, j - 1, plant); break;  // concave 7
+        switch (nb[i][j] & BL) {
+            case 0: ++corners; break;
+            case BL: corners += !same(i + 1, j - 1, plant); break;
         }
-        switch (nb[i][j] & T_R) {                                    // top & right
-            case   0: corners += 3; break;                           // convex (x3)
-            case TOP:                                                // concave F
-            case RGT: corners +=  same(i - 1, j + 1, plant); break;  // concave J
-            case T_R: corners += !same(i - 1, j + 1, plant); break;  // concave L
+        switch (nb[i][j] & TR) {
+            case 0: ++corners; break;
+            case TR: corners += !same(i - 1, j + 1, plant); break;
         }
-        switch (nb[i][j] & B_R) {                                    // bottom & right
-            case   0: corners += 3; break;                           // convex (x3)
-            case BTM:                                                // concave L
-            case RGT: corners +=  same(i + 1, j + 1, plant); break;  // concave 7
-            case B_R: corners += !same(i + 1, j + 1, plant); break;  // concave F
+        switch (nb[i][j] & BR) {
+            case 0: ++corners; break;
+            case BR: corners += !same(i + 1, j + 1, plant); break;
         }
     } while (pop(&i, &j));
-    corners /= 3;  // correction for counting corners 3x
 #if EXAMPLE
     printf("%c: %2d x [%2d,%2d] = [%3d,%3d]\n", plant, area, perim, corners, area * perim, area * corners);
 #endif
