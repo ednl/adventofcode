@@ -57,7 +57,7 @@ typedef struct stack {
     Vec mem[SSIZE];
 } Stack;
 
-static char map[N][N + 1];  // input file
+static char map[N][N + 1];  // input file +newlines
 static bool seen[N][N];     // explored nodes
 static uint8_t nb[N][N];    // neighbours (bits 0-3 set/not set)
 static Stack stack;
@@ -82,7 +82,7 @@ static bool pop(int *const restrict x, int *const restrict y)
     return true;
 }
 
-// Same plant in this position? Also check out of bounds
+// Is this position part of the same plot? Also check out of bounds
 // Possibly faster with added border, but that complicates reading input file
 static inline bool same(const int i, const int j, const char plant)
 {
@@ -93,7 +93,7 @@ static inline bool same(const int i, const int j, const char plant)
 // Return plot price for parts 1 and 2 together in one Vec
 static Vec price(int i, int j)
 {
-    int area = 0, perim = 0, corners = 0;  // corners is same as sides
+    int area = 0, perim = 0, corners = 0;  // number of corners is same as sides
     seen[i][j] = true;
     const char plant = map[i][j];
     do {
@@ -104,35 +104,35 @@ static Vec price(int i, int j)
         if (same(i, j - 1, plant)) { nb[i][j] |= LFT; push(i, j - 1); } else ++perim;
         if (same(i, j + 1, plant)) { nb[i][j] |= RGT; push(i, j + 1); } else ++perim;
         // Part 2
-        // Inside corners always formed by 3 plants, so they are counted triple
-        // => also count outside corners triple, and divide by 3 afterwards
-        // "7JLF" are angle shapes of three plants with an inside corner
-        switch (nb[i][j] & T_L) {                                    // top left
-            case   0: corners += 3; break;                           // outside
-            case TOP:                                                // inside 7
-            case LFT: corners +=  same(i - 1, j - 1, plant); break;  // inside L
-            case T_L: corners += !same(i - 1, j - 1, plant); break;  // inside J
+        // Concave ("inside") corners are always formed by 3 plants, so they are counted 3x
+        // => also count convex ("outside") corners 3x, and divide by 3 afterwards
+        // "7JLF" are angle shapes of three plants with a concave corner
+        switch (nb[i][j] & T_L) {                                    // top & left
+            case   0: corners += 3; break;                           // convex (x3)
+            case TOP:                                                // concave 7
+            case LFT: corners +=  same(i - 1, j - 1, plant); break;  // concave L
+            case T_L: corners += !same(i - 1, j - 1, plant); break;  // concave J
         }
-        switch (nb[i][j] & B_L) {                                    // bottom left
-            case   0: corners += 3; break;                           // outside
-            case BTM:                                                // inside J
-            case LFT: corners +=  same(i + 1, j - 1, plant); break;  // inside F
-            case B_L: corners += !same(i + 1, j - 1, plant); break;  // inside 7
+        switch (nb[i][j] & B_L) {                                    // bottom & left
+            case   0: corners += 3; break;                           // convex (x3)
+            case BTM:                                                // concave J
+            case LFT: corners +=  same(i + 1, j - 1, plant); break;  // concave F
+            case B_L: corners += !same(i + 1, j - 1, plant); break;  // concave 7
         }
-        switch (nb[i][j] & T_R) {                                    // top right
-            case   0: corners += 3; break;                           // outside
-            case TOP:                                                // inside F
-            case RGT: corners +=  same(i - 1, j + 1, plant); break;  // inside J
-            case T_R: corners += !same(i - 1, j + 1, plant); break;  // inside L
+        switch (nb[i][j] & T_R) {                                    // top & right
+            case   0: corners += 3; break;                           // convex (x3)
+            case TOP:                                                // concave F
+            case RGT: corners +=  same(i - 1, j + 1, plant); break;  // concave J
+            case T_R: corners += !same(i - 1, j + 1, plant); break;  // concave L
         }
-        switch (nb[i][j] & B_R) {                                    // bottom right
-            case   0: corners += 3; break;                           // outside
-            case BTM:                                                // inside L
-            case RGT: corners +=  same(i + 1, j + 1, plant); break;  // inside 7
-            case B_R: corners += !same(i + 1, j + 1, plant); break;  // inside F
+        switch (nb[i][j] & B_R) {                                    // bottom & right
+            case   0: corners += 3; break;                           // convex (x3)
+            case BTM:                                                // concave L
+            case RGT: corners +=  same(i + 1, j + 1, plant); break;  // concave 7
+            case B_R: corners += !same(i + 1, j + 1, plant); break;  // concave F
         }
     } while (pop(&i, &j));
-    corners /= 3;  // deduplicate
+    corners /= 3;  // correction for counting corners 3x
 #if EXAMPLE
     printf("%c: %2d x [%2d,%2d] = [%3d,%3d]\n", plant, area, perim, corners, area * perim, area * corners);
 #endif
@@ -147,9 +147,9 @@ static void add_r(Vec *const a, const Vec b)
 
 int main(void)
 {
-    FILE *f = fopen(FNAME, "rb");
+    FILE *f = fopen(FNAME, "rb");  // binary mode needed for fread()
     if (!f) { fprintf(stderr, "File not found: %s\n", FNAME); return 1; }
-    fread(map, sizeof map, 1, f);
+    fread(map, sizeof map, 1, f);  // read whole file at once
     fclose(f);
 
 #ifdef TIMER
