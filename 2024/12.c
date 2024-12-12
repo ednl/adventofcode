@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Mac Mini 2020 (M1 3.2 GHz)                       :  275 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)                       :  261 µs
  *     Raspberry Pi 5 (2.4 GHz)                         :  534 µs
  *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :    ? µs
  *     Raspberry Pi 4 (1.8 GHz)                         : 1246 µs
@@ -57,9 +57,9 @@ typedef struct stack {
     Vec mem[SSIZE];
 } Stack;
 
-static char map[N][N + 1];  // input file +newlines
-static bool seen[N][N];     // explored nodes
-static uint8_t nb[N][N];    // neighbours (bits 0-3 set/not set)
+static char map[N + 2][N + 3];    // input file +border
+static bool seen[N + 1][N + 1];   // explored nodes
+static uint8_t nb[N + 1][N + 1];  // neighbours (bits 0-3 set/not set)
 static Stack stack;
 
 // Save onto stack, return false if already seen or stack full
@@ -82,13 +82,6 @@ static bool pop(int *const restrict x, int *const restrict y)
     return true;
 }
 
-// Is this position part of the same plot? Also check out of bounds
-// Possibly faster with added border, but that complicates reading input file
-static inline bool same(const int i, const int j, const char plant)
-{
-    return i >= 0 && i < N && j >= 0 && j < N && map[i][j] == plant;
-}
-
 // Explore plot with same plants starting from i,j
 // Return plot price for parts 1 and 2 together in one Vec
 static Vec price(int i, int j)
@@ -99,26 +92,26 @@ static Vec price(int i, int j)
     do {
         ++area;  // every plant only counted once
         // Part 1, and neighbours inventory for part 2
-        if (same(i - 1, j, plant)) { nb[i][j] |= TOP; push(i - 1, j); } else ++perim;
-        if (same(i + 1, j, plant)) { nb[i][j] |= BTM; push(i + 1, j); } else ++perim;
-        if (same(i, j - 1, plant)) { nb[i][j] |= LFT; push(i, j - 1); } else ++perim;
-        if (same(i, j + 1, plant)) { nb[i][j] |= RGT; push(i, j + 1); } else ++perim;
+        if (map[i - 1][j] == plant) { nb[i][j] |= TOP; push(i - 1, j); } else ++perim;
+        if (map[i + 1][j] == plant) { nb[i][j] |= BTM; push(i + 1, j); } else ++perim;
+        if (map[i][j - 1] == plant) { nb[i][j] |= LFT; push(i, j - 1); } else ++perim;
+        if (map[i][j + 1] == plant) { nb[i][j] |= RGT; push(i, j + 1); } else ++perim;
         // Part 2
         switch (nb[i][j] & TL) {
             case 0: ++corners; break;
-            case TL: corners += !same(i - 1, j - 1, plant); break;
+            case TL: corners += map[i - 1][j - 1] != plant; break;
         }
         switch (nb[i][j] & BL) {
             case 0: ++corners; break;
-            case BL: corners += !same(i + 1, j - 1, plant); break;
+            case BL: corners += map[i + 1][j - 1] != plant; break;
         }
         switch (nb[i][j] & TR) {
             case 0: ++corners; break;
-            case TR: corners += !same(i - 1, j + 1, plant); break;
+            case TR: corners += map[i - 1][j + 1] != plant; break;
         }
         switch (nb[i][j] & BR) {
             case 0: ++corners; break;
-            case BR: corners += !same(i + 1, j + 1, plant); break;
+            case BR: corners += map[i + 1][j + 1] != plant; break;
         }
     } while (pop(&i, &j));
 #if EXAMPLE
@@ -135,9 +128,10 @@ static void add_r(Vec *const a, const Vec b)
 
 int main(void)
 {
-    FILE *f = fopen(FNAME, "rb");  // binary mode needed for fread()
+    FILE *f = fopen(FNAME, "r");  // binary mode needed for fread()
     if (!f) { fprintf(stderr, "File not found: %s\n", FNAME); return 1; }
-    fread(map, sizeof map, 1, f);  // read whole file at once
+    for (int i = 1; i <= N; ++i)
+        fgets(&map[i][1], N + 2, f);  // +\n\0
     fclose(f);
 
 #ifdef TIMER
@@ -145,8 +139,8 @@ int main(void)
 #endif
 
     Vec sum = {0};
-    for (int i = 0; i < N; ++i)
-        for (int j = 0; j < N; ++j)
+    for (int i = 1; i <= N; ++i)
+        for (int j = 1; j <= N; ++j)
             if (!seen[i][j])  // new plot?
                 add_r(&sum, price(i, j));
     printf("%d %d\n", sum.x, sum.y);  // example: 1930 1206, input: 1361494 830516
