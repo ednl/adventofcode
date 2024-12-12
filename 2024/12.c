@@ -35,14 +35,18 @@
     #define N 140
 #endif
 #define SSIZE 128  // max needed for my input: 116
-#define TOP 1
-#define BTM 2
-#define LFT 4
-#define RGT 8
-#define TL (TOP | LFT)
-#define BL (BTM | LFT)
-#define TR (TOP | RGT)
-#define BR (BTM | RGT)
+
+// Orthogonal directions
+#define TOP (1 << 0)  // bit 0
+#define BTM (1 << 1)  // bit 1
+#define LFT (1 << 2)  // bit 2
+#define RGT (1 << 3)  // bit 3
+
+// Diagonal directions
+#define T_L (TOP | LFT)
+#define B_L (BTM | LFT)
+#define T_R (TOP | RGT)
+#define B_R (BTM | RGT)
 
 typedef struct vec {
     int x, y;
@@ -103,29 +107,29 @@ static Vec price(int i, int j)
         // Inside corners always formed by 3 plants, so they are counted triple
         // => also count outside corners triple, and divide by 3 afterwards
         // "7JLF" are angle shapes of three plants with an inside corner
-        switch (nb[i][j] & TL) {                                     // top left
+        switch (nb[i][j] & T_L) {                                    // top left
             case   0: corners += 3; break;                           // outside
             case TOP:                                                // inside 7
             case LFT: corners +=  same(i - 1, j - 1, plant); break;  // inside L
-            case  TL: corners += !same(i - 1, j - 1, plant); break;  // inside J
+            case T_L: corners += !same(i - 1, j - 1, plant); break;  // inside J
         }
-        switch (nb[i][j] & BL) {                                     // bottom left
+        switch (nb[i][j] & B_L) {                                    // bottom left
             case   0: corners += 3; break;                           // outside
             case BTM:                                                // inside J
             case LFT: corners +=  same(i + 1, j - 1, plant); break;  // inside F
-            case  BL: corners += !same(i + 1, j - 1, plant); break;  // inside 7
+            case B_L: corners += !same(i + 1, j - 1, plant); break;  // inside 7
         }
-        switch (nb[i][j] & TR) {                                     // top right
+        switch (nb[i][j] & T_R) {                                    // top right
             case   0: corners += 3; break;                           // outside
             case TOP:                                                // inside F
             case RGT: corners +=  same(i - 1, j + 1, plant); break;  // inside J
-            case  TR: corners += !same(i - 1, j + 1, plant); break;  // inside L
+            case T_R: corners += !same(i - 1, j + 1, plant); break;  // inside L
         }
-        switch (nb[i][j] & BR) {                                     // bottom right
+        switch (nb[i][j] & B_R) {                                    // bottom right
             case   0: corners += 3; break;                           // outside
             case BTM:                                                // inside L
             case RGT: corners +=  same(i + 1, j + 1, plant); break;  // inside 7
-            case  BR: corners += !same(i + 1, j + 1, plant); break;  // inside F
+            case B_R: corners += !same(i + 1, j + 1, plant); break;  // inside F
         }
     } while (pop(&i, &j));
     corners /= 3;  // deduplicate
