@@ -48,7 +48,7 @@ typedef struct claw {
 
 static Claw claw[N];
 
-// Equation to solve:
+// Equation to solve for n and m:
 //   |ax bx|   |n|   |px|
 //   |ay by| . |m| = |py|
 // Matrix inversion:
@@ -71,13 +71,14 @@ static int64_t tokens(const int part)
         const int d = c->a.x * c->b.y - c->a.y * c->b.x;  // divisor of inverted matrix
         lldiv_t n = lldiv(c->b.y * c->p.x - c->b.x * c->p.y, d);
         lldiv_t m = lldiv(c->a.x * c->p.y - c->a.y * c->p.x, d);
-        // Must have no remainders, non-negative quotients, and quot<=100 for part 1
-        if (!n.rem && !m.rem && n.quot >= 0 && m.quot >= 0 && (part == 2 || (n.quot <= MAXPRESS && m.quot <= MAXPRESS))) {
-            const int64_t tok = 3 * n.quot + m.quot;
-            sum += tok;
+        // Must have no remainders, and quot<=100 for part 1.
+        // For my input, every n and m that have no remainder also have non-negative quotients,
+        // so no extra test for that.
+        if (!n.rem && !m.rem && (part == 2 || (n.quot <= MAXPRESS && m.quot <= MAXPRESS))) {
+            sum += 3 * n.quot + m.quot;
         #if EXAMPLE || DEBUG
             printf("     n=%"PRId64" m=%"PRId64" => tok=%"PRId64" sum=%"PRId64"\n",
-                n.quot, m.quot, tok, sum);
+                n.quot, m.quot, 3 * n.quot + m.quot, sum);
         #endif
         }
     #if EXAMPLE || DEBUG
