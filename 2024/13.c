@@ -51,7 +51,7 @@ static Claw claw[N];
 // Equation to solve for n,m:
 //   |ax bx|   |n|   |px|
 //   |ay by| . |m| = |py|
-// Matrix inversion:
+// Matrix inversion, or https://en.wikipedia.org/wiki/Cramer%27s_rule :
 //   |n|                       | by -bx|   |px|
 //   |m| = 1/(ax.by - ay.bx) . |-ay  ax| . |py|
 // =>
@@ -64,28 +64,15 @@ static int64_t tokens(const int part)
     int64_t sum = 0;
     for (int i = 0; i < N; ++i) {
         const Claw *const c = &claw[i];  // convenience pointer
-    #if EXAMPLE || DEBUG
-        printf("\n%3d: a(%"PRId64",%"PRId64") b(%"PRId64",%"PRId64") p(%"PRId64",%"PRId64")\n",
-            i, c->a.x, c->a.y, c->b.x, c->b.y, c->p.x, c->p.y);
-    #endif
-        const int64_t det = c->a.x * c->b.y - c->a.y * c->b.x;  // determinant = divisor of inverted matrix
-        lldiv_t n = lldiv(c->b.y * c->p.x - c->b.x * c->p.y, det);
-        lldiv_t m = lldiv(c->a.x * c->p.y - c->a.y * c->p.x, det);
-        // Must have no remainders, and quot<=100 for part 1.
+        // Determinant = divisor of inverted matrix. Must not be zero, but never is for my input.
+        const int64_t det = c->a.x * c->b.y - c->a.y * c->b.x;
+        // Divisions must have no remainders, and quot<=100 for part 1.
         // For my input, every n and m that have no remainder also have non-negative quotients,
-        // so no extra test for that.
-        if (!n.rem && !m.rem && (part == 2 || (n.quot <= MAXPRESS && m.quot <= MAXPRESS))) {
+        // (strictly positive, even) so no extra test for that.
+        const lldiv_t n = lldiv(c->b.y * c->p.x - c->b.x * c->p.y, det);
+        const lldiv_t m = lldiv(c->a.x * c->p.y - c->a.y * c->p.x, det);
+        if (!n.rem && !m.rem && (part == 2 || (n.quot <= MAXPRESS && m.quot <= MAXPRESS)))
             sum += 3 * n.quot + m.quot;
-        #if EXAMPLE || DEBUG
-            printf("     n=%"PRId64" m=%"PRId64" => tok=%"PRId64" sum=%"PRId64"\n",
-                n.quot, m.quot, 3 * n.quot + m.quot, sum);
-        #endif
-        }
-    #if EXAMPLE || DEBUG
-        else
-            printf("XXX  n=%"PRId64" rem %"PRId64", m=%"PRId64" rem %"PRId64"\n",
-                n.quot, n.rem, m.quot, m.rem);
-    #endif
     }
     return sum;
 }
