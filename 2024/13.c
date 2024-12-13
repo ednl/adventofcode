@@ -68,9 +68,9 @@ static int64_t tokens(const int part)
         printf("\n%3d: a(%"PRId64",%"PRId64") b(%"PRId64",%"PRId64") p(%"PRId64",%"PRId64")\n",
             i, c->a.x, c->a.y, c->b.x, c->b.y, c->p.x, c->p.y);
     #endif
-        const int64_t d = c->a.x * c->b.y - c->a.y * c->b.x;  // divisor of inverted matrix
-        lldiv_t n = lldiv(c->b.y * c->p.x - c->b.x * c->p.y, d);
-        lldiv_t m = lldiv(c->a.x * c->p.y - c->a.y * c->p.x, d);
+        const int64_t det = c->a.x * c->b.y - c->a.y * c->b.x;  // determinant = divisor of inverted matrix
+        lldiv_t n = lldiv(c->b.y * c->p.x - c->b.x * c->p.y, det);
+        lldiv_t m = lldiv(c->a.x * c->p.y - c->a.y * c->p.x, det);
         // Must have no remainders, and quot<=100 for part 1.
         // For my input, every n and m that have no remainder also have non-negative quotients,
         // so no extra test for that.
