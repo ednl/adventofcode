@@ -30,13 +30,13 @@
 #define EXAMPLE 0
 #if EXAMPLE
     #define FNAME "../aocinput/2024-13-example.txt"
-    #define N 4
+    #define N 4  // claw machines in example file
 #else
     #define FNAME "../aocinput/2024-13-input.txt"
-    #define N 320
+    #define N 320  // claw machines in input file
 #endif
 #define MAXPRESS 100
-#define CONVERSION INT64_C(10000000000000)
+#define CORRECTION INT64_C(10000000000000)
 
 typedef struct vec {
     int64_t x, y;
@@ -52,25 +52,26 @@ static Claw claw[N];
 //   |ax bx|   |n|   |px|
 //   |ay by| . |m| = |py|
 // Matrix inversion:
-//   |n|                        |by -bx|   |px|
-//   |m| = (ax.by - ay.bx)^-1 . |-ay ax| . |py|
+//   |n|                       | by -bx|   |px|
+//   |m| = 1/(ax.by - ay.bx) . |-ay  ax| . |py|
 // =>
 //   n = (by.px - bx.py) / (ax.by - ay.bx)
 //   m = (ax.py - ay.px) / (ax.by - ay.bx)
 // Restrictions: n,m integer >= 0. For part 1 also: n,m <= 100.
-// Return: sum of all valid token counts = 3n + m
+// Return: sum of all valid token counts 3n+m
 static int64_t tokens(const int part)
 {
     int64_t sum = 0;
     for (int i = 0; i < N; ++i) {
-        const Claw *const c = &claw[i];
+        const Claw *const c = &claw[i];  // convenience pointer
     #if EXAMPLE || DEBUG
         printf("\n%3d: a(%"PRId64",%"PRId64") b(%"PRId64",%"PRId64") p(%"PRId64",%"PRId64")\n",
             i, c->a.x, c->a.y, c->b.x, c->b.y, c->p.x, c->p.y);
     #endif
-        const int d = c->a.x * c->b.y - c->a.y * c->b.x;
+        const int d = c->a.x * c->b.y - c->a.y * c->b.x;  // divisor of inverted matrix
         lldiv_t n = lldiv(c->b.y * c->p.x - c->b.x * c->p.y, d);
         lldiv_t m = lldiv(c->a.x * c->p.y - c->a.y * c->p.x, d);
+        // Must have no remainders, non-negative quotients, and quot<=100 for part 1
         if (!n.rem && !m.rem && n.quot >= 0 && m.quot >= 0 && (part == 2 || (n.quot <= MAXPRESS && m.quot <= MAXPRESS))) {
             const int64_t tok = 3 * n.quot + m.quot;
             sum += tok;
@@ -104,10 +105,10 @@ int main(void)
     // Part 1
     printf("Part 1: %"PRId64"\n", tokens(1));  // example: 480, input: 29598
 
-    // Part 2
+    // Part 2, "a unit conversion error in your measurements"
     for (int i = 0; i < N; ++i) {
-        claw[i].p.x += CONVERSION;
-        claw[i].p.y += CONVERSION;
+        claw[i].p.x += CORRECTION;
+        claw[i].p.y += CORRECTION;
     }
     printf("Part 2: %"PRId64"\n", tokens(2));  // example: 875318608908, input: 93217456941970
 
