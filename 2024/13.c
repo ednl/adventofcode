@@ -13,10 +13,10 @@
  * Get minimum runtime from timer output:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Mac Mini 2020 (M1 3.2 GHz)                       :  5.25 µs
- *     Raspberry Pi 5 (2.4 GHz)                         : 11.5  µs
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 26.8  µs
- *     Raspberry Pi 4 (1.8 GHz)                         : 28.6  µs
+ *     Mac Mini 2020 (M1 3.2 GHz)                       :  5.2 µs
+ *     Raspberry Pi 5 (2.4 GHz)                         : 11.5 µs
+ *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 26.8 µs
+ *     Raspberry Pi 4 (1.8 GHz)                         : 28.6 µs
  */
 
 #include <stdio.h>
@@ -65,6 +65,8 @@ static int64_t tokens(const int part)
     for (int i = 0; i < N; ++i) {
         const Claw *const c = &claw[i];  // convenience pointer
         // Determinant = divisor of inverted matrix. Must not be zero, but never is for my input.
+        // Possible faster to calculate only once, because it's constant between part 1 & 2,
+        // but it made no measurable difference on my Apple M1; still 5.2 µs.
         const int64_t det = c->a.x * c->b.y - c->a.y * c->b.x;
         // Divisions must have no remainders, and quot<=100 for part 1.
         // For my input, every n and m that have no remainder also have non-negative quotients,
@@ -93,7 +95,8 @@ int main(void)
     // Part 1
     printf("Part 1: %"PRId64"\n", tokens(1));  // example: 480, input: 29598
 
-    // Part 2, "a unit conversion error in your measurements"
+    // Part 2
+    // Correction for "a unit conversion error in your measurements"
     for (int i = 0; i < N; ++i) {
         claw[i].p.x += CORRECTION;
         claw[i].p.y += CORRECTION;
