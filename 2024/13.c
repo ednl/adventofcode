@@ -65,7 +65,7 @@ static int64_t tokens(const int part)
     for (int i = 0; i < N; ++i) {
         const Claw *const c = &claw[i];  // convenience pointer
         // Determinant = divisor of inverted matrix. Must not be zero, but never is for my input.
-        // Possible faster to calculate only once, because it's constant between part 1 & 2,
+        // Possible faster to calculate only once, because it's constant between parts 1 & 2,
         // but it made no measurable difference on my Apple M1; still 5.2 µs.
         const int64_t det = c->a.x * c->b.y - c->a.y * c->b.x;
         // Divisions must have no remainders, and quot<=100 for part 1.
@@ -102,7 +102,6 @@ int main(void)
         claw[i].p.y += CORRECTION;
     }
     printf("Part 2: %"PRId64"\n", tokens(2));  // example: 875318608908, input: 93217456941970
-
 
 #ifdef TIMER
     printf("Time: %.0f ns\n", stoptimer_ns());
