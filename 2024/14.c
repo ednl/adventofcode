@@ -5,12 +5,26 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -Wall -Wextra -O3 -march=native 14.c
- *    gcc   -std=gnu17 -Wall -Wextra -O3 -march=native 14.c
+ *    clang -std=gnu17 -Wall -Wextra 14.c
+ *    gcc   -std=gnu17 -Wall -Wextra 14.c
+ * Enable timer:
+ *    clang -DTIMER -O3 -march=native 14.c ../startstoptimer.c
+ *    gcc   -DTIMER -O3 -march=native 14.c ../startstoptimer.c
+ * Get minimum runtime from timer output:
+ *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Mac Mini 2020 (M1 3.2 GHz)                       : 7.49 ms
+ *     Raspberry Pi 5 (2.4 GHz)                         :    ? ms
+ *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :    ? ms
+ *     Raspberry Pi 4 (1.8 GHz)                         :    ? ms
  */
 
 #include <stdio.h>
 #include <string.h>  // memset
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
+
 #define EXAMPLE 0
 #if EXAMPLE
     #define FNAME "../aocinput/2024-14-example.txt"
@@ -50,6 +64,7 @@ typedef union nine {
 static Vec p[N];  // position
 static Vec v[N];  // velocity
 
+#if !EXAMPLE && !defined(TIMER)
 static void show(void)
 {
     char map[Y][X];
@@ -59,18 +74,14 @@ static void show(void)
             map[p[i].y][p[i].x] = '1';  // first robot
         else
             map[p[i].y][p[i].x]++;  // more robots
-#if EXAMPLE
-    for (int i = 0; i < Y; ++i) {
-        for (int j = 0; j < X; ++j)
-#else
     // Region of interest for my input
     for (int i = 44; i < 77; ++i) {
         for (int j = 35; j < 66; ++j)
-#endif
             putchar(map[i][j]);
         putchar('\n');
     }
 }
+#endif
 
 // Non-negative remainder (for positive m)
 static int mod(const int a, const int m)
@@ -120,6 +131,10 @@ int main(void)
             &p[i].x, &p[i].y, &v[i].x, &v[i].y);
     fclose(f);
 
+#ifdef TIMER
+    starttimer();
+#endif
+
     // Part 1
     Quad quad = {0};
     for (int i = 0; i < N; ++i) {
@@ -145,7 +160,13 @@ int main(void)
             p[i].y = mod(p[i].y + v[i].y, Y);
         }
     printf("Part 2: %d\n", sec);  // example: -, input: 7858
+#ifndef TIMER
     show();
+#endif
+#endif
+
+#ifdef TIMER
+    printf("Time: %.0f us\n", stoptimer_us());
 #endif
     return 0;
 }
