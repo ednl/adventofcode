@@ -29,22 +29,22 @@ typedef struct vec {
     int x, y;
 } Vec;
 
-// Split map into 2x2 = 4 regions
+// Split map into 2x2=4 regions
 typedef union quad {
-    int a[4];
-    int m[2][2];
+    int a[4];     // access as array
+    int m[2][2];  // access as matrix
 } Quad;
 
-// Split map into 3x3 = 9 regions
+// Split map into 3x3=9 regions
 typedef union nine {
-    int a[9];
-    int m[3][3];
+    int a[9];     // access as array
+    int m[3][3];  // access as matrix
 } Nine;
 
-// Split map into 4x4 = 16 regions (quad-quad)
+// Split map into 4x4=16 regions ("quad-quad")
 // typedef union qq {
-//     int a[16];
-//     int m[4][4];
+//     int a[16];    // access as array
+//     int m[4][4];  // access as matrix
 // } QQ;
 
 static Vec p[N];  // position
@@ -79,7 +79,7 @@ static int mod(const int a, const int m)
     return b >= 0 ? b : b + m;
 }
 
-// Integer variance of distribution over 3x3 = 9 regions.
+// Integer variance of distribution over 3x3=9 regions.
 // Experimental parameters: prevmax=2860, prv=37, fin=8048, fin/prv=217
 // so the target configuration is the first one with var3 above 3000.
 static int var3(void)
@@ -95,7 +95,7 @@ static int var3(void)
     return (var / 9);  // normalise for 9 regions
 }
 
-// Integer variance of distribution over 4x4 = 16 regions
+// Integer variance of distribution over 4x4=16 regions
 // Experimental parameters: prevmax=969, prv=29, fin=2318, fin/prv=79
 // so the target configuration is the first one with var4 above 1000.
 // static int var4(void)
@@ -136,8 +136,8 @@ int main(void)
 #if !EXAMPLE
     // Part 2
     // Experimentally found variance threshold; for my input the
-    // tree configuration has var3=8048, the first one above 3000,
-    // or var4=2318, the first one above 1000.
+    // tree configuration has: var3=8048, the first one above 3000,
+    // or: var4=2318, the first one above 1000.
     int sec = T;
     for (; var3() < 3000; ++sec)
         for (int i = 0; i < N; ++i) {
