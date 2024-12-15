@@ -16,13 +16,14 @@
  * Get minimum runtime from timer output:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Mac Mini 2020 (M1 3.2 GHz)                       :  319 µs
- *     Raspberry Pi 5 (2.4 GHz)                         :  818 µs
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 1049 µs
- *     Raspberry Pi 4 (1.8 GHz)                         : 1399 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)                       :  ? µs
+ *     Raspberry Pi 5 (2.4 GHz)                         :  ? µs
+ *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 72 µs
+ *     Raspberry Pi 4 (1.8 GHz)                         :  ? µs
  */
 
 #include <stdio.h>
+#include <limits.h>  // INT_MAX
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
@@ -32,56 +33,34 @@
 #define Y 103  // height
 #define T 100  // part 1: 100 seconds
 
+// Part 2: inv{a} (mod m) = b, if a*b = 1 (mod m)
+// inv{101} (mod 103) = 51, because 101*51 = 5151 = 1 (mod 103)
+// https://en.wikipedia.org/wiki/Modular_multiplicative_inverse
+#define INVX 51
+
 static int px[N];  // x-position
 static int py[N];  // y-position
 static int vx[N];  // x-velocity
 static int vy[N];  // y-velocity
 
-// Non-negative remainder (for positive m)
-static int mod(const int a, const int m)
-{
-    const int b = a % m;
-    return b >= 0 ? b : b + m;
-}
-
-// https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford%27s_online_algorithm
-static int var(const int *const p)
-{
-    int mean = 0, M2 = 0;
-    for (int i = 0; i < N; ++i) {
-        // Update running mean and unscaled variance
-        const int delta = p[i] - mean;
-        mean += delta / (i + 1);
-        M2 += delta * (p[i] - mean);
-    }
-    // Scale as population variance (= exact variance of given data)
-    return M2 / N;
-}
-
 // Find timestep where set of coordinates (either x or y) has minimal variance.
-static int best(int *const p, const int *const v, const int len)
+static int best(const int *const p, const int *const v, const int mod)
 {
-    int tmin = 0, varmin = var(p);
-    for (int t = 0; t < len; ++t) {  // 'len' steps = reset to start
-        for (int i = 0; i < N; ++i)
-            p[i] = mod(p[i] + v[i], len);
-        const int cur = var(p);
-        if (cur < varmin) {
-            varmin = cur;
-            tmin = t + 1;  // t=0: 1 step done
+    int tmin = -1, varmin = INT_MAX;
+    for (int t = 0; t < mod; ++t) {
+        int sum = 0, sum2 = 0;
+        for (int i = 0; i < N; ++i) {
+            const int q = (p[i] + (v[i] + mod) * t) % mod;
+            sum += q;
+            sum2 += q * q;
+        }
+        const int var = (sum2 - sum * sum / N) / N;
+        if (var < varmin) {
+            varmin = var;
+            tmin = t;
         }
     }
     return tmin;
-}
-
-// https://en.wikipedia.org/wiki/Modular_multiplicative_inverse
-// b = inv(a) (mod m) if a*b (mod m) = 1
-static int inv(const int a, const int m)
-{
-    for (int b = 2; b < m; ++b)
-        if (a * b % m == 1)
-            return b;
-    return 0;
 }
 
 int main(void)
@@ -96,6 +75,20 @@ int main(void)
     starttimer();
 #endif
 
+    // Part 1
+    union {
+        int a[4];     // access as 1D array
+        int m[2][2];  // access as 2D array (matrix)
+    } quad = {0};
+    for (int i = 0; i < N; ++i) {
+        const int qx = (px[i] + (vx[i] + X) * T) % X;
+        const int qy = (py[i] + (vy[i] + Y) * T) % Y;
+        if (qx != (X >> 1) && qy != (Y >> 1))  // skip central lines
+            ++quad.m[qy / ((Y >> 1) + 1)][qx / ((X >> 1) + 1)];
+    }
+    const int prod = quad.a[0] * quad.a[1] * quad.a[2] * quad.a[3];
+    printf("Part 1: %d\n", prod);  // 221655456
+
     // Part 2
     // (this part first because positions get reset to start)
     // x and y are independent
@@ -105,27 +98,12 @@ int main(void)
     // find ty in t=[0,Y) where variance of py is minimal (= y-coordinates clustered)
     const int tx = best(px, vx, X);
     const int ty = best(py, vy, Y);
-    // t = tx (mod X) => t = tx+k*X
-    // t = ty (mod Y) => tx+k*X = ty (mod Y) => k = invX*(ty-tx) (mod Y)
-    // => t = tx+invX*(ty-tx)*X (mod X*Y)
-    //   where invX (mod Y) = pow(101,-1,103) = 51, because 101*51 = 5151 = 1 (mod 103)
-    const int invX = inv(101, 103);  // 51
-    const int t = mod(tx + invX * (ty - tx) * X, X * Y);
+    // t = tx (mod X) => t = tx + k * X
+    // t = ty (mod Y) => tx + k * X = ty (mod Y) => k = invX * (ty - tx) (mod Y)
+    // => t = tx + (invX * (ty - tx) (mod Y)) * X
+    // where invX (mod Y) = pow(101,-1,103) = 51, because 101 * 51 = 5151 = 1 (mod 103)
+    const int t = tx + (INVX * (ty - tx + Y) % Y) * X;  // tx may be greater than ty
     printf("Part 2: %d\n", t);  // 7858
-
-    // Part 1
-    union {
-        int a[4];     // access as 1D array
-        int m[2][2];  // access as 2D array (matrix)
-    } quad = {0};
-    for (int i = 0; i < N; ++i) {
-        px[i] = mod(px[i] + vx[i] * T, X);  // 100 time steps in one
-        py[i] = mod(py[i] + vy[i] * T, Y);
-        if (px[i] != (X >> 1) && py[i] != (Y >> 1))  // skip central lines
-            ++quad.m[py[i] / ((Y >> 1) + 1)][px[i] / ((X >> 1) + 1)];
-    }
-    const int prod = quad.a[0] * quad.a[1] * quad.a[2] * quad.a[3];
-    printf("Part 1: %d\n", prod);  // 221655456
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
