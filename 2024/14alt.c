@@ -48,13 +48,19 @@ static int clustered(const int *const p, const int *const v, const int mod)
 {
     int tmin = -1, varmin = INT_MAX;
     for (int t = 0; t < mod; ++t) {
-        int sum = 0, sum2 = 0;
+        int sum = 0, sum2 = 0;  // basic definition of variance only has add and mul inside the loop
+        // int mean = 0, M2 = 0;  // running mean version also has div and is 270 µs slower on M1
         for (int i = 0; i < N; ++i) {
             const int q = (p[i] + (v[i] + mod) * t) % mod;
             sum += q;
             sum2 += q * q;
+            // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford%27s_online_algorithm
+            // const int delta = q - mean;
+            // mean += delta / (i + 1);
+            // M2 += delta * (q - mean);
         }
         const int var = (sum2 - sum * sum / N) / N;
+        // const int var =  M2 / N;
         if (var < varmin) {
             varmin = var;
             tmin = t;
