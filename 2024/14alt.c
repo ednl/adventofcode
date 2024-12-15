@@ -4,22 +4,22 @@
  * https://adventofcode.com/2024/day/14
  * By: E. Dronkert https://github.com/ednl
  *
- * Guided by /u/i_have_no_biscuits as layed out in
+ * Theory explained by /u/i_have_no_biscuits in
  * https://www.reddit.com/r/adventofcode/comments/1he0asr/2024_day_14_part_2_why_have_fun_with_image/
  *
  * Compile:
- *    clang -std=gnu17 -Wall -Wextra 14.c
- *    gcc   -std=gnu17 -Wall -Wextra 14.c
+ *    clang -std=gnu17 -Wall -Wextra 14alt.c
+ *    gcc   -std=gnu17 -Wall -Wextra 14alt.c
  * Enable timer:
- *    clang -DTIMER -O3 -march=native 14.c ../startstoptimer.c
- *    gcc   -DTIMER -O3 -march=native 14.c ../startstoptimer.c
+ *    clang -DTIMER -O3 -march=native 14alt.c ../startstoptimer.c
+ *    gcc   -DTIMER -O3 -march=native 14alt.c ../startstoptimer.c
  * Get minimum runtime from timer output:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Mac Mini 2020 (M1 3.2 GHz)                       :  ? µs
- *     Raspberry Pi 5 (2.4 GHz)                         :  ? µs
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 72 µs
- *     Raspberry Pi 4 (1.8 GHz)                         :  ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)                       :   ? µs
+ *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :  72 µs
+ *     Raspberry Pi 5 (2.4 GHz)                         : 356 µs
+ *     Raspberry Pi 4 (1.8 GHz)                         : 531 µs
  */
 
 #include <stdio.h>
@@ -43,8 +43,8 @@ static int py[N];  // y-position
 static int vx[N];  // x-velocity
 static int vy[N];  // y-velocity
 
-// Find timestep where set of coordinates (either x or y) has minimal variance.
-static int best(const int *const p, const int *const v, const int mod)
+// Find timestep where set of coordinates (either x or y) has minimal variance
+static int clustered(const int *const p, const int *const v, const int mod)
 {
     int tmin = -1, varmin = INT_MAX;
     for (int t = 0; t < mod; ++t) {
@@ -66,6 +66,7 @@ static int best(const int *const p, const int *const v, const int mod)
 int main(void)
 {
     FILE *f = fopen("../aocinput/2024-14-input.txt", "r");
+    if (!f) { fputs("File not found.", stderr); return 1; }
     for (int i = 0; i < N; ++i)
         fscanf(f, "p=%d,%d v=%d,%d ",
             &px[i], &py[i], &vx[i], &vy[i]);
@@ -76,17 +77,14 @@ int main(void)
 #endif
 
     // Part 1
-    union {
-        int a[4];     // access as 1D array
-        int m[2][2];  // access as 2D array (matrix)
-    } quad = {0};
+    int quad[2][2] = {0};
     for (int i = 0; i < N; ++i) {
         const int qx = (px[i] + (vx[i] + X) * T) % X;
         const int qy = (py[i] + (vy[i] + Y) * T) % Y;
         if (qx != (X >> 1) && qy != (Y >> 1))  // skip central lines
-            ++quad.m[qy / ((Y >> 1) + 1)][qx / ((X >> 1) + 1)];
+            ++quad[qy / ((Y >> 1) + 1)][qx / ((X >> 1) + 1)];
     }
-    const int prod = quad.a[0] * quad.a[1] * quad.a[2] * quad.a[3];
+    const int prod = quad[0][0] * quad[0][1] * quad[1][0] * quad[1][1];
     printf("Part 1: %d\n", prod);  // 221655456
 
     // Part 2
@@ -94,10 +92,10 @@ int main(void)
     // x and y are independent
     // period of px+t*vx is t=X
     // period of py+t*vy is t=Y
-    // find tx in t=[0,X) where variance of px is minimal (= x-coordinates clustered)
-    // find ty in t=[0,Y) where variance of py is minimal (= y-coordinates clustered)
-    const int tx = best(px, vx, X);
-    const int ty = best(py, vy, Y);
+    // find tx in t=[0,X) where variance of px is minimal
+    // find ty in t=[0,Y) where variance of py is minimal
+    const int tx = clustered(px, vx, X);
+    const int ty = clustered(py, vy, Y);
     // t = tx (mod X) => t = tx + k * X
     // t = ty (mod Y) => tx + k * X = ty (mod Y) => k = invX * (ty - tx) (mod Y)
     // => t = tx + (invX * (ty - tx) (mod Y)) * X
