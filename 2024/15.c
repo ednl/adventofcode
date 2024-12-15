@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdbool.h>
 
 #define EXAMPLE 0
 #if EXAMPLE == 1
@@ -17,7 +18,7 @@
     #define L 20
     #define M 1000
 #endif
-#define MOVES (L * M)
+#define MOVES (L * (M + 1))
 #define FLOOR '.'
 #define WALL  '#'
 #define BOX   'O'
@@ -31,11 +32,12 @@ typedef enum dir {
     RIGHT, DOWN, LEFT, UP
 } Dir;
 
+// Same order as 'enum dir'
 static const Pos step[] = {{1,0},{0,1},{-1,0},{0,-1}};
-static const Pos back[] = {{-1,0},{0,-1},{1,0},{0,1}};
 
 static char map[N][N + 1];
-static char move[L][M + 1];
+static char move[MOVES];
+static Pos robot;
 
 static void show(void)
 {
@@ -44,6 +46,7 @@ static void show(void)
             putchar(map[i][j]);
         putchar('\n');
     }
+    putchar('\n');
 }
 
 static inline Pos add(const Pos a, const Pos b)
@@ -76,38 +79,17 @@ static Pos findrobot(void)
     return (Pos){0};
 }
 
-static void shift(Pos *const robot, const Dir dir, const int amount)
+static bool shift(const Pos pos, const Dir dir)
 {
-    Pos end = add(*robot, step[dir]);
-    int floor = 0, len;
-    for (len = 0; peek(end) != WALL && floor < amount; ++len) {
-        floor += peek(end) == FLOOR;
-        add_r(&end, step[dir]);
+    const Pos next = add(pos, step[dir]);
+    if (peek(next) == WALL)
+        return false;
+    if (peek(next) == FLOOR || shift(next, dir)) {
+        poke(next, peek(pos));
+        poke(pos, FLOOR);
+        return true;
     }
-    if (!floor)
-        return;
-    int boxes = len - floor;
-    while (boxes--) {
-        add_r(&end, back[dir]);
-        poke(end, BOX);
-    }
-    add_r(&end, back[dir]);
-    poke(end, ROBOT);
-    *robot = end;
-    while (floor--) {
-        add_r(&end, back[dir]);
-        poke(end, FLOOR);
-    }
-}
-
-static void combomove(Pos *const robot, const char instr, const int amount)
-{
-    switch (instr) {
-        case '<': shift(robot, LEFT , amount); break;
-        case '>': shift(robot, RIGHT, amount); break;
-        case '^': shift(robot, UP   , amount); break;
-        case 'v': shift(robot, DOWN , amount); break;
-    }
+    return false;
 }
 
 static int gps(void)
@@ -128,19 +110,14 @@ int main(void)
     fgetc(f);  // empty line
     fread(move, sizeof move, 1, f);
 
-    Pos robot = findrobot();
-    char prev = move[0][0];
-    int amount = 0;
-    for (int i = 0; i < L; ++i)
-        for (int j = 0; j < M; ++j) {
-            if (move[i][j] != prev) {
-                combomove(&robot, prev, amount);
-                prev = move[i][j];
-                amount = 1;
-            } else
-                ++amount;
+    robot = findrobot();
+    for (int i = 0; i < MOVES; ++i)
+        switch (move[i]) {
+            case '>': if (shift(robot, RIGHT)) add_r(&robot, step[RIGHT]); break;
+            case 'v': if (shift(robot, DOWN )) add_r(&robot, step[DOWN ]); break;
+            case '<': if (shift(robot, LEFT )) add_r(&robot, step[LEFT ]); break;
+            case '^': if (shift(robot, UP   )) add_r(&robot, step[UP   ]); break;
         }
-    combomove(&robot, prev, amount);  // last batch
     show();
     printf("Part 1: %d\n", gps());  // example 1: 2028, example 2: 10092, input: 1497888
     return 0;
