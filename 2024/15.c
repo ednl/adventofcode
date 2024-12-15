@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#define EXAMPLE 0
+#define EXAMPLE 2
 #if EXAMPLE == 1
     #define FNAME "../aocinput/2024-15-example1.txt"
     #define N 8
@@ -36,17 +36,14 @@ typedef enum dir {
 static const Pos step[] = {{1,0},{0,1},{-1,0},{0,-1}};
 
 static char map[N][N + 1];
+static char map2[N][N * 2 + 1];
 static char move[MOVES];
 static Pos robot;
 
-static void show(void)
+static void show(const char *a, const size_t size)
 {
-    for (int i = 0; i < N; ++i) {
-        for (int j = 0; j < N; ++j)
-            putchar(map[i][j]);
-        putchar('\n');
-    }
-    putchar('\n');
+    for (size_t i = 0; i < size; ++i)
+        putchar(*a++);
 }
 
 static inline Pos add(const Pos a, const Pos b)
@@ -102,14 +99,27 @@ static int gps(void)
     return sum;
 }
 
+static int gps2(void)
+{
+    int sum = 0;
+    for (int i = 1; i < N - 1; ++i)  // skip border
+        for (int j = 2; j < N * 2 - 2; ++j)
+            if (map2[i][j] == '[')
+                sum += i * 100 + j;
+    return sum;
+}
+
 int main(void)
 {
+    // Read file
     FILE *f = fopen(FNAME, "rb");
     if (!f) return 1;
     fread(map, sizeof map, 1, f);
     fgetc(f);  // empty line
     fread(move, sizeof move, 1, f);
+    fclose(f);
 
+    // Part 1
     robot = findrobot();
     for (int i = 0; i < MOVES; ++i)
         switch (move[i]) {
@@ -118,7 +128,26 @@ int main(void)
             case '<': if (shift(robot, LEFT )) add_r(&robot, step[LEFT ]); break;
             case '^': if (shift(robot, UP   )) add_r(&robot, step[UP   ]); break;
         }
-    show();
+    show(&map[0][0], sizeof map);
     printf("Part 1: %d\n", gps());  // example 1: 2028, example 2: 10092, input: 1497888
+
+    // Part 2
+    // Read original map
+    f = fopen(FNAME, "rb");
+    fread(map, sizeof map, 1, f);
+    fclose(f);
+    // Scale up horizontally
+    for (int i = 0; i < N; ++i)
+        for (int j = 0; j <= N; ++j)  // include newline
+            switch (map[i][j]) {
+                case '#' : map2[i][j * 2] = '#'; map2[i][j * 2 + 1] = '#'; break;
+                case 'O' : map2[i][j * 2] = '['; map2[i][j * 2 + 1] = ']'; break;
+                case '.' : map2[i][j * 2] = '.'; map2[i][j * 2 + 1] = '.'; break;
+                case '@' : map2[i][j * 2] = '@'; map2[i][j * 2 + 1] = '.'; robot = (Pos){j * 2, i}; break;
+                case '\n': map2[i][j * 2] = '\n'; break;
+            }
+    // TODO
+    show(&map2[0][0], sizeof map2);
+    printf("Part 2: %d\n", gps2());  // example 1: ?, example 2: 9021, input: ?
     return 0;
 }
