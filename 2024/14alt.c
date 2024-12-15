@@ -7,6 +7,12 @@
  * Theory explained by /u/i_have_no_biscuits in
  * https://www.reddit.com/r/adventofcode/comments/1he0asr/2024_day_14_part_2_why_have_fun_with_image/
  *
+ * Speed tips by /u/wurlin_murlin in
+ * https://www.reddit.com/r/adventofcode/comments/1he0asr/2024_day_14_part_2_why_have_fun_with_image/m237y29/
+ * - Avoid costly variance calculation with running mean divisions. Instead use the basic definition.
+ * - Avoid storing all calculated positions back into the array on every loop, use local (register?) variable.
+ * - Avoid branch to get the non-negative remainder, instead add (positive) period before taking the modulus.
+ *
  * Compile:
  *    clang -std=gnu17 -Wall -Wextra 14alt.c
  *    gcc   -std=gnu17 -Wall -Wextra 14alt.c
@@ -87,7 +93,7 @@ int main(void)
     for (int i = 0; i < N; ++i) {
         const int qx = (px[i] + (vx[i] + X) * T) % X;
         const int qy = (py[i] + (vy[i] + Y) * T) % Y;
-        if (qx != (X >> 1) && qy != (Y >> 1))  // skip central lines
+        if (qx != (X >> 1) && qy != (Y >> 1))  // skip central lines as per the puzzle description
             ++quad[qy / ((Y >> 1) + 1)][qx / ((X >> 1) + 1)];
     }
     const int prod = quad[0][0] * quad[0][1] * quad[1][0] * quad[1][1];
@@ -106,7 +112,7 @@ int main(void)
     // t = ty (mod Y) => tx + k * X = ty (mod Y) => k = invX * (ty - tx) (mod Y)
     // => t = tx + (invX * (ty - tx) (mod Y)) * X
     // where invX (mod Y) = pow(101,-1,103) = 51, because 101 * 51 = 5151 = 1 (mod 103)
-    const int t = tx + (INVX * (ty - tx + Y) % Y) * X;  // tx may be greater than ty
+    const int t = tx + (INVX * (ty - tx + Y) % Y) * X;  // avoid negative ty-tx
     printf("Part 2: %d\n", t);  // 7858
 
 #ifdef TIMER
