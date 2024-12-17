@@ -20,6 +20,9 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>  // qsort
+#include <stdbool.h>
+#include <limits.h>  // INT_MAX
 
 #define EXAMPLE 1
 #if EXAMPLE == 1
@@ -33,6 +36,10 @@
     #define N 141
 #endif
 
+// Cost
+#define STEP 1
+#define TURN 1000
+
 typedef struct pos {
     int x, y;
 } Pos;
@@ -45,11 +52,24 @@ typedef enum dir {
 typedef struct state {
     Pos pos;
     Dir dir;
+    int score;
 } State;
 
 // Same order as 'enum dir'
 static const Pos step[] = {{1,0},{0,1},{-1,0},{0,-1}};
 static char map[N][N + 1];
+static int dist[N][N + 1];
+static bool seen[N][N + 1];
+static Pos end;
+
+static int cmp(const void *p, const void *q)
+{
+    const int a = *(const int *)p;
+    const int b = *(const int *)q;
+    if (a < b) return -1;
+    if (a > b) return  1;
+    return 0;
+}
 
 static inline Dir turnleft(const Dir dir)
 {
@@ -59,6 +79,11 @@ static inline Dir turnleft(const Dir dir)
 static inline Dir turnright(const Dir dir)
 {
     return (dir + 1) & 3;
+}
+
+static bool eq(const Pos a, const Pos b)
+{
+    return a.x == b.x && a.y == b.y;
 }
 
 static inline Pos add(const Pos a, const Pos b)
@@ -72,12 +97,52 @@ static inline void add_r(Pos *const a, const Pos b)
     a->y += b.y;
 }
 
+static int update(const Pos p, const int tentative)
+{
+    if (map[p.y][p.x] != '#' && !seen[p.y][p.x] && tentative < dist[p.y][p.x]) {
+        dist[p.y][p.x] = tentative;
+        return tentative;
+    }
+    return dist[p.y][p.x];
+}
+
+static int walk(const State s)
+{
+    if (eq(s.pos, end))
+        return s.score;
+    // Update unvisited neighbours if necessary
+    int cost[3];
+    int cost[0] = update(add(s.pos, step[s.dir]), s.score + STEP);
+    int cost[1] = update(add(s.pos, step[turnleft(s.dir)]), s.score + TURN + STEP);
+    int cost[2] = update(add(s.pos, step[turnright(s.dir)]), s.score + TURN + STEP);
+    seen[s.pos.y][s.pos.x] = true;
+    qsort(cost, 3, sizeof *cost, cmp);
+    if (cost[0] == INT_MAX)
+        return INT_MAX;
+    // TODO
+}
+
 int main(void)
 {
     FILE *f = fopen(FNAME, "rb");
     if (!f) return 1;
     fread(map, sizeof map, 1, f);
     fclose(f);
+
+    Pos start = {0};
+    for (int i = 1; i < N - 1; ++i)
+        for (int j = 1; j < N - 1; ++j) {
+            dist[i][j] = INT_MAX;
+            switch (map[i][j]) {
+                case 'E': end   = (Pos){j, i}; break;
+                case 'S': start = (Pos){j, i}; dist[i][j] = 0; break;
+            }
+        }
+    State cur = {start, RIGHT, 0};
+
+    int score = 0;
+    // TODO
+    printf("Part1: %d\n", score);  // example 1: 7036, example 2: 11048, input: ?
 
     return 0;
 }
