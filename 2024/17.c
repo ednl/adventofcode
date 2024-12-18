@@ -98,7 +98,7 @@ static u64 rev(const Prog goal)
             if ((goal.val & mask) == res.val) {
                 if (goal.len > res.len)
                     stack[sp++] = (Prog){try, a.len + 1};
-                else if (goal.len == res.len && try < min)
+                else if (try < min)
                     min = try;
             }
         }
