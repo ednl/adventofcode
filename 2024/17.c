@@ -72,10 +72,10 @@ static Prog run(u64 a)
     u64 b = 0, c = 0;
     do {
         b = a & 7;                     //  0: bst A
-        b ^= 2;                        //  2: bxl 2 (B=0..7 -> 2,3,0,1,6,7,4,5)
+        b ^= 2;                        //  2: bxl 2
         c = a >> b;                    //  4: cdv B
         b ^= c;                        //  6: bxc
-        b ^= 3;                        //  8: bxl 3 (B=0..7 -> 3,2,1,0,7,6,5,4)
+        b ^= 3;                        //  8: bxl 3
         p.val = p.val << 3 | (b & 7);  // 10: out B
         p.len++;
         a >>= 3;                       // 12: adv 3
