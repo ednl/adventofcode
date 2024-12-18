@@ -13,10 +13,10 @@
  * Get minimum runtime from timer output:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Mac Mini 2020 (M1 3.2 GHz)                       : 10 µs
- *     Raspberry Pi 5 (2.4 GHz)                         : 21 µs
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 22 µs
- *     Raspberry Pi 4 (1.8 GHz)                         : 53 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)                       : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)                         : ? µs
+ *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 9.1 µs
+ *     Raspberry Pi 4 (1.8 GHz)                         : ? µs
  */
 
 #include <stdio.h>
@@ -27,21 +27,16 @@
 #endif
 
 typedef uint64_t u64;
-typedef struct prog {
-    u64 val;
-    int len;
-} Prog;
-
 static const char *input = "2,4,1,2,7,5,4,7,1,3,5,5,0,3,3,0";
+static u64 prog;
 
-// Output prog.val as octal with digits separated by commas.
-static char *out(Prog p)
+// Output prog value as octal with digits separated by commas.
+static char *out(u64 x)
 {
     static char csv[64] = {0};
     char buf[32], *b = buf, *c = csv;
-    snprintf(buf, sizeof buf, "%"PRIo64, p.val);
-    if (*b)
-        *c++ = *b++;
+    snprintf(buf, sizeof buf, "%"PRIo64, x);
+    *c++ = *b++;
     while (*b) {
         *c++ = ',';
         *c++ = *b++;
@@ -51,59 +46,47 @@ static char *out(Prog p)
 }
 
 // Interpret CSV line as mumber with big-endian octal digits.
-static Prog inp(const char *csv)
+static u64 inp(const char *csv)
 {
-    Prog prog = {0};
-    if (csv && *csv) {
-        prog.val = *csv++ & 15;
-        prog.len = 1;
-        while (*csv++ == ',' && prog.len < 21) {
-            prog.val = prog.val << 3 | (*csv++ & 15);
-            prog.len++;
-        }
-    }
-    return prog;
+    u64 x = *csv++ & 15;
+    while (*csv++ == ',')
+        x = x << 3 | (*csv++ & 15);
+    return x;
 }
 
 // prog: 2,4,1,2,7,5,4,7,1,3,5,5,0,3,3,0
-static Prog run(u64 a)
+static u64 run(u64 a)
 {
-    Prog p = {0};
+    u64 x = 0;
     u64 b = 0, c = 0;
     do {
-        b = a & 7;                     //  0: bst A
-        b ^= 2;                        //  2: bxl 2
-        c = a >> b;                    //  4: cdv B
-        b ^= c;                        //  6: bxc
-        b ^= 3;                        //  8: bxl 3
-        p.val = p.val << 3 | (b & 7);  // 10: out B
-        p.len++;
-        a >>= 3;                       // 12: adv 3
-    } while (a);                       // 14: jnz 0
-    return p;
+        b = a & 7;             //  0: bst A
+        b ^= 2;                //  2: bxl 2
+        c = a >> b;            //  4: cdv B
+        b ^= c;                //  6: bxc
+        b ^= 3;                //  8: bxl 3
+        x = x << 3 | (b & 7);  // 10: out B
+        a >>= 3;               // 12: adv 3
+    } while (a);               // 14: jnz 0
+    return x;
 }
 
 // Returns minimal A for which program is quine, or zero if not found.
-static u64 rev(const Prog goal)
+static u64 rev(const u64 a, int len)
 {
-    Prog stack[16] = {(Prog){0, 1}};  // a=0, len=1 (size needed for my input: 10)
-    int sp = 1;
-    u64 min = -1;
-    while (sp) {
-        const Prog a = stack[--sp];
-        const u64 mask = (UINT64_C(1) << (a.len * 3)) - 1;
-        for (unsigned i = 0; i < 8; ++i) {
-            const u64 try = a.val << 3 | i;
-            const Prog res = run(try);
-            if ((goal.val & mask) == res.val) {
-                if (goal.len > res.len)
-                    stack[sp++] = (Prog){try, a.len + 1};
-                else if (try < min)
-                    min = try;
-            }
+    const u64 mask = (UINT64_C(1) << (len * 3)) - 1;
+    for (unsigned i = 0; i < 8; ++i) {
+        const u64 try = a << 3 | i;
+        const u64 res = run(try);
+        if ((prog & mask) == res) {
+            if (prog == res)
+                return try;
+            const u64 next = rev(try, len + 1);
+            if (next)
+                return next;
         }
     }
-    return min;
+    return 0;
 }
 
 int main(void)
@@ -113,10 +96,11 @@ int main(void)
 #endif
 
     printf("%s\n", out(run(35200350)));  // 2,7,4,7,2,1,7,5,1
-    printf("%"PRIu64"\n", rev(inp(input)));  // 37221274271220
+    prog = inp(input);
+    printf("%"PRIu64"\n", rev(0, 1));  // 37221274271220
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+    printf("Time: %.0f ns\n", stoptimer_ns());
 #endif
     return 0;
 }
