@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Mac Mini 2020 (M1 3.2 GHz)                       :  3.8 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)                       :  2.9 µs
  *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :  9.1 µs
  *     Raspberry Pi 5 (2.4 GHz)                         :  9.8 µs
  *     Raspberry Pi 4 (1.8 GHz)                         : 26.9 µs
@@ -22,11 +22,10 @@
 #include <stdio.h>
 #include <stdint.h>    // uint64_t, UINT64_C
 #include <inttypes.h>  // PRIu64, PRIo64
+#include "../aocinput/2024-17-input.h"  // input as CSV string called 'input'
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
-
-static const char *input = "2,4,1,2,7,5,4,7,1,3,5,5,0,3,3,0";
 
 // Output prog value as octal with digits separated by commas.
 static char *out(uint64_t x)
@@ -52,7 +51,7 @@ static uint64_t inp(const char *csv)
     return x;
 }
 
-// prog: 2,4,1,2,7,5,4,7,1,3,5,5,0,3,3,0
+// Translated from input
 static uint64_t run(uint64_t a)
 {
     uint64_t x = 0;
