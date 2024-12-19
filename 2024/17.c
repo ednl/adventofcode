@@ -51,7 +51,7 @@ static uint64_t inp(const char *csv)
     return x;
 }
 
-// Translated from input
+// Program translated from input
 static uint64_t run(uint64_t a)
 {
     uint64_t x = 0;
