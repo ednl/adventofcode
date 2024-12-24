@@ -35,13 +35,23 @@
     #define N 3380
 #endif
 #define FSIZE (N * 6)
-#define M (26 * 26)
+#define M 826  // makeid("zz") + 1 = 825 + 1 = 826
 
 static char input[FSIZE];
 static bool edge[M][M];
 static bool found[M];
 static int id[M];
 static int idlen;
+
+static inline int makeid(const char *const s)
+{
+    return (*s - 'a') << 5 | (*(s + 1) - 'a');
+}
+
+static void printid(const int id)
+{
+    printf("%c%c", 'a' + (id >> 5), 'a' + (id & 31));
+}
 
 int main(void)
 {
@@ -56,19 +66,46 @@ int main(void)
 
     const char *c = input;
     for (int n = 0; n < N; ++n) {
-        const int a = (*c       - 'a') * 26 + *(c + 1) - 'a';
-        const int b = (*(c + 3) - 'a') * 26 + *(c + 4) - 'a';
+        const int a = makeid(c);
+        const int b = makeid(c + 3);
         edge[a][b] = edge[b][a] = true;
         found[a] = found[b] = true;
         c += 6;
     }
+
     for (int i = 0; i < M; ++i)
         if (found[i])
             id[idlen++] = i;
     printf("len=%d\n", idlen);
 
+    int *a;
+    int count = 0;
+    const int t = ('t' - 'a');
+    while ((a = combinations(idlen, 3)))
+        if (edge[id[a[0]]][id[a[1]]] && edge[id[a[0]]][id[a[2]]] && edge[id[a[1]]][id[a[2]]] &&
+            (id[a[0]] >> 5 == t || id[a[1]] >> 5 == t || id[a[2]] >> 5 == t))
+                ++count;
+    printf("Part 1: %d\n", count);  // ex: 7, input: 1599
+
+    printf("Part 2: ");
+    const int n = 6;
+    while ((a = combinations(idlen, n))) {
+        for (int i = 1; i < n; ++i)
+            for (int j = 0; j < i; ++j)
+                if (!edge[id[a[i]]][id[a[j]]])
+                    goto nextcombo;
+        printid(id[a[0]]);
+        for (int i = 1; i < n; ++i) {
+            putchar(',');
+            printid(id[a[i]]);
+        }
+        break;
+    nextcombo:;
+    }
+    putchar('\n');
+
 #ifdef TIMER
-    printf("Time: %.0f ms\n", stoptimer_ms());
+    printf("Time: %.0f s\n", stoptimer_s());
 #endif
     return 0;
 }

@@ -95,24 +95,24 @@ int main(void)
             const uint32_t val = x % 10;  // last digit
             b = c;                        // rotate cache index ('a' not used yet)
             c = d;
-            d = 9 + val - prev;
+            d = 9 + val - prev;           // new difference (range 0..18)
             prev = val;
         }
         // Check sequences from difference 4 onward
         uint64_t seen[BFLEN] = {0};  // bitfield (init to zero still takes a lot of time)
         for (int i = 3; i < LEN; ++i) {
-            x = xorshift(x);
-            const uint32_t val = x % 10;
-            a = b;
+            x = xorshift(x);              // next secret
+            const uint32_t val = x % 10;  // last digit
+            a = b;                        // rotate cache index
             b = c;
             c = d;
-            d = 9 + val - prev;
+            d = 9 + val - prev;           // new difference (range 0..18)
             const uint32_t key = a * BASE3 + b * BASE2 + c * BASE + d;
             const uint32_t bix = key >> BFDIV;  // bitfield unit index
             const uint64_t bit = UINT64_C(1) << (key & BFMOD);  // bit inside bitfield unit
-            if (!(seen[bix] & bit)) {  // only count first occurence (val may be zero)
-                seen[bix] |= bit;  // set bit in bitfield
-                aggr[key] += val;  // sum (aggregate)
+            if (!(seen[bix] & bit)) {     // only count first occurence (val may be zero)
+                seen[bix] |= bit;         // set bit in bitfield
+                aggr[key] += val;         // sum (aggregate)
             }
             prev = val;
         }
