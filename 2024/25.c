@@ -35,7 +35,7 @@
 #endif
 
 #define N2 ((N >> 1) + EXAMPLE)  // odd count in example
-#define M 5  // 5x5 grid of '#' or '.', fits in 32-bit integer as bits
+#define M 5  // 5x5 grid of '#' or '.', fits in 32-bit integer as bit pattern
 // +2 rows at top/bottom, +1 col newline, +empty lines in between
 #define FSIZE (N * (M + 2) * (M + 1) + N - 1)
 
@@ -56,7 +56,7 @@ int main(void)
 
     const char *c = input;
     for (int i = 0; i < N; ++i) {
-        uint32_t *const a = *c == '#' ? &lock[locks++] : &key[keys++];  // pattern array
+        uint32_t *const a = *c == '#' ? &lock[locks++] : &key[keys++];  // grid as bit pattern
         c += M + 1;  // skip row of '#' (lock) or '.' (key)
         for (int j = 0; j < M; ++j, ++c)  // pattern rows, +newline
             for (int k = 0; k < M; ++k)   // pattern cols
