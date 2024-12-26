@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "../startstoptimer.h"
 
 #define TURNS 30000000u
 static unsigned int seen[TURNS] = {0};
@@ -8,6 +9,7 @@ static const size_t gamesize = sizeof game / sizeof *game;
 
 int main(void)
 {
+	starttimer();
 	unsigned int i, j, lastnum = game[gamesize - 1];
 
 	for (i = 1; i < gamesize; ++i) {
@@ -20,5 +22,6 @@ int main(void)
 	}
 
 	printf("%u\n", lastnum);  // 2424
+	printf("Time: %.0f ms\n", stoptimer_ms());
 	return 0;
 }

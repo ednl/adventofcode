@@ -103,7 +103,7 @@ int main(void)
         for (int i = 3; i < LEN; ++i) {
             x = xorshift(x);              // next secret
             const uint32_t val = x % 10;  // last digit
-            a = b;                        // rotate cache index
+            a = b;                        // rotate cache index (faster than shift/or because of smaller init to zero of seen)
             b = c;
             c = d;
             d = 9 + val - prev;           // new difference (range 0..18)
