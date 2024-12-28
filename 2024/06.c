@@ -13,10 +13,10 @@
  * Get minimum runtime from timer output:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Mac Mini 2020 (M1 3.2 GHz)                       :   ? µs
- *     Raspberry Pi 5 (2.4 GHz)                         :   ? µs
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :   ? µs
- *     Raspberry Pi 4 (1.8 GHz)                         :   ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)                       :  16 ms
+ *     Raspberry Pi 5 (2.4 GHz)                         :   ? ms
+ *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :   ? ms
+ *     Raspberry Pi 4 (1.8 GHz)                         :   ? ms
  */
 
 #include <stdio.h>
@@ -60,6 +60,9 @@ static char map[N][N + 1];
 
 // bit 0-3 set = been here going u/d/l/r
 static char hist[N][N];
+
+// First visited at which step in part 1
+static int first[N][N];
 
 static State path[N * N];
 static int pathlen;
@@ -121,6 +124,8 @@ static bool isdupe(const Pos pos, const Dir dir)
 static bool save(const Pos pos, const Dir dir)
 {
     const bool isnew = !hist[pos.y][pos.x];
+    if (isnew)
+        first[pos.y][pos.x] = pathlen;
     path[pathlen++] = (State){pos, dir};
     sethist(pos, dir);
     return isnew;
@@ -145,6 +150,9 @@ static bool hasloop(const int index)
 {
     // Reset all history
     memset(hist, 0, sizeof hist);
+    // Reconstruct history up to here (not faster, unfortunately)
+    // for (int i = 0; i < index; ++i)
+    //     sethist(path[i].pos, path[i].dir);
     // Starting position and direction
     Pos pos = path[index - 1].pos, next;
     Dir dir = path[index - 1].dir;
@@ -158,6 +166,11 @@ static bool hasloop(const int index)
         } else
             dir = turn(dir);  // wall in front: turn right
     return false;
+}
+
+static bool isfirstvisit(const Pos pos, const int stepcount)
+{
+    return first[pos.y][pos.x] == stepcount;
 }
 
 int main(void)
@@ -181,12 +194,13 @@ int main(void)
     printf("Part 1: %d\n", walk(pos, dir));  // example: 41, input: 5331
 
     int loops = 0;
-    for (int i = 1; i < pathlen; ++i) {
-        mark(path[i].pos, WALL);  // try obstruction in the path here
-        loops += hasloop(i);
-        mark(path[i].pos, FREE);  // reset obstruction
-    }
-    printf("Part 2: %d\n", loops);  // example: 6, input: (520 too low, 2094 too high)
+    for (int i = 1; i < pathlen; ++i)
+        if (isfirstvisit(path[i].pos, i)) {
+            mark(path[i].pos, WALL);  // try obstruction in the path here
+            loops += hasloop(i);
+            mark(path[i].pos, FREE);  // reset obstruction
+        }
+    printf("Part 2: %d\n", loops);  // example: 6, input: 1812
 
 #ifdef TIMER
     printf("Time: %.0f ms\n", stoptimer_ms());
