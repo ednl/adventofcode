@@ -14,8 +14,8 @@
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Mac Mini 2020 (M1 3.2 GHz)                       :     ? ms
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :  8.75 ms
- *     Raspberry Pi 5 (2.4 GHz)                         : 10.90 ms
+ *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :  3.15 ms
+ *     Raspberry Pi 5 (2.4 GHz)                         :  8.28 ms
  *     Raspberry Pi 4 (1.8 GHz)                         :     ? ms
  */
 
@@ -37,7 +37,7 @@
 #endif
 #define BLINK1 25
 #define BLINK2 75
-#define CACHESIZE (1024 * 1024)
+#define CACHESIZE 1000
 
 typedef struct vec {
     int64_t x, y;
