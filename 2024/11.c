@@ -13,10 +13,10 @@
  * Get minimum runtime from timer output:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Mac Mini 2020 (M1 3.2 GHz)                       :    ? ms
- *     Raspberry Pi 5 (2.4 GHz)                         :    ? ms
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 8.75 ms
- *     Raspberry Pi 4 (1.8 GHz)                         :    ? ms
+ *     Mac Mini 2020 (M1 3.2 GHz)                       :     ? ms
+ *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :  8.75 ms
+ *     Raspberry Pi 5 (2.4 GHz)                         : 10.90 ms
+ *     Raspberry Pi 4 (1.8 GHz)                         :     ? ms
  */
 
 #include <stdio.h>
@@ -91,19 +91,20 @@ static int64_t count(const int64_t stone, const int blink)
 {
     if (!blink)
         return 1;
-    if (stone < CACHESIZE && cache[stone][blink])
-        return cache[stone][blink];
+    const int b = blink - 1;
+    if (stone < CACHESIZE && cache[stone][b])
+        return cache[stone][b];
     int64_t n = 0;
     int even;
     if (!stone)
-        n = count(1, blink - 1);
+        n = count(1, b);
     else if (!((even = digits(stone)) & 1)) {
         const lldiv_t lr = split(stone, even);
-        n = count(lr.quot, blink - 1) + count(lr.rem, blink - 1);
+        n = count(lr.quot, b) + count(lr.rem, b);
     } else
-        n = count(stone * 2024, blink - 1);
+        n = count(stone * 2024, b);
     if (stone < CACHESIZE)
-        cache[stone][blink] = n;
+        cache[stone][b] = n;
     return n;
 }
 
