@@ -13,8 +13,8 @@
  * Get minimum runtime from timer output:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Mac Mini 2020 (M1 3.2 GHz)                       : 16 ms
- *     Raspberry Pi 5 (2.4 GHz)                         : 28 ms
+ *     Mac Mini 2020 (M1 3.2 GHz)                       : 14 ms
+ *     Raspberry Pi 5 (2.4 GHz)                         : 26 ms
  *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 31 ms
  *     Raspberry Pi 4 (1.8 GHz)                         : 58 ms
  */
@@ -46,18 +46,14 @@
 #define PRUNE ((UINT32_C(1) << 24) - 1)  // mod 16777216 = 24 LSBits
 
 // Cache indexing
-#define BASE  UINT32_C(20)    // faster than base 19 because it has factors of 2
+#define BASE  UINT32_C(19)
 #define BASE2 (BASE * BASE)   // base^2
 #define BASE3 (BASE2 * BASE)  // base^3
 #define CACHE (BASE3 * BASE)  // base^4 = cache size
 
-// Bitfield
-#define BFDIV 6                             // bitfield in 64-bit chunks: 6-bit bit index
-#define BFLEN (CACHE >> BFDIV)              // bitfield length in chunks
-#define BFMOD ((UINT32_C(1) << BFDIV) - 1)  // bitfield bit index mask
-
 static char input[FSIZE];
-static uint32_t aggr[CACHE];
+static uint32_t aggr[CACHE];  // aggregate (sum) per cache key
+static uint16_t last[CACHE];  // last buyer ID for this cache key
 
 // https://en.wikipedia.org/wiki/Xorshift
 static uint32_t xorshift(uint32_t x)
@@ -82,7 +78,7 @@ int main(void)
 
     const char *c = input;
     uint64_t sum = 0;
-    for (int n = 0; n < N; ++n) {
+    for (int n = 1; n <= N; ++n) {  // >0 to differentiate from static zero init
         // Parse unsigned integer followed by newline
         uint32_t x = *c++ & 15;
         while (*c != '\n')
@@ -99,20 +95,17 @@ int main(void)
             prev = val;
         }
         // Check sequences from difference 4 onward
-        uint64_t seen[BFLEN] = {0};  // bitfield (init to zero still takes a lot of time)
         for (int i = 3; i < LEN; ++i) {
             x = xorshift(x);              // next secret
             const uint32_t val = x % 10;  // last digit
-            a = b;                        // rotate cache index (faster than shift/or because of smaller init to zero of seen)
+            a = b;                        // rotate cache index (faster than shift/or-key because of smaller cache size)
             b = c;
             c = d;
             d = 9 + val - prev;           // new difference (range 0..18)
             const uint32_t key = a * BASE3 + b * BASE2 + c * BASE + d;
-            const uint32_t bix = key >> BFDIV;  // bitfield unit index
-            const uint64_t bit = UINT64_C(1) << (key & BFMOD);  // bit inside bitfield unit
-            if (!(seen[bix] & bit)) {     // only count first occurence (val may be zero)
-                seen[bix] |= bit;         // set bit in bitfield
-                aggr[key] += val;         // sum (aggregate)
+            if (last[key] != n) {
+                last[key] = n;
+                aggr[key] += val;
             }
             prev = val;
         }
