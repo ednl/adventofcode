@@ -20,20 +20,24 @@
  */
 
 #include <stdio.h>
+#include <stdint.h>
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
 #define EXAMPLE 1
 #if EXAMPLE
-    #define N 19
-    static const char *map = "2333133121414131402";
+    #define N 20
+    static char map[N] = "2333133121414131402";
 #else
     #define FNAME "../aocinput/2024-09-input.txt"
-    #define N 19999
+    #define N 20000
     static char map[N];
 #endif
+#define M (N >> 1)
 
+static const uint32_t tri[] = {0,0,1,3,6,10,15,21,28,36};
+static uint32_t file[M], free[M];
 
 int main(void)
 {
@@ -48,21 +52,28 @@ int main(void)
     starttimer();
 #endif
 
-    size_t chksum = 0;
-    size_t beg = 0, end = N - 1;  // inclusive range
-    size_t pos = 0;
-    while (beg < end) {
-        if (beg & 1) {
-            // free space
-        } else {
-            size_t id = beg >> 1;
-            size_t len = map[beg] & 15;
-            chksum += id * pos * len + id * ((len * (len - 1)) >> 1);
-            pos += len;
-        }
-        ++beg;
+    for (int i = 0, j = 1, k = 0; i < N; i += 2, j += 2, ++k) {
+        file[k] = map[i] &= 15;
+        free[k] = map[j] &= 15;
     }
-    printf("%.3s\n", &map[N - 3]);
+
+    size_t chksum = 0, pos = 0, head = 0, tail = M - 1, space, blocks;
+    while (head < tail) {
+        // (pos + pos+1 + ... + pos+n-1)*ID = (n*pos + 0+1+..+n-1)*ID
+        chksum += head * (file[head] * pos + tri[file[head]]);  // ID = head, n = file[head], triangular_number(n-1)
+        pos += file[head];  // move to next free space
+        space = free[head];  // length of free space
+        blocks = file[tail];  // blocks to move
+        while (space >= blocks) {
+            space -= blocks;
+            chksum += tail * (file[tail] * pos + tri[file[tail]]);  // ID = head, n = file[head], triangular_number(n-1)
+            pos += file[tail];
+            blocks = file[--tail];
+        }
+        //TODO
+        pos += free[head];
+        ++head;
+    }
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
