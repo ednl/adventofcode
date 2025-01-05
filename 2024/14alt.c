@@ -100,7 +100,6 @@ int main(void)
     printf("Part 1: %d\n", prod);  // 221655456
 
     // Part 2
-    // (this part first because positions get reset to start)
     // x and y are independent
     // period of px+t*vx is t=X
     // period of py+t*vy is t=Y
