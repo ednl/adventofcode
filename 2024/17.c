@@ -51,11 +51,10 @@ static uint64_t inp(const char *csv)
     return x;
 }
 
-// Program translated from input
+// Program manually translated from input
 static uint64_t run(uint64_t a)
 {
-    uint64_t x = 0;
-    uint64_t b = 0, c = 0;
+    uint64_t x = 0, b = 0, c = 0;
     do {
         b = a & 7;             //  0: bst A
         b ^= 2;                //  2: bxl 2
@@ -68,7 +67,7 @@ static uint64_t run(uint64_t a)
     return x;
 }
 
-// Returns minimal A for which program is quine, or zero if not found.
+// Return minimal A for which program is quine, or zero if not found.
 static uint64_t rev(const uint64_t prog, const uint64_t a, const int octlen)
 {
     const uint64_t mask = (UINT64_C(1) << (octlen * 3)) - 1;  // len=1: 111, len=2: 111111, etc.
