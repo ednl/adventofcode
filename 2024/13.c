@@ -42,21 +42,23 @@ typedef struct vec {
     int64_t x, y;
 } Vec;
 
+// Buttons A & B directions, prize location
 typedef struct claw {
     Vec a, b, p;
 } Claw;
 
+// Claw machines
 static Claw claw[N];
 
-// Equation to solve for n,m:
+// Matrix equation to solve for n,m:
 //   |ax bx|   |n|   |px|
 //   |ay by| . |m| = |py|
 // Matrix inversion, or https://en.wikipedia.org/wiki/Cramer%27s_rule :
-//   |n|                       | by -bx|   |px|
-//   |m| = 1/(ax.by - ay.bx) . |-ay  ax| . |py|
+//   |n|                           | by -bx|   |px|
+//   |m| = 1/(ax . by - ay . bx) . |-ay  ax| . |py|
 // =>
-//   n = (by.px - bx.py) / (ax.by - ay.bx)
-//   m = (ax.py - ay.px) / (ax.by - ay.bx)
+//   n = (by . px - bx . py) / (ax . by - ay . bx)
+//   m = (ax . py - ay . px) / (ax . by - ay . bx)
 // Restrictions: n,m integer >= 0. For part 1 also: n,m <= 100.
 // Return: sum of all valid token counts 3n+m
 static int64_t tokens(const int part)
@@ -65,7 +67,7 @@ static int64_t tokens(const int part)
     for (int i = 0; i < N; ++i) {
         const Claw *const c = &claw[i];  // convenience pointer
         // Determinant = divisor of inverted matrix. Must not be zero, but never is for my input.
-        // Possible faster to calculate only once, because it's constant between parts 1 & 2,
+        // Possibly faster to calculate only once, because it's constant between parts 1 & 2,
         // but it made no measurable difference on my Apple M1; still 5.2 µs.
         const int64_t det = c->a.x * c->b.y - c->a.y * c->b.x;
         // Divisions must have no remainders, and quot<=100 for part 1.
