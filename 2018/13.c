@@ -21,26 +21,26 @@
 #endif
 
 // Tile form: ' '=0, |=1, -=2, /=3, '\'=4, +0=5, +1=6, +2=7, len=8
-typedef enum _tile_t {
+typedef enum tile {
     EMPTY, VERT, HORZ, FWD, BACK, INTER, INTR1, INTR2, TILELEN
-} tile_t;
+} Tile;
 
 // Cart heading: X=0, ^=1, >=2, v=3, <=4, len=5
-typedef enum _head_t {
+typedef enum head {
     NONE, UP, RIGHT, DOWN, LEFT, HEADLEN
-} head_t;
+} Head;
 
-typedef struct _pos_t {
+typedef struct pos {
     int x, y;
-} pos_t;
+} Pos;
 
-typedef struct _cart_t {
-    head_t head;
-    pos_t pos;
+typedef struct cart {
+    Head head;
+    Pos pos;
     int turns;
-} cart_t;
+} Cart;
 
-static const head_t turn[HEADLEN][TILELEN] = {
+static const Head turn[HEADLEN][TILELEN] = {
     {NONE , NONE , NONE , NONE , NONE , NONE , NONE , NONE },  // 'X :X', 'X|:X', 'X-:X', 'X/:X', 'X\:X', 'X+0:X', 'X+1:X', 'X+2:X'
     {NONE , UP   , NONE , RIGHT, LEFT , LEFT , UP   , RIGHT},  // '^ :X', '^|:^', '^-:X', '^/:>', '^\:<', '^+0:<', '^+1:^', '^+2:>'
     {NONE , NONE , RIGHT, UP   , DOWN , UP   , RIGHT, DOWN },  // '> :X', '>|:X', '>-:>', '>/:^', '>\:v', '>+0:^', '>+1:>', '>+2:v'
@@ -48,7 +48,7 @@ static const head_t turn[HEADLEN][TILELEN] = {
     {NONE , NONE , LEFT , DOWN , UP   , DOWN , LEFT , UP   }   // '< :X', '<|:X', '<-:<', '</:v', '<\:^', '<+0:v', '<+1:<', '<+2:^'
 };
 
-static const pos_t step[HEADLEN] = {
+static const Pos step[HEADLEN] = {
     { 0,  0},  // X
     { 0, -1},  // ^
     { 1,  0},  // >
@@ -56,8 +56,8 @@ static const pos_t step[HEADLEN] = {
     {-1,  0}   // <
 };
 
-static tile_t grid[GRIDROWS][GRIDCOLS];
-static cart_t cart[CARTLEN];
+static Tile grid[GRIDROWS][GRIDCOLS];
+static Cart cart[CARTLEN];
 static int cols, rows, carts;
 
 static void show(void)
@@ -81,7 +81,7 @@ static void show(void)
 
 static int cmp_carts(const void * a, const void * b)
 {
-    const cart_t *p = a, *q = b;
+    const Cart *p = a, *q = b;
     if (p->head != NONE && q->head == NONE) return -1;
     if (p->head == NONE && q->head != NONE) return  1;
     if (p->pos.y < q->pos.y) return -1;
@@ -104,7 +104,7 @@ int main(void)
             x = 0;
             ++rows;
         } else if (x < GRIDCOLS) {
-            head_t h = NONE;
+            Head h = NONE;
             switch (c) {
                 case '|' : grid[rows][x] = VERT;  break;
                 case '-' : grid[rows][x] = HORZ;  break;
@@ -117,7 +117,7 @@ int main(void)
                 case '<' : grid[rows][x] = HORZ;  h = LEFT;  break;
             }
             if (h != NONE && carts < CARTLEN)
-                cart[carts++] = (cart_t){h, (pos_t){x, rows}, 0};
+                cart[carts++] = (Cart){h, (Pos){x, rows}, 0};
             if (++x > cols)
                 cols = x;
         }
@@ -141,7 +141,7 @@ int main(void)
                     }
                     break;
                 }
-            tile_t t = grid[cart[i].pos.y][cart[i].pos.x];
+            Tile t = grid[cart[i].pos.y][cart[i].pos.x];
             if (t == INTER)
                 t += cart[i].turns++ % 3;
             cart[i].head = turn[cart[i].head][t];
