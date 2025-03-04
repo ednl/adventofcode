@@ -13,10 +13,10 @@
  * Get minimum runtime from timer output:
  *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Mac Mini 2020 (M1 3.2 GHz)                       :  32 µs
- *     Raspberry Pi 5 (2.4 GHz)                         :  51 µs
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :  87 µs
- *     Raspberry Pi 4 (1.8 GHz)                         : 156 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)                       :  20 µs
+ *     Raspberry Pi 5 (2.4 GHz)                         :   ? µs
+ *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :   ? µs
+ *     Raspberry Pi 4 (1.8 GHz)                         :   ? µs
  *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz)         :   ? µs
  */
 
@@ -55,11 +55,11 @@ static inline int num(const char **const c)
 static inline int pair(const char **const c)
 {
     const int a = num(c);
-    if (!a || **c != ',')  // must be followed by comma
+    if (!a || **c != ',')  // must be 1-999 and must be followed by comma
         return 0;
     ++(*c);  // skip comma
     const int b = num(c);
-    if (!b || **c != ')')  // must be followed by parenthesis
+    if (!b || **c != ')')  // must be 1-999 and must be followed by parenthesis
         return 0;
     ++(*c);  // skip closing parenthesis
     return a * b;
@@ -67,15 +67,15 @@ static inline int pair(const char **const c)
 
 int main(void)
 {
-#ifdef TIMER
-    starttimer();
-#endif
-
     // Read input file
     FILE *f = fopen(FNAME, "rb");  // fread() requires binary mode
     if (!f) { fputs("File not found.\n", stderr); return 1; }
     fread(input, sizeof input, 1, f);  // read whole file at once
     fclose(f);
+
+#ifdef TIMER
+    starttimer();
+#endif
 
     // Matchy matchy
     int sum1 = 0, sum2 = 0, mul;
