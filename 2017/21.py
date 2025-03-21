@@ -1,5 +1,7 @@
 import numpy as np
 from math import sqrt
+from time import monotonic_ns
+t0 = monotonic_ns()
 
 def str2bit(s):
     return s.strip().replace('/', '').replace('.', '0').replace('#', '1')
@@ -86,3 +88,6 @@ for i in range(1, 19):
     print(i, sum(map(int, list(art))))
 # part 1: 179
 # part 2: 2766750
+
+t1 = monotonic_ns()
+print('Time: {:.3f} s'.format((t1 - t0)/1000000000))
