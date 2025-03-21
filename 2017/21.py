@@ -33,7 +33,7 @@ def permvals(a):
     return list(p)
 
 rule = { 2: {}, 3: {} }
-with open('21.txt') as f:
+with open('../aocinput/2017-21-input.txt') as f:
     for line in f:
         a, b = line.split(' => ')
         i = 2 if len(a) == 5 else 3
