@@ -15,8 +15,9 @@
  */
 
 #include <stdio.h>
-#include <stdint.h>
-#include "../combperm.h"
+#include <stdint.h>       // int64_t
+#include <inttypes.h>     // PRId64
+#include "../combperm.h"  // combinations
 #include "../startstoptimer.h"
 
 #define FNAME "../aocinput/2015-24-input.txt"
@@ -76,7 +77,7 @@ int main(void)
     int len = readinput(), sum = 0;
     for (int i = 0; i < len; ++i)
         sum += data[i];
-    printf("%lld %lld\n", quantum(len, sum, 3), quantum(len, sum, 4));
+    printf("%"PRId64" %"PRId64"\n", quantum(len, sum, 3), quantum(len, sum, 4));
     printf("Time: %.0f us\n", stoptimer_us());
     return 0;
 }
