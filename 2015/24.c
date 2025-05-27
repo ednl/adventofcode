@@ -11,7 +11,7 @@
  *     m=999999;for((i=0;i<2000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
  *     Mac Mini 2020 (M1 3.2 GHz)                       : 2.54 ms
- *     Raspberry Pi 5 (2.4 GHz)                         :    ? ms
+ *     Raspberry Pi 5 (2.4 GHz)                         : 7.33 ms
  */
 
 #include <stdio.h>
@@ -73,11 +73,11 @@ static int64_t quantum(const int len, const int sum, const int groups)
 
 int main(void)
 {
-    starttimer();
+    starttimer();  // includes reading from disk
     int len = readinput(), sum = 0;
     for (int i = 0; i < len; ++i)
         sum += data[i];
-    printf("%"PRId64" %"PRId64"\n", quantum(len, sum, 3), quantum(len, sum, 4));
+    printf("%"PRId64" %"PRId64"\n", quantum(len, sum, 3), quantum(len, sum, 4));  // 10723906903 74850409
     printf("Time: %.0f us\n", stoptimer_us());
     return 0;
 }
