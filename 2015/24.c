@@ -10,8 +10,8 @@
  * Get minimum runtime:
  *     m=999999;for((i=0;i<2000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
- *     Mac Mini 2020 (M1 3.2 GHz)                       : 2.54 ms
- *     Raspberry Pi 5 (2.4 GHz)                         : 7.33 ms
+ *     Mac Mini 2020 (M1 3.2 GHz) : 2.52 ms
+ *     Raspberry Pi 5 (2.4 GHz)   : 7.33 ms
  */
 
 #include <stdio.h>
@@ -34,6 +34,7 @@ static int readinput(void)
     while (n < N && fscanf(f, "%d", &x) == 1)
         data[n++] = x;
     fclose(f);
+    starttimer();  // excludes reading from disk
     // Reverse input from big to small
     for (int i = 0, j = n - 1; i < j; ++i, --j) {
         int tmp = data[i];
@@ -45,10 +46,10 @@ static int readinput(void)
 
 static int64_t quantum(const int len, const int sum, const int groups)
 {
-    if (len <= 0 || sum <= 0 || groups <= 0)
+    if (len <= 0 || sum <= 0 || groups <= 0 || sum % groups)  // sanity check
         return 0;
     const int groupweight = sum / groups;
-    int minlen = 0, maxlen = len;
+    int minlen = 0, maxlen = len;  // maxlen not really needed for well-formed input
     for (int weight = 0; weight < groupweight && minlen < len; ++minlen)
         weight += data[minlen];
     for (int weight = sum; weight > groupweight && maxlen > 0; --maxlen)
@@ -73,8 +74,7 @@ static int64_t quantum(const int len, const int sum, const int groups)
 
 int main(void)
 {
-    starttimer();  // includes reading from disk
-    int len = readinput(), sum = 0;
+    int sum = 0, len = readinput();  // also starts timer
     for (int i = 0; i < len; ++i)
         sum += data[i];
     printf("%"PRId64" %"PRId64"\n", quantum(len, sum, 3), quantum(len, sum, 4));  // 10723906903 74850409
