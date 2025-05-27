@@ -10,17 +10,16 @@ def quantum(groups: int) -> int:
     while sum(data[:minlen]) < groupweight:
         minlen += 1
     found = False
-    min_qe = float('+inf')
+    min_qe = 0
     while not found:
         for c in combinations(data, minlen):
             weight = sum(c)
             if weight == groupweight:
-                found = True
                 qe = prod(c)
-                if qe < min_qe:
+                if qe < min_qe or not found:
                     min_qe = qe
-        if not found:
-            minlen += 1
+                    found = True
+        minlen += 1
     return min_qe
 
 print(quantum(3), quantum(4))
