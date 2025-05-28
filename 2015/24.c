@@ -10,7 +10,7 @@
  * Get minimum runtime:
  *     m=999999;for((i=0;i<2000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
- *     Mac Mini 2020 (M1 3.2 GHz) : 2.52 ms
+ *     Mac Mini 2020 (M1 3.2 GHz) : 2.49 ms
  *     Raspberry Pi 5 (2.4 GHz)   : 6.41 ms
  */
 
@@ -21,52 +21,49 @@
 #include "../startstoptimer.h"
 
 #define FNAME "../aocinput/2015-24-input.txt"
-#define N 32  // actual lines in my input file = 29
+#define LINES 32  // actual lines in my input file = 29
 
-static int data[N];
+typedef struct data {
+    int len, sum, weight[LINES];
+} Data;
+static Data data;
 
 static int readinput(void)
 {
     FILE *f = fopen(FNAME, "r");
     if (!f)
         return 0;
-    int n = 0, x;
-    while (n < N && fscanf(f, "%d", &x) == 1)
-        data[n++] = x;
-    fclose(f);
-    starttimer();  // excludes reading from disk
-    // Reverse input from big to small
-    for (int i = 0, j = n - 1; i < j; ++i, --j) {
-        int tmp = data[i];
-        data[i] = data[j];
-        data[j] = tmp;
+    int len = 0, sum = 0;
+    for (int x; len < LINES && fscanf(f, "%d", &x) == 1; ++len) {
+        data.weight[len] = x;
+        sum += x;  // cheat by not timing the sum of all weights
     }
-    return n;
+    fclose(f);
+    data.len = len;
+    data.sum = sum;
+    return len;
 }
 
-static int64_t quantum(const int len, const int sum, const int groups)
+static int64_t quantum(const int groups)
 {
-    if (len <= 0 || sum <= 0 || groups <= 0 || sum % groups)  // sanity check
-        return 0;
-    const int groupweight = sum / groups;
-    int minlen = 0, maxlen = len;  // maxlen not really needed for well-formed input
-    for (int weight = 0; weight < groupweight && minlen < len; ++minlen)
-        weight += data[minlen];
-    for (int weight = sum; weight > groupweight && maxlen > 0; --maxlen)
-        weight -= data[len - maxlen];
+    // Assumes: groups > 0 && sum % groups == 0
+    const int groupweight = data.sum / groups;
+    // Assumes input is sorted from small to big
+    int minlen = 0;
+    for (int weight = 0, i = data.len - 1; weight < groupweight; --i, ++minlen)
+        weight += data.weight[i];  // add from end (start with biggest)
+    // Assumes unique solution exists
     int64_t min_qe = 0;
-    for (int *index; !min_qe && minlen <= maxlen; ++minlen) {
-        while ((index = combinations(len, minlen))) {
+    for (int *index; !min_qe; ++minlen) {
+        while ((index = combinations(data.len, minlen))) {
             int weight = 0;
-            for (int i = 0; i < minlen; ++i)
-                weight += data[index[i]];  // sum
-            if (weight == groupweight) {
-                int64_t qe = 1;
-                for (int i = 0; i < minlen; ++i)
-                    qe *= data[index[i]];  // product
-                if (qe < min_qe || !min_qe)
-                    min_qe = qe;
+            int64_t qe = 1;
+            for (int i = 0; i < minlen; ++i) {
+                weight += data.weight[index[i]];  // sum
+                qe *= data.weight[index[i]];  // product
             }
+            if (weight == groupweight && (qe < min_qe || !min_qe))
+                min_qe = qe;
         }
     }
     return min_qe;
@@ -74,10 +71,10 @@ static int64_t quantum(const int len, const int sum, const int groups)
 
 int main(void)
 {
-    int sum = 0, len = readinput();  // also starts timer
-    for (int i = 0; i < len; ++i)
-        sum += data[i];
-    printf("%"PRId64" %"PRId64"\n", quantum(len, sum, 3), quantum(len, sum, 4));  // 10723906903 74850409
+    if (!readinput())
+        return 1;  // error
+    starttimer();  // exclude disk read (and sum)
+    printf("%"PRId64" %"PRId64"\n", quantum(3), quantum(4));  // 10723906903 74850409
     printf("Time: %.0f us\n", stoptimer_us());
     return 0;
 }
