@@ -21,10 +21,11 @@
 #include "../startstoptimer.h"
 
 #define FNAME "../aocinput/2015-24-input.txt"
-#define LINES 32  // actual lines in my input file = 29
+#define LINES 30  // actual lines in my input file = 29
 
 typedef struct data {
-    int len, sum, weight[LINES];
+    int weight[LINES];
+    int len, sum;
 } Data;
 static Data data;
 
@@ -54,7 +55,7 @@ static int64_t quantum(const int groups)
         weight += data.weight[i];  // add from end (start with biggest)
     // Assumes unique solution exists
     int64_t min_qe = 0;
-    for (int *index; !min_qe; ++minlen) {
+    for (int *index; !min_qe; ++minlen)
         while ((index = combinations(data.len, minlen))) {
             int weight = 0;
             int64_t qe = 1;
@@ -65,7 +66,6 @@ static int64_t quantum(const int groups)
             if (weight == groupweight && (qe < min_qe || !min_qe))
                 min_qe = qe;
         }
-    }
     return min_qe;
 }
 
