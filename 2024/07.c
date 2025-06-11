@@ -84,7 +84,7 @@ static bool reduce(const Equation *const eq, const int64_t res, const int ix, co
         return true;
     // Concatenation
     if (part == 2) {
-        dv = lldiv(res, eq->mag[ix]);  // divide by order of maginitude of num
+        dv = lldiv(res, eq->mag[ix]);  // divide by order of magnitude of num
         if (dv.rem == eq->num[ix] && reduce(eq, dv.quot, ix - 1, part))
             return true;
     }
