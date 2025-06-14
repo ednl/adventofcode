@@ -68,6 +68,7 @@ static uint64_t run(uint64_t a)
 }
 
 // Return minimal A for which program is quine, or zero if not found.
+// Ref. https://en.wikipedia.org/wiki/Quine_(computing)
 static uint64_t rev(const uint64_t prog, const uint64_t a, const int octlen)
 {
     const uint64_t mask = (UINT64_C(1) << (octlen * 3)) - 1;  // len=1: 111, len=2: 111111, etc.
