@@ -31,8 +31,8 @@ static int a[N], b[N];  // two columns of numbers
 // Qsort comparison: lowest to highest
 static int cmp_int_asc(const void *p, const void *q)
 {
-    const int a = *(const int *const)p;
-    const int b = *(const int *const)q;
+    const int a = *(const int *)p;
+    const int b = *(const int *)q;
     if (a < b) return -1;
     if (a > b) return  1;
     return 0;
