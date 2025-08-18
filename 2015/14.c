@@ -14,7 +14,7 @@
  *     iMac 2013 (i5 Haswell 4570 3.2 GHz)         :   ? µs
  *     ThinkPad Ubuntu (i5 8250U 1.8 GHz)          :   ? µs
  *     Macbook Air 2013 (i5 Haswell 4250U 1.3 GHz) :   ? µs
- *     Raspberry Pi 5 (2.4 GHz)                    :   ? µs
+ *     Raspberry Pi 5 (2.4 GHz)                    : 121 µs
  */
 
 #include <stdio.h>
