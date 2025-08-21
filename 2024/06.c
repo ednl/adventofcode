@@ -13,10 +13,10 @@
  * Get minimum runtime from timer output:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Mac Mini 2020 (M1 3.2 GHz)                       : 16 ms
- *     Raspberry Pi 5 (2.4 GHz)                         : 23 ms
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 27 ms
- *     Raspberry Pi 4 (1.8 GHz)                         : 51 ms
+ *     Mac Mini 2020 (M1 3.2 GHz)                       : 8.86 ms
+ *     Raspberry Pi 5 (2.4 GHz)                         : 23   ms
+ *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 27   ms
+ *     Raspberry Pi 4 (1.8 GHz)                         : 51   ms
  */
 
 #include <stdio.h>
@@ -203,7 +203,7 @@ int main(void)
     printf("Part 2: %d\n", loops);  // example: 6, input: 1812
 
 #ifdef TIMER
-    printf("Time: %.0f ms\n", stoptimer_ms());
+    printf("Time: %.0f us\n", stoptimer_us());
 #endif
     return 0;
 }

@@ -13,6 +13,7 @@
  * Get minimum runtime from timer output:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz)                    : 246 µs
  *     Mac Mini 2020 (M1 3.2 GHz)                       : 332 µs
  *     Raspberry Pi 5 (2.4 GHz)                         : 357 µs
  *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 360 µs
@@ -29,7 +30,7 @@
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 1
+#define EXAMPLE 0
 #if EXAMPLE
     #define FNAME "../aocinput/2024-04-example.txt"
     #define N 10  // square char matrix in example file
