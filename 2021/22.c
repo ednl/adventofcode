@@ -1,6 +1,30 @@
+/**
+ * Advent of Code 2021
+ * Day 22: Reactor Reboot
+ * https://adventofcode.com/2021/day/22
+ * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *    clang -std=gnu17 -Wall -Wextra 22.c
+ *    gcc   -std=gnu17 -Wall -Wextra 22.c
+ * Enable timer:
+ *    clang -DTIMER -O3 -march=native 22.c ../startstoptimer.c
+ *    gcc   -DTIMER -O3 -march=native 22.c ../startstoptimer.c
+ * Get minimum runtime:
+ *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime:
+ *     Macbook Pro 2024 (M4 4.4 GHz)                    :  8.03 ms
+ *     Mac Mini 2020 (M1 3.2 GHz)                       :  ?    ms
+ *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz)         :  ?    ms
+ *     Raspberry Pi 5 (2.4 GHz)                         :  ?    ms
+ */
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
 static const char *fname = "../aocinput/2021-22-input.txt";
 #define L   20  // number of lines in input file for part 1
@@ -107,9 +131,15 @@ static int64_t read(FILE *f, const int lines)
 
 int main(void)
 {
+#ifdef TIMER
+    starttimer();
+#endif
     FILE *f = fopen(fname, "r");
     printf("Part 1: %lld\n", read(f, L));  // 547648
     printf("Part 2: %lld\n", read(f, 0));  // 1206644425246111
     fclose(f);
+#ifdef TIMER
+    printf("Time: %.0f us\n", stoptimer_us());
+#endif
     return 0;
 }

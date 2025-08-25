@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "startstoptimer.h"
+#include "../startstoptimer.h"
 
 #define ND 866
 #define NF  12

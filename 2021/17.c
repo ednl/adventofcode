@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
-#include "startstoptimer.h"
+#include "../startstoptimer.h"
 
 #define TX0 (137)
 #define TX1 (171)

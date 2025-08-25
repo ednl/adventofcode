@@ -4,7 +4,7 @@
 #include <inttypes.h>
 #include <limits.h>
 #include <stdbool.h>
-#include "startstoptimer.h"
+#include "../startstoptimer.h"
 
 #define N      1396     // hex chars in input
 #define NIBBLE    4     // hex char = 4 bits

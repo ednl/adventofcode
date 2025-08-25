@@ -1,8 +1,31 @@
+/**
+ * Advent of Code 2021
+ * Day 21: Dirac Dice
+ * https://adventofcode.com/2021/day/21
+ * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *    clang -std=gnu17 -Wall -Wextra 21.c
+ *    gcc   -std=gnu17 -Wall -Wextra 21.c
+ * Enable timer:
+ *    clang -DTIMER -O3 -march=native 21.c ../startstoptimer.c
+ *    gcc   -DTIMER -O3 -march=native 21.c ../startstoptimer.c
+ * Get minimum runtime:
+ *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime:
+ *     Macbook Pro 2024 (M4 4.4 GHz)                    : 0.766 ms
+ *     Mac Mini 2020 (M1 3.2 GHz)                       : ?     ms
+ *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz)         : ?     ms
+ *     Raspberry Pi 5 (2.4 GHz)                         : ?     ms
+ */
+
 #include <stdio.h>
 #include <stdint.h>    // uint32_t, uint64_t
 #include <inttypes.h>  // PRIu32, PRIu64
 #include <stdbool.h>
-#include "startstoptimer.h"
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
 #define POS1  1U  // from input
 #define POS2 10U  // from input
@@ -75,9 +98,13 @@ static uint64_t diracdice(uint32_t pos1, uint32_t pos2, uint32_t score1, uint32_
 
 int main(void)
 {
+#ifdef TIMER
     starttimer();
+#endif
     printf("Part 1: %"PRIu32"\n", practicegame(POS1, POS2));        // 428736
     printf("Part 2: %"PRIu64"\n", diracdice(POS1, POS2, 0, 0, 1));  // 57328067654557
-    printf("%.2f ms\n", stoptimer_ms());
+#ifdef TIMER
+    printf("Time: %.0f us\n", stoptimer_us());
+#endif
     return 0;
 }

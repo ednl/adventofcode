@@ -155,6 +155,7 @@ int main(int argc, char *argv[])
             default : f = fopen("../aocinput/2021-12-input.txt"   , "r"); break;
         }
     }
+    if (!f) return 1;
 
     char buf[2][6];
     int n = 0;

@@ -1,6 +1,30 @@
+/**
+ * Advent of Code 2021
+ * Day 9: Smoke Basin
+ * https://adventofcode.com/2021/day/9
+ * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *    clang -std=gnu17 -Wall -Wextra 09.c
+ *    gcc   -std=gnu17 -Wall -Wextra 09.c
+ * Enable timer:
+ *    clang -DTIMER -O3 -march=native 09.c ../startstoptimer.c
+ *    gcc   -DTIMER -O3 -march=native 09.c ../startstoptimer.c
+ * Get minimum runtime:
+ *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime:
+ *     Macbook Pro 2024 (M4 4.4 GHz)                    : 185 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)                       :   ? µs
+ *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz)         :   ? µs
+ *     Raspberry Pi 5 (2.4 GHz)                         :   ? µs
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
 #define DIM        100
 #define MAXHEIGHT    9
@@ -59,6 +83,10 @@ int main(void)
     }
     fclose(f);
 
+#ifdef TIMER
+    // Timer starts after read from disk
+    starttimer();
+#endif
     // None shall pass
     for (int i = 0; i < DIM + 2; ++i)
         height[i][0] = height[0][i] = height[i][DIM + 1] = height[DIM + 1][i] = MAXHEIGHT;
@@ -84,5 +112,8 @@ int main(void)
 
     printf("Part 1: %d\n", risk);  // 506
     printf("Part 2: %d\n", basinsize[0] * basinsize[1] * basinsize[2]);  // 931200
+#ifdef TIMER
+    printf("Time: %.0f us\n", stoptimer_us());
+#endif
     return 0;
 }
