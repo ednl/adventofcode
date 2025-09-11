@@ -30,13 +30,13 @@
 #define EXAMPLE 0
 #if EXAMPLE
     #define FNAME "../aocinput/2024-10-example.txt"
-    #define N 8
+    #define N 8  // square grid dimension in example file: 8x8
 #else
     #define FNAME "../aocinput/2024-10-input.txt"
-    #define N 45
+    #define N 45  // square grid dimension in input file: 45x45
 #endif
-#define FSIZE (N * (N + 1))
-#define SSIZE 32
+#define FSIZE (N * (N + 1))  // byte size of input incl. newlines
+#define SSIZE 32  // stack size
 #define START '0'
 #define GOAL  '9'
 
@@ -49,10 +49,11 @@ typedef struct stack {
     Vec mem[SSIZE];
 } Stack;
 
-static char map[N][N + 1];  // input file
+static char map[N][N + 1];  // input file incl. newlines
 static bool seen[N][N];  // which destinations already visited? (part 1)
-static Stack stack;
+static Stack stack;  // grid locations still to process
 
+// Save x-y pair onto stack
 static bool push(const int x, const int y)
 {
     if (stack.len == SSIZE)
@@ -61,6 +62,7 @@ static bool push(const int x, const int y)
     return true;
 }
 
+// Retrieve x-y pair from stack
 static bool pop(int *const restrict x, int *const restrict y)
 {
     if (!stack.len)
@@ -78,7 +80,7 @@ static Vec findtrails(const int row, const int col)
     int i = row, j = col;
     memset(seen, 0, sizeof seen);  // part 1
     do {
-        const char alt = map[i][j];
+        const char alt = map[i][j];  // current altitude
         if (alt == GOAL) {
             if (!seen[i][j]) {  // part 1
                 seen[i][j] = true;
@@ -86,16 +88,17 @@ static Vec findtrails(const int row, const int col)
             }
             ++count.y;  // part 2
         } else {
-            const char up = alt + 1;
+            const char up = alt + 1;  // next altitude
             if (i > 0     && map[i - 1][j] == up) push(i - 1, j);
             if (i < N - 1 && map[i + 1][j] == up) push(i + 1, j);
             if (j > 0     && map[i][j - 1] == up) push(i, j - 1);
             if (j < N - 1 && map[i][j + 1] == up) push(i, j + 1);
         }
     } while (pop(&i, &j));
-    return count;
+    return count;  // two different values for part 1 and 2
 }
 
+// Add vectors by reference
 static void add_r(Vec *const a, const Vec b)
 {
     a->x += b.x;
@@ -104,15 +107,18 @@ static void add_r(Vec *const a, const Vec b)
 
 int main(void)
 {
+    // Read input as one block
     FILE *f = fopen(FNAME, "rb");
     if (!f) { fprintf(stderr, "File not found: %s\n", FNAME); return 1; }
     fread(map, sizeof map, 1, f);
     fclose(f);
 
+    // Exclude disk access from timer
 #ifdef TIMER
     starttimer();
 #endif
 
+    // Find trails for every starting position
     Vec sum = {0};
     for (int i = 0; i < N; ++i)
         for (int j = 0; j < N; ++j)
