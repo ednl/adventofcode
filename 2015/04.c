@@ -5,22 +5,19 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 04.c ../startstoptimer.c
- *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 04.c ../startstoptimer.c
- * Compile:
- *    clang -std=gnu17 -Wall -Wextra 04.c
- *    gcc   -std=gnu17 -Wall -Wextra 04.c
+ *    clang -std=c17 -Wall -Wextra -pedantic 04.c
+ *    gcc   -std=c17 -Wall -Wextra -pedantic 04.c
  * Enable timer:
- *    clang -DTIMER -O3 -march=native 04.c ../startstoptimer.c
- *    gcc   -DTIMER -O3 -march=native 04.c ../startstoptimer.c
+ *    clang -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 04.c
+ *    gcc   -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 04.c
  * Get minimum runtime from timer output:
  *     n=1000;m=999999;for((i=0;i<n;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i/$n)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz)                    :   ? µs
- *     Mac Mini 2020 (M1 3.2 GHz)                       : 335 µs
- *     Raspberry Pi 5 (2.4 GHz)                         :   ? µs
- *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz)         :   ? µs
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :   ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz)                    : 170 ms
+ *     Mac Mini 2020 (M1 3.2 GHz)                       : 335 ms
+ *     Raspberry Pi 5 (2.4 GHz)                         :   ? ms
+ *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz)         :   ? ms
+ *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :   ? ms
  */
 
 #if __APPLE__
