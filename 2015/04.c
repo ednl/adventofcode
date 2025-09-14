@@ -7,6 +7,20 @@
  * Compile:
  *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 04.c ../startstoptimer.c
  *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 04.c ../startstoptimer.c
+ * Compile:
+ *    clang -std=gnu17 -Wall -Wextra 04.c
+ *    gcc   -std=gnu17 -Wall -Wextra 04.c
+ * Enable timer:
+ *    clang -DTIMER -O3 -march=native 04.c ../startstoptimer.c
+ *    gcc   -DTIMER -O3 -march=native 04.c ../startstoptimer.c
+ * Get minimum runtime from timer output:
+ *     n=1000;m=999999;for((i=0;i<n;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i/$n)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz)                    :   ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)                       : 335 µs
+ *     Raspberry Pi 5 (2.4 GHz)                         :   ? µs
+ *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz)         :   ? µs
+ *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :   ? µs
  */
 
 #if __APPLE__
@@ -16,12 +30,13 @@
     #include <sched.h>   // sched_getaffinity
 #endif
 #include <stdio.h>
-#include <stdlib.h>     // exit, EXIT_FAILURE
 #include <stdint.h>     // uint8_t, uint32_t, UINT32_C
-#include <stdbool.h>    // bool, true, false
-#include <stdatomic.h>  // atomic_bool
+#include <stdbool.h>    // false, true
+#include <stdatomic.h>  // atomic_uint_fast32_t
 #include <pthread.h>    // pthread_create, pthread_join
-#include "../startstoptimer.h"
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
 // Personalised input from Advent of Code.
 #define INPUT "iwrupvqb"
@@ -40,6 +55,7 @@ typedef struct data {
 
 // Signal for other threads to exit when the desired value is found in one thread.
 static atomic_bool found = false;
+// static atomic_uint_fast32_t result = 0;
 
 // Number of CPU cores available to this program.
 // Return: value between lo and hi, inclusive.
@@ -144,48 +160,62 @@ static uint32_t md5(unsigned number)
 static void *loop(void *arg)
 {
     Data *data = arg;
-    uint32_t num = data->start;
+    uint32_t hash, num = data->start;
     const uint32_t step = data->step;
     const uint32_t mask = data->mask;
 
-    while (!atomic_load(&found)) {
-        while (md5(++num) & MASK5);
+    while ((hash = (md5(num) & mask)) && !atomic_load(&found))
+        num += step;
+    data->start = num + step;
+    if (hash) {
+        data->result = 0;
+    } else {
         atomic_store(&found, true);
+        data->result = num;
     }
-
-    data->result = 0;
     return NULL;
+}
+
+static uint32_t run(const int part, const int threads)
+{
+    static pthread_t tid[MAXTHREADS];  // thread IDs
+    static Data arg[MAXTHREADS];  // thread arguments going in and out
+
+    // Set arguments
+    if (part == 1)
+        for (int i = 0; i < threads; ++i)
+            arg[i] = (Data){
+                .start = i + 1,  // thread 0 starts at 1, thread 1 at 2, etc.
+                .step = threads,
+                .mask = MASK5  // part 1: 5 zeroes
+            };
+    else
+        for (int i = 0; i < threads; ++i)
+            arg[i].mask = MASK6;  // part 2: 6 zeroes
+    // Launch parallel threads.
+    found = false;
+    for (int i = 0; i < threads; ++i)
+        pthread_create(&tid[i], NULL, loop, &arg[i]);
+    // Wait for threads to stop
+    uint32_t n = 0;
+    for (int i = 0; i < threads; ++i) {
+        pthread_join(tid[i], NULL);
+        if (arg[i].result && (!n || arg[i].result < n))
+            n = arg[i].result;
+    }
+    return n;
 }
 
 int main(void)
 {
+#ifdef TIMER
     starttimer();
-
-     // Launch parallel threads.
+#endif
     const int threads = coresavail(1, MAXTHREADS);
-    pthread_t tid[MAXTHREADS];  // thread IDs
-    Data arg[MAXTHREADS];  // thread arguments going in and out
-    for (int i = 0; i < threads; ++i) {
-        arg[i] = (Data){
-            .start = i + 1,  // thread 0 starts with 1, thread 1 with 2, etc.
-            .step = threads,
-            .mask = MASK5
-        };  // output vars init to zero
-        if (pthread_create(&tid[i], NULL, loop, &arg[i])) {
-            fprintf(stderr, "Unable to launch thread %d of %d.\n", i + 1, threads);
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    // Wait for all threads to finish.
-    for (int i = 0; i < threads; ++i)
-        pthread_join(tid[i], NULL);
-
-    // unsigned n = 0;
-    // while (md5(++n) & MASK5);
-    // printf("Part 1: %u\n", n);  // 346386
-    // while (md5(++n) & MASK6);
-    // printf("Part 2: %u\n", n);  // 9958218
-    printf("Time: %.2f s\n", stoptimer_s());
+    printf("Part 1: %u\n", run(1, threads));  // 346386
+    printf("Part 2: %u\n", run(2, threads));  // 9958218
+#ifdef TIMER
+    printf("Time: %.0f ms\n", stoptimer_ms());
+#endif
     return 0;
 }
