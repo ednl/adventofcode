@@ -14,9 +14,9 @@
  *     n=10000;m=999999;for((i=0;i<n;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i/$n)";done
  * Minimum runtime:
  *     Macbook Pro 2024 (M4 4.4 GHz)       : 121 µs
- *     Mac Mini 2020 (M1 3.2 GHz)          :   ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)          : 171 µs
  *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :   ? µs
- *     Raspberry Pi 5 (2.4 GHz)            :   ? µs
+ *     Raspberry Pi 5 (2.4 GHz)            : 301 µs
  */
 
 #include <stdio.h>     // getline (should perhaps check for availability)
@@ -74,7 +74,7 @@ static int64_t lcm(int64_t a, int64_t b)
 // 5-bit mask: 'A' = 1, 'Z' = 26
 // "AAA" = (( 1 * 32) +  1) * 32 +  1 =  1024 +  32 +  1 =  1057
 // "ZZZ" = ((26 * 32) + 26) * 32 + 26 = 26624 + 832 + 26 = 27482
-static int index(const char *s)
+static int hash(const char *s)
 {
     return (s[0] & MASK) << BTWO | (s[1] & MASK) << BITS | (s[2] & MASK);
 }
@@ -126,9 +126,9 @@ int main(void)
     char *buf = NULL;
     size_t bufsize;
     while (getline(&buf, &bufsize, f) > 1) {  // e.g.: "ABC = (DEF, GHI)\n"
-        const int i = index(buf);
-        node[i][0] = index(buf + 7);
-        node[i][1] = index(buf + 12);
+        const int i = hash(buf);
+        node[i][0] = hash(buf + 7);
+        node[i][1] = hash(buf + 12);
         if (buf[2] == 'A')  // save nodes ending in 'A'
             xxa[threadcount++] = i;
     }
