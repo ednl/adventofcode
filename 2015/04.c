@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include <stdint.h>     // uint8_t, uint32_t, UINT32_C
 #include <stdbool.h>    // false, true
-#include <stdatomic.h>  // atomic_uint_fast32_t
+#include <stdatomic.h>  // atomic_bool
 #include <pthread.h>    // pthread_create, pthread_join
 #ifdef TIMER
     #include "../startstoptimer.h"
@@ -52,7 +52,6 @@ typedef struct data {
 
 // Signal for other threads to exit when the desired value is found in one thread.
 static atomic_bool found = false;
-// static atomic_uint_fast32_t result = 0;
 
 // Number of CPU cores available to this program.
 // Return: value between lo and hi, inclusive.
