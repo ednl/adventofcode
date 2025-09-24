@@ -5,15 +5,15 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=c17 -Wall -Wextra -pedantic 08alt.c
- *    gcc   -std=c17 -Wall -Wextra -pedantic 08alt.c
+ *    clang -std=c17 -Wall -Wextra -pedantic 08.c
+ *    gcc   -std=c17 -Wall -Wextra -pedantic 08.c
  * Enable timer:
- *    clang -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 08alt.c
- *    gcc   -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 08alt.c
+ *    clang -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 08.c
+ *    gcc   -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 08.c
  * Get minimum runtime from timer output:
  *     n=10000;m=999999;for((i=0;i<n;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i/$n)";done
  * Minimum runtime:
- *     Macbook Pro 2024 (M4 4.4 GHz)       : 121 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz)       : 120 µs
  *     Mac Mini 2020 (M1 3.2 GHz)          : 164 µs
  *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :   ? µs
  *     Raspberry Pi 5 (2.4 GHz)            : 301 µs
