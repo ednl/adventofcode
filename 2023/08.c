@@ -16,7 +16,7 @@
  *     Macbook Pro 2024 (M4 4.4 GHz)       : 120 µs
  *     Mac Mini 2020 (M1 3.2 GHz)          : 164 µs
  *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :   ? µs
- *     Raspberry Pi 5 (2.4 GHz)            : 301 µs
+ *     Raspberry Pi 5 (2.4 GHz)            : 296 µs
  */
 
 #include <stdio.h>     // getline (should probably check for availability)
