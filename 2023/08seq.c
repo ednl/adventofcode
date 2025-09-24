@@ -20,7 +20,6 @@
  */
 
 #include <stdio.h>     // getline (should probably check for availability)
-#include <stdlib.h>    // free
 #include <stdint.h>    // int64_t
 #include <inttypes.h>  // PRId64
 #include <stdbool.h>
