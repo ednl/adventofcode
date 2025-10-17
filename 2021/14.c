@@ -17,7 +17,7 @@
 #include <stdint.h>    // uint64_t
 #include <limits.h>    // UINT64_MAX
 #include <inttypes.h>  // PRIu64
-#include "startstoptimer.h"
+#include "../startstoptimer.h"
 
 #define STEPS1 10  // take so many growth steps, part 1
 #define STEPS2 40  // take so many growth steps, part 2

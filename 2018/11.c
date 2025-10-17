@@ -1,5 +1,5 @@
 #include <stdio.h>
-// #include "startstoptimer.h"
+// #include "../startstoptimer.h"
 
 #define SERIAL  2866  // my puzzle input
 #define GRIDSIZE 300

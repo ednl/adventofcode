@@ -7,7 +7,7 @@
 
 #include <stdio.h>   // fopen, fclose, fscanf, printf
 #include <stdlib.h>  // abs
-#include "startstoptimer.h"
+#include "../startstoptimer.h"
 
 #define HALF (20)         // half horizontal scanline width
 #define LINE (HALF << 1)  // horizontal pixels = 40

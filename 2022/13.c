@@ -16,7 +16,7 @@
 #include <stdlib.h>  // free
 #include <stdbool.h>
 #include <ctype.h>   // isdigit
-#include "startstoptimer.h"
+#include "../startstoptimer.h"
 
 #define EXAMPLE 0
 #if EXAMPLE == 1

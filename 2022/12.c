@@ -7,7 +7,7 @@
 
 #include <stdio.h>    // fopen, fclose, fgetc, printf
 #include <stdbool.h>  // bool
-#include "startstoptimer.h"
+#include "../startstoptimer.h"
 
 #define EXAMPLE 0
 #if EXAMPLE == 1

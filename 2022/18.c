@@ -22,7 +22,7 @@
 */
 
 #include <stdio.h>  // printf, fscanf
-#include "startstoptimer.h"
+#include "../startstoptimer.h"
 
 #define EXAMPLE 0
 #if EXAMPLE == 1

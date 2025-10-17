@@ -13,7 +13,7 @@
  */
 
 #include <stdio.h>
-#include "startstoptimer.h"
+#include "../startstoptimer.h"
 
 #define EXAMPLE 0
 #if EXAMPLE == 1

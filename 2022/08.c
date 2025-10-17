@@ -7,7 +7,7 @@
 
 #include <stdio.h>    // fopen, fclose, fgetc, printf
 #include <stdbool.h>  // bool, true
-#include "startstoptimer.h"
+#include "../startstoptimer.h"
 
 #define N (99)
 static char tree[N][N];

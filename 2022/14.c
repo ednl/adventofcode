@@ -16,7 +16,7 @@
 #include <stdlib.h>   // calloc, free
 #include <stdbool.h>
 #include <stdint.h>   // uint8_t
-#include "startstoptimer.h"
+#include "../startstoptimer.h"
 
 #define EXAMPLE 0
 #if EXAMPLE

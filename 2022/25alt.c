@@ -14,7 +14,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>  // div
-#include "startstoptimer.h"
+#include "../startstoptimer.h"
 
 #define EXAMPLE 0
 #if EXAMPLE == 1

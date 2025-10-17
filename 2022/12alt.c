@@ -7,7 +7,7 @@
 
 #include <stdio.h>    // fopen, fclose, fgetc, printf
 #include <stdbool.h>  // bool
-#include "startstoptimer.h"
+#include "../startstoptimer.h"
 
 #define NAME "../aocinput/2022-12-input.txt"
 #define ROWS  (41)   // lines in input file

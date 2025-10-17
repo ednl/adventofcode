@@ -17,7 +17,7 @@
 #include <stdint.h>    // int8_t
 #include <inttypes.h>  // PRId64
 #include <stdbool.h>
-#include "startstoptimer.h"
+#include "../startstoptimer.h"
 
 #define EXAMPLE 1
 #if EXAMPLE == 1

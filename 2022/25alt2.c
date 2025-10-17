@@ -14,7 +14,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "startstoptimer.h"
+#include "../startstoptimer.h"
 
 #define EXAMPLE 0
 #if EXAMPLE == 1
