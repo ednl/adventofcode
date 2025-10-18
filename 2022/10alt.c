@@ -14,9 +14,9 @@
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz)                    :  3.67 µs
- *     Mac Mini 2020 (M1 3.2 GHz)                       :  ? µs
- *     Raspberry Pi 5 (2.4 GHz)                         :  ? µs
- *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz)         :  ? µs
+ *     Raspberry Pi 5 (2.4 GHz)                         :  7.54 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)                       :    ?  µs
+ *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz)         :    ?  µs
  */
 
 #include <stdio.h>    // fopen, fread, fclose, fputc, printf
@@ -33,7 +33,7 @@ static char input[1024];
 
 static int readnum(char **s)
 {
-    const _Bool neg = **s == '-';
+    const bool neg = **s == '-';
     *s += neg;
     int x = *(*s)++ & 15;
     while (**s != '\n')
@@ -46,13 +46,14 @@ int main(void)
     FILE *f = fopen("../aocinput/2022-10-input.txt", "r");
     fread(input, sizeof input, 1, f);
     fclose(f);
+
 #ifdef TIMER
     starttimer();
 #endif
 
     int cycle = 0, beam = 0, regx = 1, sigsum = 0;
     for (char *c = input; *c; ) {
-        fputc(abs(regx - beam) <= 1 ? '#' : ' ', stdout);  // EFUGLPAP
+        fputc(abs(regx - beam) < 2 ? '#' : ' ', stdout);  // part 2: EFUGLPAP
         ++cycle;
         ++beam;
         if (beam == HALF)
