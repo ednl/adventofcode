@@ -30,11 +30,12 @@
 #define WIDTH 40
 #define MID (WIDTH >> 1)
 
-static char inp[1024];
+static char inp[1024];  // large enough to hold complete input file
 static char crt[HEIGHT][WIDTH + 1];  // +newline
 
 int main(void)
 {
+    // Read complete input file from disk in one go
     FILE *f = fopen("../aocinput/2022-10-input.txt", "r");
     fread(inp, sizeof inp, 1, f);
     fclose(f);
@@ -43,9 +44,10 @@ int main(void)
     starttimer();
 #endif
 
+    // CRT emulation, draw 1 pixel per cycle
     int regx = 1, cycle = 0, line = 0, beam = 0, part1 = 0;
     for (char *c = inp; *c; ) {
-        crt[line][beam] = abs(regx - beam) < 2 ? '#' : ' ';  // sprite 3 pix wide at pos=regx overlaps with beam?
+        crt[line][beam] = abs(regx - beam) < 2 ? '#' : ' ';  // beam hits 3px wide sprite?
         ++cycle;
         ++beam;
         if (beam == MID) {
@@ -60,7 +62,7 @@ int main(void)
         } else {                         // '-' or '0'..'9'
             const bool neg = *c == '-';  // negative number?
             c += neg;                    // skip sign if present
-            int n = *c++ & 15;
+            int n = *c++ & 15;           // manual conversion ascii->int
             while (*c != '\n')
                 n = n * 10 + (*c++ & 15);
             regx += neg ? -n : n;
@@ -68,11 +70,12 @@ int main(void)
         }
     }
 
+    // Output puzzle solutions using direct write
     char buf[8];
     size_t i = sizeof buf;
     buf[--i] = '\n';
     do {
-        buf[--i] = '0' | part1 % 10;
+        buf[--i] = '0' | part1 % 10;  // manual conversion int->ascii
         part1 /= 10;
     } while (part1);
     fwrite(buf + i, sizeof buf - i, 1, stdout);  // part 1: example=13140, input=15020
