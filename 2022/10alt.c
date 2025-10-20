@@ -8,12 +8,12 @@
  *    clang -std=c17 -Wall -Wextra -pedantic 10alt.c
  *    gcc   -std=c17 -Wall -Wextra -pedantic 10alt.c
  * Enable timer:
- *    clang -DTIMER -O3 -march=native -mtune=native 10alt.c ../startstoptimer.c
- *    gcc   -DTIMER -O3 -march=native -mtune=native 10alt.c ../startstoptimer.c
+ *    clang -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 10alt.c
+ *    gcc   -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 10alt.c
  * Get minimum runtime from timer output:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz)                    :  3.67 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz)                    :  0.96 µs
  *     Raspberry Pi 5 (2.4 GHz)                         :  7.54 µs
  *     Mac Mini 2020 (M1 3.2 GHz)                       :    ?  µs
  *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz)         :    ?  µs
@@ -26,50 +26,57 @@
     #include "../startstoptimer.h"
 #endif
 
-#define LINE 40
-#define HALF (LINE >> 1)
+#define HEIGHT 6
+#define WIDTH 40
+#define MID (WIDTH >> 1)
 
-static char input[1024];
-
-static int readnum(char **s)
-{
-    const bool neg = **s == '-';
-    *s += neg;
-    int x = *(*s)++ & 15;
-    while (**s != '\n')
-        x = x * 10 + (*(*s)++ & 15);
-    return neg ? -x : x;
-}
+static char inp[1024];
+static char crt[HEIGHT][WIDTH + 1];  // +newline
 
 int main(void)
 {
     FILE *f = fopen("../aocinput/2022-10-input.txt", "r");
-    fread(input, sizeof input, 1, f);
+    fread(inp, sizeof inp, 1, f);
     fclose(f);
 
 #ifdef TIMER
     starttimer();
 #endif
 
-    int cycle = 0, beam = 0, regx = 1, sigsum = 0;
-    for (char *c = input; *c; ) {
-        fputc(abs(regx - beam) < 2 ? '#' : ' ', stdout);  // part 2: EFUGLPAP
+    int regx = 1, cycle = 0, line = 0, beam = 0, part1 = 0;
+    for (char *c = inp; *c; ) {
+        crt[line][beam] = abs(regx - beam) < 2 ? '#' : ' ';  // sprite 3 pix wide at pos=regx overlaps with beam?
         ++cycle;
         ++beam;
-        if (beam == HALF)
-            sigsum += cycle * regx;
-        else if (beam == LINE) {
-            beam = 0;
-            fputc('\n', stdout);
+        if (beam == MID) {
+            part1 += cycle * regx;       // sum of "signal strength" halfway scan line
+        } else if (beam == WIDTH) {
+            crt[line][WIDTH] = '\n';
+            beam = 0;                    // CR
+            line++;                      // LF
         }
-        if (*c & 64)  // 'a' or 'n'
-            c += 5;
-        else {        // '-' or '0'..'9'
-            regx += readnum(&c);
-            c += 1;
+        if (*c & 64) {                   // 'a' or 'n'
+            c += 5;                      // skip opcode (4 chars) and space or newline
+        } else {                         // '-' or '0'..'9'
+            const bool neg = *c == '-';  // negative number?
+            c += neg;                    // skip sign if present
+            int n = *c++ & 15;
+            while (*c != '\n')
+                n = n * 10 + (*c++ & 15);
+            regx += neg ? -n : n;
+            c++;                         // skip newline
         }
     }
-    printf("%d\n", sigsum);  // part 1: example=13140, input=15020
+
+    char buf[8];
+    size_t i = sizeof buf;
+    buf[--i] = '\n';
+    do {
+        buf[--i] = '0' + part1 % 10;
+        part1 /= 10;
+    } while (part1);
+    fwrite(buf + i, sizeof buf - i, 1, stdout);  // part 1: example=13140, input=15020
+    fwrite(crt, sizeof crt, 1, stdout);          // part 2: EFUGLPAP
 
 #ifdef TIMER
     printf("Time: %.0f ns\n", stoptimer_ns());
