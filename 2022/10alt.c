@@ -72,7 +72,7 @@ int main(void)
     size_t i = sizeof buf;
     buf[--i] = '\n';
     do {
-        buf[--i] = '0' + part1 % 10;
+        buf[--i] = '0' | part1 % 10;
         part1 /= 10;
     } while (part1);
     fwrite(buf + i, sizeof buf - i, 1, stdout);  // part 1: example=13140, input=15020
