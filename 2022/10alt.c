@@ -21,6 +21,7 @@
 
 #include <stdio.h>    // fopen, fread, fclose, fputc, printf
 #include <stdlib.h>   // abs
+#include <unistd.h>   // isatty, fileno
 #include <stdbool.h>  // bool
 #ifdef TIMER
     #include "../startstoptimer.h"
@@ -35,10 +36,16 @@ static char crt[HEIGHT][WIDTH + 1];  // +newline
 
 int main(void)
 {
-    // Read complete input file from disk in one go
-    FILE *f = fopen("../aocinput/2022-10-input.txt", "r");
-    fread(inp, sizeof inp, 1, f);
-    fclose(f);
+    if (isatty(fileno(stdin))) {
+        // Read input file from disk
+        FILE *f = fopen("../aocinput/2022-10-input.txt", "r");
+        if (!f)
+            return 1;
+        fread(inp, sizeof inp, 1, f);
+        fclose(f);
+    } else
+        // Read input or example file from pipe or redirected stdin
+        fread(inp, sizeof inp, 1, stdin);
 
 #ifdef TIMER
     starttimer();
