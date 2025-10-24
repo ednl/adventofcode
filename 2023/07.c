@@ -5,12 +5,16 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 07.c ../startstoptimer.c
- *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 07.c ../startstoptimer.c
- * Get minimum runtime:
- *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
+ *    clang -std=c17 -Wall -Wextra -pedantic 07.c
+ *    gcc   -std=c17 -Wall -Wextra -pedantic 07.c
+ * Enable timer:
+ *    clang -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 07.c
+ *    gcc   -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 07.c
+ * Get minimum runtime from timer output:
+ *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime:
- *     Mac Mini 2020 (M1 3.2 GHz)          :  309 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz)       :  202 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)          :  308 µs
  *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :  474 µs
  *     Raspberry Pi 5 (2.4 GHz)            :  510 µs
  *     Raspberry Pi 4 (1.8 GHz)            : 1093 µs
@@ -19,7 +23,9 @@
 #include <stdio.h>    // fopen, fclose, fscanf, printf
 #include <stdlib.h>   // qsort
 #include <stdbool.h>  // bool
+#ifdef TIMER
 #include "../startstoptimer.h"
+#endif
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
@@ -150,7 +156,9 @@ static int winnings(const bool ispart2)
 
 int main(void)
 {
+#ifdef TIMER
     starttimer();
+#endif
     FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
 
@@ -160,6 +168,8 @@ int main(void)
 
     printf("Part 1: %d\n", winnings(1 == 2));  // example: 6440, input: 250957639
     printf("Part 2: %d\n", winnings(2 == 2));  // example: 5905, input: 251515496
+#ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
+#endif
     return 0;
 }
