@@ -5,17 +5,15 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=c17 -Wall -Wextra -pedantic 18.c
- *    gcc   -std=c17 -Wall -Wextra -pedantic 18.c
+ *    cc -std=c17 -Wall -Wextra -pedantic 18.c
  * Enable timer:
- *    clang -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 18.c
- *    gcc   -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 18.c
+ *    cc -std=gnu17 -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 18.c
  * Get minimum runtime from timer output:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 486 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :   ? µs
- *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  486 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  810 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 1138 µs
  *
  * The rules in the puzzle description say:
  *
@@ -30,7 +28,7 @@
  * doesn't matter, so rules 1 and 2 as a whole are redundant. Rules 3 and 4
  * combined say: if left is different from right, the new tile is a trap.
  *
- * To test difference, use XOR (or in C, ^. Hey! That trap was probably a clue!).
+ * To test difference, use XOR (or in C, ^. That trap symbol was probably a clue!).
  *
  *     0 XOR 0 = 0 (left=safe, right=safe => new tile=safe)
  *     0 XOR 1 = 1 (left=safe, right=trap => new tile=trap)
@@ -38,7 +36,7 @@
  *     1 XOR 1 = 0 (left=trap, right=trap => new tile=safe)
  *
  * To make bits go left or right, use shift (SHL and SHR, or in C, << and >>).
- * Added bits at the low or high end will be 0. For 4-bit numbers:
+ * Added bits at the low or high end (for unsigned) will be 0. For 4-bit numbers:
  *
  *     1011 SHL 1 = 0110
  *     0110 SHR 1 = 0011
@@ -55,7 +53,7 @@
  * this is what we need to calculate for 400,000 rows of length 100.
  */
 
-#include <stdio.h>   // fopen, fclose, printf
+#include <stdio.h>   // fopen, fclose, fread, fwrite
 #include <stdint.h>  // uint64_t
 #include <unistd.h>  // isatty, fileno
 #ifdef TIMER
@@ -76,7 +74,7 @@ typedef union {
 // integer. 'Popcount' is not C standard but available in recent versions of
 // gcc and clang. Tested with Debian gcc 10.2 on arm64 and Apple clang 14.0 on
 // M1. Idea from https://stackoverflow.com/questions/55008994/most-efficient-popcount-on-uint128-t
-static inline int bitcount(const __uint128_t n)
+static int bitcount(const __uint128_t n)
 {
     const UU128 u = {n};
     return __builtin_popcountll(u.a[0]) + __builtin_popcountll(u.a[1]);
@@ -143,8 +141,8 @@ int main(void)
         traps = (traps << 1) | (*c == '^');
         mask  = (mask  << 1) | 1;
     }
-    print_int(evolve(traps, mask, 40    ));  // 1'956
-    print_int(evolve(traps, mask, 400000));  // 19'995'121
+    print_int(evolve(traps, mask, 40    ));  // 1956
+    print_int(evolve(traps, mask, 400000));  // 19995121
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
