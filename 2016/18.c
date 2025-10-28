@@ -4,24 +4,18 @@
  * https://adventofcode.com/2016/day/18
  * By: E. Dronkert https://github.com/ednl
  *
- * Benchmark on a Mac Mini M1, compiler Apple clang 14.0.3 with -O3 -march=native:
- *
- *     $ hyperfine -N -w 500 -r 1000 ./a.out
- *     Benchmark 1: ./a.out
- *       Time (mean ± σ):       1.6 ms ±   0.1 ms    [User: 1.0 ms, System: 0.4 ms]
- *       Range (min … max):     1.5 ms …   2.2 ms    1000 runs
- *
- * Benchmark on a Raspberry Pi 4, compiler Debian gcc 10.2.1-6 with -O3 -march=native
- * and the CPU in performance mode:
- *
- *     echo performance | sudo tee /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
- *     (to reset, replace performance with ondemand)
- *     /boot/config.txt: arm_boost=1, no overclock
- *
- *     $ hyperfine -N -w 100 -r 500 ./a.out
- *     Benchmark 1: ./a.out
- *       Time (mean ± σ):       4.9 ms ±   0.1 ms    [User: 3.6 ms, System: 1.0 ms]
- *       Range (min … max):     4.7 ms …   5.5 ms    500 runs
+ * Compile:
+ *    clang -std=c17 -Wall -Wextra -pedantic 18.c
+ *    gcc   -std=c17 -Wall -Wextra -pedantic 18.c
+ * Enable timer:
+ *    clang -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 18.c
+ *    gcc   -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 18.c
+ * Get minimum runtime from timer output:
+ *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 486 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :   ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
  *
  * The rules in the puzzle description say:
  *
@@ -63,6 +57,13 @@
 
 #include <stdio.h>   // fopen, fclose, printf
 #include <stdint.h>  // uint64_t
+#include <unistd.h>  // isatty, fileno
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
+
+#define INPUTSIZE 128  // max size of input file in bytes
+static char input[INPUTSIZE];
 
 // Union with overlapping members to easily access lower
 // and higher 64-bit halves of the 128-bit integer.
@@ -100,13 +101,35 @@ static int evolve(__uint128_t traps, const __uint128_t mask, const int rows)
     return safe;
 }
 
+// Fast manual conversion non-negative int->ascii, +newline
+static void print_int(int x)
+{
+    char buf[16];  // large enough for 1<<31 in decimal
+    size_t i = sizeof buf;
+    buf[--i] = '\n';
+    do {
+        buf[--i] = '0' | x % 10;  // assumes ASCII
+        x /= 10;
+    } while (x);
+    fwrite(buf + i, sizeof buf - i, 1, stdout);
+}
+
 int main(void)
 {
-    __uint128_t traps = 0, mask = 0;
-    int c;
-    FILE *f = fopen("../aocinput/2016-18-input.txt", "r");
-    if (!f)
-        return 1;
+    if (isatty(fileno(stdin))) {
+        // Read input file from disk
+        FILE *f = fopen("../aocinput/2016-18-input.txt", "r");
+        if (!f)
+            return 1;
+        fread(input, sizeof input, 1, f);
+        fclose(f);
+    } else
+        // Read input or example file from pipe or redirected stdin
+        fread(input, sizeof input, 1, stdin);
+
+#ifdef TIMER
+    starttimer();
+#endif
 
     // Input is one line of 'traps' (^) and 'safe' tiles (.) no longer than
     // 128 tiles (in my case length=100). Object is to count safe tiles but
@@ -114,12 +137,16 @@ int main(void)
     // set safe=0 and trap=1. This slightly complicates counting safe tiles
     // but enables the shift-xor algorithm.
     // Originally I counted the length and set mask to (1<<len)-1.
-    while ((c = fgetc(f)) >= '.') {  // better than "!='\n'" in case of EOF
-        traps = (traps << 1) | (c == '^');
+
+    __uint128_t traps = 0, mask = 0;
+    for (const char *c = input; *c >= '.'; ++c) {
+        traps = (traps << 1) | (*c == '^');
         mask  = (mask  << 1) | 1;
     }
-    fclose(f);
-    printf("Part 1: %d\n", evolve(traps, mask, 40    ));  // 1956
-    printf("Part 2: %d\n", evolve(traps, mask, 400000));  // 19995121
-    return 0;
+    print_int(evolve(traps, mask, 40    ));  // 1'956
+    print_int(evolve(traps, mask, 400000));  // 19'995'121
+
+#ifdef TIMER
+    printf("Time: %.0f us\n", stoptimer_us());
+#endif
 }
