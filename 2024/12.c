@@ -5,11 +5,9 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -Wall -Wextra 12.c
- *    gcc   -std=gnu17 -Wall -Wextra 12.c
+ *    cc -std=c99 -Wall -Wextra -pedantic 12.c
  * Enable timer:
- *    clang -DTIMER -O3 -march=native 12.c ../startstoptimer.c
- *    gcc   -DTIMER -O3 -march=native 12.c ../startstoptimer.c
+ *    cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 12.c
  * Get minimum runtime from timer output:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
@@ -38,10 +36,10 @@
 #define SSIZE 128  // max needed for my input: 116
 
 // Orthogonal directions
-#define TOP (1 << 0)  // bit 0
-#define BTM (1 << 1)  // bit 1
-#define LFT (1 << 2)  // bit 2
-#define RGT (1 << 3)  // bit 3
+#define TOP (1u << 0)  // bit 0
+#define BTM (1u << 1)  // bit 1
+#define LFT (1u << 2)  // bit 2
+#define RGT (1u << 3)  // bit 3
 
 // Diagonal directions
 #define TL (TOP | LFT)
@@ -62,6 +60,13 @@ static char map[N + 2][N + 3];    // input file +border
 static bool seen[N + 1][N + 1];   // explored nodes
 static uint8_t nb[N + 1][N + 1];  // neighbours (bits 0-3 set/not set)
 static Stack stack;
+
+// Add vectors in place ("by reference")
+static void add_r(Vec *const a, const Vec b)
+{
+    a->x += b.x;
+    a->y += b.y;
+}
 
 // Save onto stack, return false if already seen or stack full
 static bool push(const int x, const int y)
@@ -121,12 +126,6 @@ static Vec price(int i, int j)
     return (Vec){area * perim, area * corners};
 }
 
-static void add_r(Vec *const a, const Vec b)
-{
-    a->x += b.x;
-    a->y += b.y;
-}
-
 int main(void)
 {
     FILE *f = fopen(FNAME, "r");  // binary mode needed for fread()
@@ -140,9 +139,9 @@ int main(void)
 #endif
 
     Vec sum = {0};
-    for (int i = 1; i <= N; ++i)
-        for (int j = 1; j <= N; ++j)
-            if (!seen[i][j])  // new plot?
+    for (int i = 1; i <= N; ++i)      // row value with borders
+        for (int j = 1; j <= N; ++j)  // col value with borders
+            if (!seen[i][j])          // new plot?
                 add_r(&sum, price(i, j));
     printf("%d %d\n", sum.x, sum.y);  // example: 1930 1206, input: 1361494 830516
 
