@@ -5,16 +5,14 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -Wall -Wextra 03.c
- *    gcc   -std=gnu17 -Wall -Wextra 03.c
+ *    cc -std=c17 -Wall -Wextra -pedantic 03.c
  * Enable timer:
- *    clang -DTIMER -O3 -march=native 03.c ../startstoptimer.c
- *    gcc   -DTIMER -O3 -march=native 03.c ../startstoptimer.c
+ *    cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 03.c
  * Get minimum runtime from timer output:
- *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz)                    :  13 µs
- *     Mac Mini 2020 (M1 3.2 GHz)                       :  20 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)                       :  19 µs
  *     Raspberry Pi 5 (2.4 GHz)                         :   ? µs
  *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :   ? µs
  *     Raspberry Pi 4 (1.8 GHz)                         :   ? µs
@@ -22,6 +20,7 @@
  */
 
 #include <stdio.h>
+#include <unistd.h>   // isatty, fileno
 #include <stdbool.h>
 #ifdef TIMER
     #include "../startstoptimer.h"
@@ -30,12 +29,12 @@
 #define FNAME "../aocinput/2024-03-input.txt"
 #define FSIZE (5 << 12)  // 20480 >= input file size in bytes
 
-// Match 4 characters at once, interpreted as 32-bit int (little-endian)
+// Match 4 characters at once, interpreted as 32-bit int (little-endian!)
 #define MUL  0x286c756d  // *(int *)"mul("
 #define DO   0x29286f64  // *(int *)"do()"
 #define DON  0x276e6f64  // *(int *)"don'"
 #define DONT 0x00292874  // *(int *)"t()"
-#define MASK ((1 << 24) - 1)  // "'t()" is 3 bytes, so disregard MSB
+#define MASK ((1 << 24) - 1)  // "'t()" is 3 bytes, so disregard last=MSB
 
 // Don't rely on undefined behaviour
 typedef int unaligned_int __attribute__((aligned(1)));
@@ -68,11 +67,15 @@ static inline int pair(const char **const c)
 
 int main(void)
 {
-    // Read input file
-    FILE *f = fopen(FNAME, "rb");  // fread() requires binary mode
-    if (!f) { fputs("File not found.\n", stderr); return 1; }
-    fread(input, sizeof input, 1, f);  // read whole file at once
-    fclose(f);
+    if (isatty(fileno(stdin))) {
+        // Read input file from disk
+        FILE *f = fopen(FNAME, "rb");  // fread() requires binary mode
+        if (!f) { fputs("File not found", stderr); return 1; }
+        fread(input, sizeof input, 1, f);  // read whole file at once
+        fclose(f);
+    } else
+        // Read input or example file from pipe or redirected stdin
+        fread(input, sizeof input, 1, stdin);
 
 #ifdef TIMER
     starttimer();
@@ -82,7 +85,9 @@ int main(void)
     int sum1 = 0, sum2 = 0, mul;
     bool enabled = true;  // "At the beginning, mul instructions are enabled."
     for (const char *c = input; *c; ) {
-        switch (*(unaligned_int *)c) {  // interpret char pointer as unaligned 32-bit int pointer
+        // interpret char pointer as unaligned 32-bit int pointer
+        // for the next 4 characters at once
+        switch (*(unaligned_int *)c) {
         case MUL:  // "mul("
             c += 4;
             if ((mul = pair(&c))) {
