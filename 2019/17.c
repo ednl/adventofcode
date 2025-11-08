@@ -330,16 +330,16 @@ int vm_exec(int reset)
 long vm_input(void)
 {
     /*
-    A	R,12,L,10,L,10
-    B	L,6,L,12,R,12,L,4
-    A	R,12,L,10,L,10
-    B	L,6,L,12,R,12,L,4
-    C	L,12,R,12,L,6
-    B	L,6,L,12,R,12,L,4
-    C	L,12,R,12,L,6
-    A	R,12,L,10,L,10
-    C	L,12,R,12,L,6
-    C	L,12,R,12,L,6
+    A    R,12,L,10,L,10
+    B    L,6,L,12,R,12,L,4
+    A    R,12,L,10,L,10
+    B    L,6,L,12,R,12,L,4
+    C    L,12,R,12,L,6
+    B    L,6,L,12,R,12,L,4
+    C    L,12,R,12,L,6
+    A    R,12,L,10,L,10
+    C    L,12,R,12,L,6
+    C    L,12,R,12,L,6
     A,B,A,B,C,B,C,A,C,C
     R,12,L,10,L,10
     L,6,L,12,R,12,L,4
