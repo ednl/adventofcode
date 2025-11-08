@@ -60,7 +60,7 @@ typedef struct hand {
 // Complete game with all hands
 static Hand game[HANDS];
 
-static inline void swap(int *const a, int *const b)
+static void swap(int *const a, int *const b)
 {
     const int tmp = *a;
     *a = *b;

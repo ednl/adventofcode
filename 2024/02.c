@@ -39,7 +39,7 @@ static int data[REPORTS][LEVELS];  // input file parsed
 static int count[REPORTS];         // number of levels in each report
 
 // Parse 1- or 2-digit number, update char pointer
-static inline int num(const char **const c)
+static int num(const char **const c)
 {
     int x = (*(*c)++ & 15);
     if (**c >= '0' && **c <= '9')
@@ -49,7 +49,7 @@ static inline int num(const char **const c)
 }
 
 // Direction change from level a to b: +1 for a<b, -1 for a>b, 0 for a=b
-static inline int change(const int a, const int b)
+static int change(const int a, const int b)
 {
     return (a < b) - (a > b);
 }

@@ -67,23 +67,23 @@ static void show(const char *a, const size_t size)
         putchar(*a++);
 }
 
-static inline Pos add(const Pos a, const Pos b)
+static Pos add(const Pos a, const Pos b)
 {
     return (Pos){a.x + b.x, a.y + b.y};
 }
 
-static inline void add_r(Pos *const a, const Pos b)
+static void add_r(Pos *const a, const Pos b)
 {
     a->x += b.x;
     a->y += b.y;
 }
 
-static inline char peek(const Pos pos)
+static char peek(const Pos pos)
 {
     return map[pos.y][pos.x];
 }
 
-static inline void poke(const Pos pos, const char tile)
+static void poke(const Pos pos, const char tile)
 {
     map[pos.y][pos.x] = tile;
 }

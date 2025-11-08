@@ -40,7 +40,7 @@ static int cmp_int_asc(const void *p, const void *q)
 }
 
 // Read 5-digit number, update char pointer
-static inline int num5(const char **const c)
+static int num5(const char **const c)
 {
     int x  = (*(*c)++ & 15) * 10000;
         x += (*(*c)++ & 15) * 1000;

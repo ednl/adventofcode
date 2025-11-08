@@ -77,7 +77,7 @@ static int hash(const char *s)
 }
 
 // Check if index i is to a node whose name does NOT end in 'Z'
-static inline bool end_not_z(const int i)
+static bool end_not_z(const int i)
 {
     return (i & MASK) != ('Z' & MASK);
 }

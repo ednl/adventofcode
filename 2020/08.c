@@ -37,7 +37,7 @@ static int run(bool *const loop)
 
 // Flip the jmp or nop instruction at address i
 // (only the first char is used when executing)
-static inline void flip(const int i)
+static void flip(const int i)
 {
     vm[i].op[0] ^= 4;  // j->n, n->j
 }

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-static inline bool triangle(unsigned int a, unsigned int b, unsigned int c)
+static bool triangle(unsigned int a, unsigned int b, unsigned int c)
 {
     return (a + b > c) && (a + c > b) && (b + c > a);
 }

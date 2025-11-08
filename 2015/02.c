@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 
-static inline void swap(unsigned *restrict const a, unsigned *restrict const b)
+static void swap(unsigned *restrict const a, unsigned *restrict const b)
 {
     const unsigned tmp = *a;
     *a = *b;

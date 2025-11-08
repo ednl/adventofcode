@@ -92,7 +92,7 @@ static bool hashfind(const int ipat, const int igrp, int64_t *val)
 // Insert [key,val] into "hash table" at index, adjusts hashsize and hashcount if necessary.
 // Must be true: index <= hashcount, hashsize > 0, hashtable already allocated.
 // WARNING: not a real hash table, just a binary search & memmove to make room.
-static inline bool hashinsert(size_t index, const int key, const int64_t val)
+static bool hashinsert(size_t index, const int key, const int64_t val)
 {
     if (hashcount == hashsize) {  // table full?
         Hashentry *p = realloc(hashtable, (hashsize <<= 1) * sizeof *hashtable);  // double the size
@@ -132,7 +132,7 @@ static bool hashsave(const int ipat, const int igrp, const int64_t val)
 }
 
 // Does group fit from index start?
-static inline bool itfits(const int start, const int end, const char *const pat)
+static bool itfits(const int start, const int end, const char *const pat)
 {
     for (int i = start + 1; i < end; ++i)
         if (pat[i] == '.')

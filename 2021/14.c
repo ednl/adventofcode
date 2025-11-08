@@ -39,7 +39,7 @@ static Rule rule[RULES] = {0};   // all transformation rules
 static char polymer[PSIZE + 1];  // must be same size as in input file, +1 for \0
 
 // Get index 0-25 from element A-Z.
-static inline int ix(const char c)
+static int ix(const char c)
 {
     return (int)(c - 'A');
 }
@@ -56,7 +56,7 @@ static Rule *findrule_c(const char a, const char b)
 
 // Find the corresponding rule for every element pair in the given polymer
 // to initialise its count.
-static inline Rule *findrule_s(const char *s)
+static Rule *findrule_s(const char *s)
 {
     return findrule_c(s[0], s[1]);
 }

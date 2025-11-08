@@ -48,7 +48,7 @@ static int load(void)
 }
 
 // Add vector to vector
-static inline void addv(int *r, const int *a, const int *b)
+static void addv(int *r, const int *a, const int *b)
 {
     for (size_t i = 0; i < DIM; ++i) {
         r[i] = a[i] + b[i];
@@ -56,7 +56,7 @@ static inline void addv(int *r, const int *a, const int *b)
 }
 
 // Multiply vector by scalar
-static inline void muls(int *r, const int *a, const int n)
+static void muls(int *r, const int *a, const int n)
 {
     for (size_t i = 0; i < DIM; ++i) {
         r[i] = a[i] * n;
@@ -64,7 +64,7 @@ static inline void muls(int *r, const int *a, const int n)
 }
 
 // Manhattan distance
-static inline int manh(const int *a)
+static int manh(const int *a)
 {
     return abs(a[0]) + abs(a[1]) + abs(a[2]);
 }
@@ -99,7 +99,7 @@ static int cmp2(const void *a, const void *b)
 }
 
 // Return non-negative integer equal to a, or -1
-static inline int nonnegint(double a)
+static int nonnegint(double a)
 {
     double b = round(a);
     int i = fabs(a - b) < 0.000001 ? (int)b : -1;
@@ -108,7 +108,7 @@ static inline int nonnegint(double a)
 
 // Does new time solution t fit with previous solutions a and b?
 // If not, return -1
-static inline int check1(int a, int b, int t)
+static int check1(int a, int b, int t)
 {
     return t >= 0 && (t == a || t == b || a == -2) ? t : -1;
 }

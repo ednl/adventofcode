@@ -44,7 +44,7 @@ static int page[UPDATES][PAGES];  // every page of every "update"
 static int pagecount[UPDATES];    // actual number of pages in this "update"
 
 // Parse 2-digit number
-static inline int num(const char *const s)
+static int num(const char *const s)
 {
     return (*s & 15) * 10 + (*(s + 1) & 15);
 }

@@ -71,12 +71,12 @@ static int cmp(const void *p, const void *q)
     return 0;
 }
 
-static inline Dir turnleft(const Dir dir)
+static Dir turnleft(const Dir dir)
 {
     return (dir + 3) & 3;
 }
 
-static inline Dir turnright(const Dir dir)
+static Dir turnright(const Dir dir)
 {
     return (dir + 1) & 3;
 }
@@ -86,12 +86,12 @@ static bool eq(const Pos a, const Pos b)
     return a.x == b.x && a.y == b.y;
 }
 
-static inline Pos add(const Pos a, const Pos b)
+static Pos add(const Pos a, const Pos b)
 {
     return (Pos){a.x + b.x, a.y + b.y};
 }
 
-static inline void add_r(Pos *const a, const Pos b)
+static void add_r(Pos *const a, const Pos b)
 {
     a->x += b.x;
     a->y += b.y;

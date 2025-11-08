@@ -4,7 +4,7 @@
 #include "mymd5.h"
 
 // Single hex character from value [0..15], hopefully fast
-static inline char hexc(const uint8_t val)
+static char hexc(const uint8_t val)
 {
     return "0123456789abcdef"[val];
 }

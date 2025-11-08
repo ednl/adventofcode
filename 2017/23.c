@@ -47,7 +47,7 @@ typedef struct prog {
     Instr    mem[MEMSIZE];
 } Prog, *pProg;
 
-static inline size_t name2index(const char * s)
+static size_t name2index(const char * s)
 {
     for (size_t i = 0; i < cmdsize; ++i) {
         if (!strcmp(cmd[i].name, s)) {
@@ -57,7 +57,7 @@ static inline size_t name2index(const char * s)
     return 0;
 }
 
-static inline size_t id2index(const OpCode id)
+static size_t id2index(const OpCode id)
 {
     if (cmd[id].id == id) {
         return (size_t)id;
@@ -70,7 +70,7 @@ static inline size_t id2index(const OpCode id)
     return 0;
 }
 
-static inline Instr assemble(char *code)
+static Instr assemble(char *code)
 {
     Instr ins = {
         .op = NOP,

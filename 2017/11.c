@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static inline int dist(int q, int r)
+static int dist(int q, int r)
 {
     return (abs(q) + abs(q + r) + abs(r)) / 2;
 }

@@ -42,7 +42,7 @@ static char input[FSIZE];
 
 // Parse consecutive digits as integer, update char pointer
 // NB: my input contains only numbers 1-999, already restricted to allowed range
-static inline int num(const char **const c)
+static int num(const char **const c)
 {
     int x = 0;
     while (**c >= '0' && **c <= '9')
@@ -51,7 +51,7 @@ static inline int num(const char **const c)
 }
 
 // Parse 2 numbers, update char pointer, return product, or 0 if incorrect
-static inline int pair(const char **const c)
+static int pair(const char **const c)
 {
     const int a = num(c);
     if (!a || **c != ',')  // must be 1-999 and must be followed by comma

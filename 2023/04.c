@@ -34,7 +34,7 @@ static int min(const int a, const int b)
 }
 
 // Convert 1 or 2 digits to number (' ' & 15 = 0, so leading space is fine)
-static inline int readnum(const char *s)
+static int readnum(const char *s)
 {
     return ((*s & 15) * 10) + (*(s + 1) & 15);
 }

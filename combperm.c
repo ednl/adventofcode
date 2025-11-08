@@ -52,7 +52,7 @@ int *combinations(const int n, const int k)
 }
 
 // Local helper function: swap two ints via different pointers.
-static inline void swap(int *const restrict a, int *const restrict b)
+static void swap(int *const restrict a, int *const restrict b)
 {
     const int tmp = *a;
     *a = *b;

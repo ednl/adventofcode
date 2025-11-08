@@ -80,12 +80,12 @@ static bool pop(Heap *entry)
     }
 }
 
-static inline int absi(const int x)
+static int absi(const int x)
 {
     return x >= 0 ? x : -x;
 }
 
-static inline int sign(const int x)
+static int sign(const int x)
 {
     return (x > 0) - (x < 0);
 }

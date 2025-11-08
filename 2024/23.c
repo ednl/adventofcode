@@ -48,7 +48,7 @@ static int ids;                 // how many different nodes present in my input 
 static int nb[RANGE][MAXNB];    // adjacency list: adj[x][y]=1 => nb[z][0..12]=y where z=0..519 and id[z]=x
 
 // Node name to ID
-static inline int makeid(const char *const s)
+static int makeid(const char *const s)
 {
     return (*s - 'a') << 5 | (*(s + 1) - 'a');
 }

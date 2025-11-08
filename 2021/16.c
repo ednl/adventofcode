@@ -18,12 +18,12 @@ static bool bit[M] = {0};
 static int index = 0;
 static int versionsum = 0;
 
-static inline int64_t min(int64_t a, int64_t b)
+static int64_t min(int64_t a, int64_t b)
 {
     return a < b ? a : b;
 }
 
-static inline int64_t max(int64_t a, int64_t b)
+static int64_t max(int64_t a, int64_t b)
 {
     return a > b ? a : b;
 }

@@ -55,7 +55,7 @@ typedef struct prog {
     Instr   mem[MEMSIZE];
 } Prog, *pProg;
 
-static inline OpCode name2id(const char * s)
+static OpCode name2id(const char * s)
 {
     for (size_t i = 0; i < cmdsize; ++i) {
         if (!strcmp(cmd[i].name, s)) {
@@ -65,7 +65,7 @@ static inline OpCode name2id(const char * s)
     return NOP;
 }
 
-static inline char * id2name(const OpCode id)
+static char * id2name(const OpCode id)
 {
     if (cmd[id].id == id) {
         return cmd[id].name;
@@ -78,7 +78,7 @@ static inline char * id2name(const OpCode id)
     return NULL;
 }
 
-static inline Instr assemble(char *code)
+static Instr assemble(char *code)
 {
     Instr ins = {NOP, -1, -1, 0, 0};  // if reg == -1 => use val
     int field = 0;

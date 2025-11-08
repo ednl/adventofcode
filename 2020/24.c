@@ -112,7 +112,7 @@ static void getdims(void)
     gridsize = width * height;
 }
 
-static inline int ix(int x, int y)
+static int ix(int x, int y)
 {
     return width * y + x;
 }
