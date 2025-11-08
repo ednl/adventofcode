@@ -134,14 +134,14 @@ static void set_clean(PSET s)
 // Read puzzle input into data structure
 static void read(PHAND p)
 {
-	FILE *fp;
-	char *s = NULL;
-	size_t t = 0;
-	unsigned int i = 0, j = 0;
+    FILE *fp;
+    char *s = NULL;
+    size_t t = 0;
+    unsigned int i = 0, j = 0;
     int k;
 
-	if ((fp = fopen(inp, "r")) != NULL) {
-		while (getline(&s, &t, fp) > 0 && i < PLAYERS) {
+    if ((fp = fopen(inp, "r")) != NULL) {
+        while (getline(&s, &t, fp) > 0 && i < PLAYERS) {
             if (s[0] == 'P') {
                 p[i].size = 0;
                 p[i].head = 0;
@@ -154,13 +154,13 @@ static void read(PHAND p)
                     p[i].card[j++] = (unsigned char)k;
                 }
             }
-		}
+        }
         if (i < PLAYERS && j > p[i].size) {
             p[i].size = j;
         }
-		free(s);
-		fclose(fp);
-	}
+        free(s);
+        fclose(fp);
+    }
 }
 
 // Score of one hand

@@ -74,24 +74,24 @@
 
 // Language entries (instruction definition)
 typedef struct Instr {
-	int opcode;
-	int read, write;
+    int opcode;
+    int read, write;
 } INSTR;
 
 // Language definition: { opcode, read par count, write par count }
 // Every read parameter can be positional or immediate
 // Write parameters are always positional
 static const INSTR cpu[] = {
-	{ CPU_ADD, 2, 1 },
-	{ CPU_MUL, 2, 1 },
-	{ CPU_IN , 0, 1 },
-	{ CPU_OUT, 1, 0 },
-	{ CPU_JNZ, 2, 0 },
-	{ CPU_JZ , 2, 0 },
-	{ CPU_LT , 2, 1 },
-	{ CPU_EQ , 2, 1 },
-	{ CPU_RBO, 1, 0 },
-	{ CPU_HLT, 0, 0 }
+    { CPU_ADD, 2, 1 },
+    { CPU_MUL, 2, 1 },
+    { CPU_IN , 0, 1 },
+    { CPU_OUT, 1, 0 },
+    { CPU_JNZ, 2, 0 },
+    { CPU_JZ , 2, 0 },
+    { CPU_LT , 2, 1 },
+    { CPU_EQ , 2, 1 },
+    { CPU_RBO, 1, 0 },
+    { CPU_HLT, 0, 0 }
 };
 static const int cpusize = sizeof cpu / sizeof *cpu;
 
@@ -136,44 +136,44 @@ int maze_calibration(void);
 
 int aoc_thispuzzle(char **exe)
 {
-	if (!exe || !*exe)
-		return 0;
+    if (!exe || !*exe)
+        return 0;
 
-	char *pc;
-	int c;
+    char *pc;
+    int c;
 
-	pc = *exe;
-	while ((c = *pc) && !isdigit(c))
-		++pc;
-	return atoi(pc);
+    pc = *exe;
+    while ((c = *pc) && !isdigit(c))
+        ++pc;
+    return atoi(pc);
 }
 
 void aoc_setfilename(int num)
 {
-	static const char *test = "../aocinput/2019-17-example.txt";
-	static const char *fmt = "../aocinput/2019-%02d-input.txt";
+    static const char *test = "../aocinput/2019-17-example.txt";
+    static const char *fmt = "../aocinput/2019-%02d-input.txt";
 
-	if (num)
-		snprintf(vm_filename, VM_FNLEN, fmt, num);
-	else
-		strcpy(vm_filename, test);
+    if (num)
+        snprintf(vm_filename, VM_FNLEN, fmt, num);
+    else
+        strcpy(vm_filename, test);
 }
 
 // Count values in a one-line CSV file by counting commas + 1
 int aoc_csvfields(void)
 {
-	FILE *fp;
-	int c, i = 0;
+    FILE *fp;
+    int c, i = 0;
 
-	if ((fp = fopen(vm_filename, "r")) != NULL)
-	{
-		i = 1;
-		while ((c = fgetc(fp)) != EOF)
-			if (c == ',')
-				++i;
-		fclose(fp);
-	}
-	return i;
+    if ((fp = fopen(vm_filename, "r")) != NULL)
+    {
+        i = 1;
+        while ((c = fgetc(fp)) != EOF)
+            if (c == ',')
+                ++i;
+        fclose(fp);
+    }
+    return i;
 }
 
 // Read long integer CSV values from file to cache
@@ -182,20 +182,20 @@ int aoc_csvfields(void)
 // Ret: number of values read
 int aoc_csv2cache(void)
 {
-	FILE *fp;        // file pointer
-	char *s = NULL;  // dynamically allocated buffer
-	size_t t = 0;    // size of buffer
-	int i = 0;       // values read
+    FILE *fp;        // file pointer
+    char *s = NULL;  // dynamically allocated buffer
+    size_t t = 0;    // size of buffer
+    int i = 0;       // values read
 
-	if (vm_cache != NULL && vm_cachesize > 0 &&
-		(fp = fopen(vm_filename, "r")) != NULL)
-	{
-		while (i < vm_cachesize && getdelim(&s, &t, ',', fp) > 0)
-			vm_cache[i++] = atol(s);
-		free(s);
-		fclose(fp);
-	}
-	return i;
+    if (vm_cache != NULL && vm_cachesize > 0 &&
+        (fp = fopen(vm_filename, "r")) != NULL)
+    {
+        while (i < vm_cachesize && getdelim(&s, &t, ',', fp) > 0)
+            vm_cache[i++] = atol(s);
+        free(s);
+        fclose(fp);
+    }
+    return i;
 }
 
 // Copy program from cache to memory, and zero the padding
@@ -203,376 +203,376 @@ int aoc_csv2cache(void)
 //      mem must be allocated to size memsize >= datsize
 void vm_refresh(void)
 {
-	long *src, *dst;
-	int i;
+    long *src, *dst;
+    int i;
 
-	if (vm_cache != NULL && vm_memory != NULL &&
-		vm_cachesize > 0 && vm_cachesize <= vm_memorysize)
-	{
-		src = vm_cache;
-		dst = vm_memory;
-		i = vm_cachesize;
-		while (i--)
-			*dst++ = *src++;
-		i = vm_memorysize - vm_cachesize;
-		while (i--)
-			*dst++ = 0;
-	}
+    if (vm_cache != NULL && vm_memory != NULL &&
+        vm_cachesize > 0 && vm_cachesize <= vm_memorysize)
+    {
+        src = vm_cache;
+        dst = vm_memory;
+        i = vm_cachesize;
+        while (i--)
+            *dst++ = *src++;
+        i = vm_memorysize - vm_cachesize;
+        while (i--)
+            *dst++ = 0;
+    }
 }
 
 // Parse and execute all instructions in memory
 int vm_exec(int reset)
 {
-	static int ip = 0;    // instruction pointer
-	static int base = 0;  // "relative base offset"
-	static int tick = 0;
-	int instr, opcode, parmode;
-	long par[PAR_MAX];
-	int i, j, k;
+    static int ip = 0;    // instruction pointer
+    static int base = 0;  // "relative base offset"
+    static int tick = 0;
+    int instr, opcode, parmode;
+    long par[PAR_MAX];
+    int i, j, k;
 
-	if (reset)
-	{
-		vm_refresh();
-		ip = 0;
-		base = 0;
-	}
+    if (reset)
+    {
+        vm_refresh();
+        ip = 0;
+        base = 0;
+    }
 
-	while (ip >= 0 && ip < vm_memorysize)
-	{
-		// Get opcode and parameter modes from instruction
-		instr = vm_memory[ip++];       // get instruction, increment instr pointer
-		opcode = instr % 100;          // opcode part of instruction
-		instr /= 100;                  // this leaves parameter modes
+    while (ip >= 0 && ip < vm_memorysize)
+    {
+        // Get opcode and parameter modes from instruction
+        instr = vm_memory[ip++];       // get instruction, increment instr pointer
+        opcode = instr % 100;          // opcode part of instruction
+        instr /= 100;                  // this leaves parameter modes
 
-		// Look up opcode, halt if not found or too long
-		i = 0;
-		while (i < cpusize && opcode != cpu[i].opcode)
-			++i;
-		if (i == cpusize)             // not in the language def?
-		{
-			#ifdef DEBUG
-			printf("Unknown opcode %d at %d\n", opcode, ip - 1);
-			#endif
-			return ERR_OPCODE_UNKNOWN;
-		}
-		if (ip + cpu[i].read + cpu[i].write > vm_memorysize)
-		{
-			#ifdef DEBUG
-			printf("Too many parameters for program size at %d\n", ip - 1);
-			#endif
-			return ERR_SEGFAULT_PARAM;
-		}
+        // Look up opcode, halt if not found or too long
+        i = 0;
+        while (i < cpusize && opcode != cpu[i].opcode)
+            ++i;
+        if (i == cpusize)             // not in the language def?
+        {
+            #ifdef DEBUG
+            printf("Unknown opcode %d at %d\n", opcode, ip - 1);
+            #endif
+            return ERR_OPCODE_UNKNOWN;
+        }
+        if (ip + cpu[i].read + cpu[i].write > vm_memorysize)
+        {
+            #ifdef DEBUG
+            printf("Too many parameters for program size at %d\n", ip - 1);
+            #endif
+            return ERR_SEGFAULT_PARAM;
+        }
 
-		// Get "read" parameter(s)
-		for (j = 0; j < cpu[i].read; ++j)
-		{
-			par[j] = vm_memory[ip++];  // get immediate value, increment instr pointer
-			parmode = instr % 10;
-			instr /= 10;               // next parameter mode
-			if (parmode != PAR_IMM)    // par mode = positional or offset?
-			{
-				if (parmode == PAR_OFF)  // use base offset
-					par[j] += base;
-				if (par[j] < 0 || par[j] >= vm_memorysize)
-				{
-					#ifdef DEBUG
-					printf("Read beyond program size: %ld\n", par[j] - vm_memorysize + 1);
-					#endif
-					return ERR_SEGFAULT_READ;
-				}
-				par[j] = vm_memory[par[j]];  // get positional value
-			}
-		}
+        // Get "read" parameter(s)
+        for (j = 0; j < cpu[i].read; ++j)
+        {
+            par[j] = vm_memory[ip++];  // get immediate value, increment instr pointer
+            parmode = instr % 10;
+            instr /= 10;               // next parameter mode
+            if (parmode != PAR_IMM)    // par mode = positional or offset?
+            {
+                if (parmode == PAR_OFF)  // use base offset
+                    par[j] += base;
+                if (par[j] < 0 || par[j] >= vm_memorysize)
+                {
+                    #ifdef DEBUG
+                    printf("Read beyond program size: %ld\n", par[j] - vm_memorysize + 1);
+                    #endif
+                    return ERR_SEGFAULT_READ;
+                }
+                par[j] = vm_memory[par[j]];  // get positional value
+            }
+        }
 
-		// Get "write" parameter (always positional/offset but keep the address this time)
-		if (cpu[i].write)
-		{
-			par[j] = vm_memory[ip++];   // get address param, increment program counter
-			if (instr % 10 == PAR_OFF)  // par mode = offset?
-				par[j] += base;
-			if (par[j] < 0 || par[j] >= vm_memorysize)
-			{
-				#ifdef DEBUG
-				printf("Write beyond program size: %ld\n", par[j] - vm_memorysize + 1);
-				printf("ip=%d base=%d tick=%d\n", ip, base, tick);
-				#endif
-				return ERR_SEGFAULT_WRITE;
-			}
-		}
+        // Get "write" parameter (always positional/offset but keep the address this time)
+        if (cpu[i].write)
+        {
+            par[j] = vm_memory[ip++];   // get address param, increment program counter
+            if (instr % 10 == PAR_OFF)  // par mode = offset?
+                par[j] += base;
+            if (par[j] < 0 || par[j] >= vm_memorysize)
+            {
+                #ifdef DEBUG
+                printf("Write beyond program size: %ld\n", par[j] - vm_memorysize + 1);
+                printf("ip=%d base=%d tick=%d\n", ip, base, tick);
+                #endif
+                return ERR_SEGFAULT_WRITE;
+            }
+        }
 
-		// Advance clock
-		++tick;
+        // Advance clock
+        ++tick;
 
-		// Execute instruction
-		switch (opcode)
-		{
-			case CPU_ADD: vm_memory[par[2]] = par[0] + par[1];  break;
-			case CPU_MUL: vm_memory[par[2]] = par[0] * par[1];  break;
-			case CPU_IN : vm_memory[par[0]] = vm_input();       break;
-			case CPU_OUT: vm_output(par[0]);                    break;
-			case CPU_JNZ: if ( par[0]) ip = par[1];             break;
-			case CPU_JZ : if (!par[0]) ip = par[1];             break;
-			case CPU_LT : vm_memory[par[2]] = par[0] < par[1];  break;
-			case CPU_EQ : vm_memory[par[2]] = par[0] == par[1]; break;
-			case CPU_RBO: base += par[0];                       break;
-			case CPU_HLT: return ERR_OK;
-			default :
-				#ifdef DEBUG
-				printf("Internal error: undefined opcode %d\n", opcode);
-				#endif
-				return ERR_OPCODE_UNDEFINED;
-		}
-	}
-	return ERR_SEGFAULT_OTHER;
+        // Execute instruction
+        switch (opcode)
+        {
+            case CPU_ADD: vm_memory[par[2]] = par[0] + par[1];  break;
+            case CPU_MUL: vm_memory[par[2]] = par[0] * par[1];  break;
+            case CPU_IN : vm_memory[par[0]] = vm_input();       break;
+            case CPU_OUT: vm_output(par[0]);                    break;
+            case CPU_JNZ: if ( par[0]) ip = par[1];             break;
+            case CPU_JZ : if (!par[0]) ip = par[1];             break;
+            case CPU_LT : vm_memory[par[2]] = par[0] < par[1];  break;
+            case CPU_EQ : vm_memory[par[2]] = par[0] == par[1]; break;
+            case CPU_RBO: base += par[0];                       break;
+            case CPU_HLT: return ERR_OK;
+            default :
+                #ifdef DEBUG
+                printf("Internal error: undefined opcode %d\n", opcode);
+                #endif
+                return ERR_OPCODE_UNDEFINED;
+        }
+    }
+    return ERR_SEGFAULT_OTHER;
 }
 
 // Request value for input
 long vm_input(void)
 {
-	/*
-	A	R,12,L,10,L,10
-	B	L,6,L,12,R,12,L,4
-	A	R,12,L,10,L,10
-	B	L,6,L,12,R,12,L,4
-	C	L,12,R,12,L,6
-	B	L,6,L,12,R,12,L,4
-	C	L,12,R,12,L,6
-	A	R,12,L,10,L,10
-	C	L,12,R,12,L,6
-	C	L,12,R,12,L,6
-	A,B,A,B,C,B,C,A,C,C
-	R,12,L,10,L,10
-	L,6,L,12,R,12,L,4
-	L,12,R,12,L,6
-	1119775
-	*/
-	static const char *s = "A,B,A,B,C,B,C,A,C,C\nR,12,L,10,L,10\nL,6,L,12,R,12,L,4\nL,12,R,12,L,6\nn\n";
-	static int count = 0;
-	return s[count++];
+    /*
+    A	R,12,L,10,L,10
+    B	L,6,L,12,R,12,L,4
+    A	R,12,L,10,L,10
+    B	L,6,L,12,R,12,L,4
+    C	L,12,R,12,L,6
+    B	L,6,L,12,R,12,L,4
+    C	L,12,R,12,L,6
+    A	R,12,L,10,L,10
+    C	L,12,R,12,L,6
+    C	L,12,R,12,L,6
+    A,B,A,B,C,B,C,A,C,C
+    R,12,L,10,L,10
+    L,6,L,12,R,12,L,4
+    L,12,R,12,L,6
+    1119775
+    */
+    static const char *s = "A,B,A,B,C,B,C,A,C,C\nR,12,L,10,L,10\nL,6,L,12,R,12,L,4\nL,12,R,12,L,6\nn\n";
+    static int count = 0;
+    return s[count++];
 }
 
 // Process value for output
 void vm_output(long val)
 {
-	static int i = 0;
-	char c;
+    static int i = 0;
+    char c;
 
-	if (val >= 0 && val <= 127)
-	{
-		c = (char)val;
-		printf("%c", c);
-		if (i < MAZE_DIMX * MAZE_DIMY)
-		{
-			switch (c)
-			{
-				case '.': maze[i++] = MAZE_WALL; break;
-				case '#': maze[i++] = MAZE_FREE; break;
-				case '^':
-				case 'v':
-				case '<':
-				case '>':
-					droidx = i % MAZE_DIMX;
-					droidy = i / MAZE_DIMX;
-					orientation = maze_char2dir(c);
-					maze[i++] = MAZE_FREE;
-					break;
-			}
-		}
-	} else
-		printf("%ld\n", val);
+    if (val >= 0 && val <= 127)
+    {
+        c = (char)val;
+        printf("%c", c);
+        if (i < MAZE_DIMX * MAZE_DIMY)
+        {
+            switch (c)
+            {
+                case '.': maze[i++] = MAZE_WALL; break;
+                case '#': maze[i++] = MAZE_FREE; break;
+                case '^':
+                case 'v':
+                case '<':
+                case '>':
+                    droidx = i % MAZE_DIMX;
+                    droidy = i / MAZE_DIMX;
+                    orientation = maze_char2dir(c);
+                    maze[i++] = MAZE_FREE;
+                    break;
+            }
+        }
+    } else
+        printf("%ld\n", val);
 }
 
 char maze_dir2char(int dir)
 {
-	static const char *s = "X^v<>";
+    static const char *s = "X^v<>";
 
-	if (dir >= MAZE_NODIR && dir <= MAZE_EAST)
-		return s[dir];
-	return '\0';
+    if (dir >= MAZE_NODIR && dir <= MAZE_EAST)
+        return s[dir];
+    return '\0';
 }
 
 int maze_char2dir(char c)
 {
-	int dir = MAZE_NODIR;
+    int dir = MAZE_NODIR;
 
-	switch (c)
-	{
-		case '^': dir = MAZE_NORTH; break;
-		case 'v': dir = MAZE_SOUTH; break;
-		case '<': dir = MAZE_WEST;  break;
-		case '>': dir = MAZE_EAST;  break;
-	}
-	return dir;
+    switch (c)
+    {
+        case '^': dir = MAZE_NORTH; break;
+        case 'v': dir = MAZE_SOUTH; break;
+        case '<': dir = MAZE_WEST;  break;
+        case '>': dir = MAZE_EAST;  break;
+    }
+    return dir;
 }
 
 int maze_turnleft(int dir)
 {
-	switch (dir)
-	{
-		case MAZE_NORTH: dir = MAZE_WEST;  break;
-		case MAZE_SOUTH: dir = MAZE_EAST;  break;
-		case MAZE_WEST : dir = MAZE_SOUTH; break;
-		case MAZE_EAST : dir = MAZE_NORTH; break;
-	}
-	return dir;
+    switch (dir)
+    {
+        case MAZE_NORTH: dir = MAZE_WEST;  break;
+        case MAZE_SOUTH: dir = MAZE_EAST;  break;
+        case MAZE_WEST : dir = MAZE_SOUTH; break;
+        case MAZE_EAST : dir = MAZE_NORTH; break;
+    }
+    return dir;
 }
 
 int maze_turnright(int dir)
 {
-	switch (dir)
-	{
-		case MAZE_NORTH: dir = MAZE_EAST;  break;
-		case MAZE_SOUTH: dir = MAZE_WEST;  break;
-		case MAZE_WEST : dir = MAZE_NORTH; break;
-		case MAZE_EAST : dir = MAZE_SOUTH; break;
-	}
-	return dir;
+    switch (dir)
+    {
+        case MAZE_NORTH: dir = MAZE_EAST;  break;
+        case MAZE_SOUTH: dir = MAZE_WEST;  break;
+        case MAZE_WEST : dir = MAZE_NORTH; break;
+        case MAZE_EAST : dir = MAZE_SOUTH; break;
+    }
+    return dir;
 }
 
 int maze_index(int x, int y)
 {
-	return y * MAZE_DIMX + x;
+    return y * MAZE_DIMX + x;
 }
 
 int maze_peek(int x, int y, int dir)
 {
-	int i = -1;  // illegal index
+    int i = -1;  // illegal index
 
-	if (x < 0 || y < 0 || x >= MAZE_DIMX || y >= MAZE_DIMY)
-		return MAZE_VOID;
-	switch (dir)
-	{
-		case MAZE_NORTH: y--; break;
-		case MAZE_SOUTH: y++; break;
-		case MAZE_WEST : x--; break;
-		case MAZE_EAST : x++; break;
-	}
-	if (x < 0 || y < 0 || x >= MAZE_DIMX || y >= MAZE_DIMY)
-		return MAZE_VOID;
-	i = maze_index(x, y);
-	if (i >= 0 && i < MAZE_DIMX * MAZE_DIMY)  // legal index?
-		return maze[i];
-	return MAZE_VOID;
+    if (x < 0 || y < 0 || x >= MAZE_DIMX || y >= MAZE_DIMY)
+        return MAZE_VOID;
+    switch (dir)
+    {
+        case MAZE_NORTH: y--; break;
+        case MAZE_SOUTH: y++; break;
+        case MAZE_WEST : x--; break;
+        case MAZE_EAST : x++; break;
+    }
+    if (x < 0 || y < 0 || x >= MAZE_DIMX || y >= MAZE_DIMY)
+        return MAZE_VOID;
+    i = maze_index(x, y);
+    if (i >= 0 && i < MAZE_DIMX * MAZE_DIMY)  // legal index?
+        return maze[i];
+    return MAZE_VOID;
 }
 
 int maze_freeahead(int x, int y, int dir)
 {
-	return maze_peek(x, y, dir) == MAZE_FREE;
+    return maze_peek(x, y, dir) == MAZE_FREE;
 }
 
 int maze_freeleft(int x, int y, int dir)
 {
-	return maze_peek(x, y, maze_turnleft(dir)) == MAZE_FREE;
+    return maze_peek(x, y, maze_turnleft(dir)) == MAZE_FREE;
 }
 
 int maze_freeright(int x, int y, int dir)
 {
-	return maze_peek(x, y, maze_turnright(dir)) == MAZE_FREE;
+    return maze_peek(x, y, maze_turnright(dir)) == MAZE_FREE;
 }
 
 int maze_free(int x, int y, int dir)
 {
-	if (maze_freeahead(x, y, dir))
-		return 1;
-	if (maze_freeleft(x, y, dir))
-		return 2;
-	if (maze_freeright(x, y, dir))
-		return 3;
-	return 0;
+    if (maze_freeahead(x, y, dir))
+        return 1;
+    if (maze_freeleft(x, y, dir))
+        return 2;
+    if (maze_freeright(x, y, dir))
+        return 3;
+    return 0;
 }
 
 int maze_alignment(int x, int y)
 {
-	int i;
+    int i;
 
-	if (x <= 0 || y <= 0 || x >= MAZE_DIMX - 1 || y >= MAZE_DIMY - 1)
-		return 0;  // can't be crossroads at outer border
-	i = maze_index(x, y);
-	if (maze[i] != MAZE_FREE) return 0;
-	if (maze[i - 1] != MAZE_FREE) return 0;
-	if (maze[i + 1] != MAZE_FREE) return 0;
-	if (maze[i - MAZE_DIMX] != MAZE_FREE) return 0;
-	if (maze[i + MAZE_DIMX] != MAZE_FREE) return 0;
-	return x * y;
+    if (x <= 0 || y <= 0 || x >= MAZE_DIMX - 1 || y >= MAZE_DIMY - 1)
+        return 0;  // can't be crossroads at outer border
+    i = maze_index(x, y);
+    if (maze[i] != MAZE_FREE) return 0;
+    if (maze[i - 1] != MAZE_FREE) return 0;
+    if (maze[i + 1] != MAZE_FREE) return 0;
+    if (maze[i - MAZE_DIMX] != MAZE_FREE) return 0;
+    if (maze[i + MAZE_DIMX] != MAZE_FREE) return 0;
+    return x * y;
 }
 
 int maze_calibration(void)
 {
-	int x, y, sum = 0;
+    int x, y, sum = 0;
 
-	for (y = 1; y < MAZE_DIMY - 1; ++y)
-		for (x = 1; x < MAZE_DIMX - 1; ++x)
-			sum += maze_alignment(x, y);
-	return sum;
+    for (y = 1; y < MAZE_DIMY - 1; ++y)
+        for (x = 1; x < MAZE_DIMX - 1; ++x)
+            sum += maze_alignment(x, y);
+    return sum;
 }
 
 ////////// Main ///////////////////////////////////////////////////////////////
 
 int main(int argc, char *argv[])
 {
-	int i, d, len, ret;
+    int i, d, len, ret;
 
-	// Init AoC
-	srand(time(NULL));
-	aoc_setfilename(aoc_thispuzzle(argv));
+    // Init AoC
+    srand(time(NULL));
+    aoc_setfilename(aoc_thispuzzle(argv));
 
-	// Init maze
-	for (i = 0; i < MAZE_DIMX * MAZE_DIMY; ++i)
-		maze[i] = MAZE_VOID;
+    // Init maze
+    for (i = 0; i < MAZE_DIMX * MAZE_DIMY; ++i)
+        maze[i] = MAZE_VOID;
 
-	// Check program data
-	if ((len = aoc_csvfields()) > 0)
-	{
-		// Allocate memory
-		vm_cachesize  = len;
-		vm_memorysize = len + VM_PAD;
-		vm_cache  = malloc(vm_cachesize  * sizeof *vm_cache );
-		vm_memory = malloc(vm_memorysize * sizeof *vm_memory);
-		// Read into memory
-		if (vm_cache != NULL && vm_memory != NULL && aoc_csv2cache() == len)
-		{
-			// Run program, part one
-			if ((ret = vm_exec(VM_RESET)) != ERR_OK)
-				printf("Error: %d\n", ret);
-			printf("droid: %d,%d %c\n", droidx, droidy, maze_dir2char(orientation));
-			printf("calibration: %d\n", maze_calibration());
-			printf("solution: ");
-			while ((d = maze_free(droidx, droidy, orientation)))
-			{
-				if (d == 1)
-				{
-					i = 0;
-					while (maze_freeahead(droidx, droidy, orientation))
-					{
-						switch (orientation)
-						{
-							case MAZE_NORTH: droidy--; break;
-							case MAZE_SOUTH: droidy++; break;
-							case MAZE_WEST : droidx--; break;
-							case MAZE_EAST : droidx++; break;
-						}
-						++i;
-					}
-					printf("%d,", i);
-				} else if (d == 2)
-				{
-					orientation = maze_turnleft(orientation);
-					printf("L,");
-				} else if (d == 3)
-				{
-					orientation = maze_turnright(orientation);
-					printf("R,");
-				}
-			}
-			printf("\033[D\033[K\n");
+    // Check program data
+    if ((len = aoc_csvfields()) > 0)
+    {
+        // Allocate memory
+        vm_cachesize  = len;
+        vm_memorysize = len + VM_PAD;
+        vm_cache  = malloc(vm_cachesize  * sizeof *vm_cache );
+        vm_memory = malloc(vm_memorysize * sizeof *vm_memory);
+        // Read into memory
+        if (vm_cache != NULL && vm_memory != NULL && aoc_csv2cache() == len)
+        {
+            // Run program, part one
+            if ((ret = vm_exec(VM_RESET)) != ERR_OK)
+                printf("Error: %d\n", ret);
+            printf("droid: %d,%d %c\n", droidx, droidy, maze_dir2char(orientation));
+            printf("calibration: %d\n", maze_calibration());
+            printf("solution: ");
+            while ((d = maze_free(droidx, droidy, orientation)))
+            {
+                if (d == 1)
+                {
+                    i = 0;
+                    while (maze_freeahead(droidx, droidy, orientation))
+                    {
+                        switch (orientation)
+                        {
+                            case MAZE_NORTH: droidy--; break;
+                            case MAZE_SOUTH: droidy++; break;
+                            case MAZE_WEST : droidx--; break;
+                            case MAZE_EAST : droidx++; break;
+                        }
+                        ++i;
+                    }
+                    printf("%d,", i);
+                } else if (d == 2)
+                {
+                    orientation = maze_turnleft(orientation);
+                    printf("L,");
+                } else if (d == 3)
+                {
+                    orientation = maze_turnright(orientation);
+                    printf("R,");
+                }
+            }
+            printf("\033[D\033[K\n");
 
-			// Run program, part two
-			vm_cache[0] = 2;  // enable clean-up
-			if ((ret = vm_exec(VM_RESET)) != ERR_OK)
-				printf("Error: %d\n", ret);
-		}
-		free(vm_memory);
-		free(vm_cache);
-	}
-	return ERR_OK;
+            // Run program, part two
+            vm_cache[0] = 2;  // enable clean-up
+            if ((ret = vm_exec(VM_RESET)) != ERR_OK)
+                printf("Error: %d\n", ret);
+        }
+        free(vm_memory);
+        free(vm_cache);
+    }
+    return ERR_OK;
 }

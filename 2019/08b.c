@@ -16,30 +16,30 @@
 
 int main(void)
 {
-	FILE *fp;
-	int i, c, k, bit[P];
+    FILE *fp;
+    int i, c, k, bit[P];
 
-	for (i = 0; i < P; ++i)
-		bit[i] = 2;
+    for (i = 0; i < P; ++i)
+        bit[i] = 2;
 
-	if ((fp = fopen("../aocinput/2019-08-input.txt", "r")) != NULL)
-	{
-		i = 0;
-		while ((c = fgetc(fp)) != EOF)
-			if ((k = c - '0') >= 0 && k < 3)
-			{
-				if (k != 2 && bit[i] == 2)
-					bit[i] = k;
-				if (++i == P)
-					i = 0;
-			}
-		i = 0;
-		while (i < P)
-		{
-			printf("%c", bit[i++] == 1 ? '*' : ' ');
-			if (!(i % W))
-				printf("\n");
-		}
-	}
-	return 0;
+    if ((fp = fopen("../aocinput/2019-08-input.txt", "r")) != NULL)
+    {
+        i = 0;
+        while ((c = fgetc(fp)) != EOF)
+            if ((k = c - '0') >= 0 && k < 3)
+            {
+                if (k != 2 && bit[i] == 2)
+                    bit[i] = k;
+                if (++i == P)
+                    i = 0;
+            }
+        i = 0;
+        while (i < P)
+        {
+            printf("%c", bit[i++] == 1 ? '*' : ' ');
+            if (!(i % W))
+                printf("\n");
+        }
+    }
+    return 0;
 }

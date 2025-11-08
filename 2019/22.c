@@ -37,8 +37,8 @@ int main(void)
             shuffle[i] = (Shuffle){DISTRIB, atoi(&s[20])};
             break;
         default:  // "cut X" where s[5]='\n' or a digit
-			n = atoi(&s[4]);
-			shuffle[i] = n > 0 ? (Shuffle){SHIFTUP, n} : (Shuffle){SHIFTDN, -n};
+            n = atoi(&s[4]);
+            shuffle[i] = n > 0 ? (Shuffle){SHIFTUP, n} : (Shuffle){SHIFTDN, -n};
             break;
         }
     fclose(f);

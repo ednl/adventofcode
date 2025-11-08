@@ -52,19 +52,19 @@ static int xxA[MAXSTARTERS];  // index values of nodes with names ending in A
 // https://en.wikipedia.org/wiki/Euclidean_algorithm
 static int64_t gcd(int64_t a, int64_t b)
 {
-	while (b) {
-		const int64_t tmp = b;
-		b = a % b;
-		a = tmp;
-	}
-	return a;
+    while (b) {
+        const int64_t tmp = b;
+        b = a % b;
+        a = tmp;
+    }
+    return a;
 }
 
 // Least Common Multiple
 // https://en.wikipedia.org/wiki/Least_common_multiple#Using_the_greatest_common_divisor
 static int64_t lcm(const int64_t a, const int64_t b)
 {
-	return a / gcd(a, b) * b;
+    return a / gcd(a, b) * b;
 }
 
 // Hash 3 uppercase letters to 15-bit value

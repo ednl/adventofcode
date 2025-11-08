@@ -9,19 +9,19 @@ static const size_t gamesize = sizeof game / sizeof *game;
 
 int main(void)
 {
-	starttimer();
-	unsigned int i, j, lastnum = game[gamesize - 1];
+    starttimer();
+    unsigned int i, j, lastnum = game[gamesize - 1];
 
-	for (i = 1; i < gamesize; ++i) {
-		seen[game[i - 1]] = i;
-	}
-	for (; i < TURNS; ++i) {
-		j = seen[lastnum];
-		seen[lastnum] = i;
-		lastnum = j ? i - j : 0;
-	}
+    for (i = 1; i < gamesize; ++i) {
+        seen[game[i - 1]] = i;
+    }
+    for (; i < TURNS; ++i) {
+        j = seen[lastnum];
+        seen[lastnum] = i;
+        lastnum = j ? i - j : 0;
+    }
 
-	printf("%u\n", lastnum);  // 2424
-	printf("Time: %.0f ms\n", stoptimer_ms());
-	return 0;
+    printf("%u\n", lastnum);  // 2424
+    printf("Time: %.0f ms\n", stoptimer_ms());
+    return 0;
 }

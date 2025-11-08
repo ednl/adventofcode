@@ -33,7 +33,7 @@
 ////////// Typedefs & Constants ///////////////////////////////////////////////
 
 typedef struct Pos {
-	int i, x, y;
+    int i, x, y;
 } POS, *PPOS;
 
 ////////// Globals ////////////////////////////////////////////////////////////
@@ -49,74 +49,74 @@ POS door[KEYS];
 
 int aoc_thispuzzle(char **exe)
 {
-	if (!exe || !*exe)
-		return 0;
+    if (!exe || !*exe)
+        return 0;
 
-	char *pc;
-	int c;
+    char *pc;
+    int c;
 
-	pc = *exe;
-	while ((c = *pc) && !isdigit(c))
-		++pc;
-	return atoi(pc);
+    pc = *exe;
+    while ((c = *pc) && !isdigit(c))
+        ++pc;
+    return atoi(pc);
 }
 
 void aoc_setfilename(int num)
 {
-	static const char *test = "../aocinput/2019-18-example.txt";
-	static const char *fmt = "%02d.txt";
+    static const char *test = "../aocinput/2019-18-example.txt";
+    static const char *fmt = "%02d.txt";
 
-	if (num)
-		snprintf(inputfile, FNLEN, fmt, num);
-	else
-		strcpy(inputfile, test);
+    if (num)
+        snprintf(inputfile, FNLEN, fmt, num);
+    else
+        strcpy(inputfile, test);
 }
 
 int xy2i(int x, int y)
 {
-	return y * DIM + x;
+    return y * DIM + x;
 }
 
 POS i2pos(int i)
 {
-	return (POS){ i, i % DIM, i / DIM };
+    return (POS){ i, i % DIM, i / DIM };
 }
 
 int readmaze(void)
 {
-	FILE *fp;
-	int c, i = 0;
+    FILE *fp;
+    int c, i = 0;
 
-	if ((fp = fopen(inputfile, "r")) != NULL)
-	{
-		while ((c = fgetc(fp)) != EOF)
-			if (c == ',')
-				++i;
-		fclose(fp);
-	}
-	return i;
-	/*
-	FILE *fp;        // file pointer
-	char *s = NULL;  // dynamically allocated buffer
-	size_t t = 0;    // size of buffer
-	int i = 0;       // values read
+    if ((fp = fopen(inputfile, "r")) != NULL)
+    {
+        while ((c = fgetc(fp)) != EOF)
+            if (c == ',')
+                ++i;
+        fclose(fp);
+    }
+    return i;
+    /*
+    FILE *fp;        // file pointer
+    char *s = NULL;  // dynamically allocated buffer
+    size_t t = 0;    // size of buffer
+    int i = 0;       // values read
 
-	if (vm_cache != NULL && vm_cachesize > 0 &&
-		(fp = fopen(vm_filename, "r")) != NULL)
-	{
-		while (i < vm_cachesize && getdelim(&s, &t, ',', fp) > 0)
-			vm_cache[i++] = atol(s);
-		free(s);
-		fclose(fp);
-	}
-	return i;
-	*/
+    if (vm_cache != NULL && vm_cachesize > 0 &&
+        (fp = fopen(vm_filename, "r")) != NULL)
+    {
+        while (i < vm_cachesize && getdelim(&s, &t, ',', fp) > 0)
+            vm_cache[i++] = atol(s);
+        free(s);
+        fclose(fp);
+    }
+    return i;
+    */
 }
 
 ////////// Main ///////////////////////////////////////////////////////////////
 
 int main(int argc, char *argv[])
 {
-	aoc_setfilename(aoc_thispuzzle(argv));
-	return 0;
+    aoc_setfilename(aoc_thispuzzle(argv));
+    return 0;
 }

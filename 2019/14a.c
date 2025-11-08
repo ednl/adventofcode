@@ -33,16 +33,16 @@ static const char *inp = "../aocinput/2019-14-example.txt";
 
 // Element, quantity
 typedef struct Elm {
-	int ix;  // Index of this element in eq and prod arrays
-	int id;  // ID from element name
-	int q;   // quantity
+    int ix;  // Index of this element in eq and prod arrays
+    int id;  // ID from element name
+    int q;   // quantity
 } ELM, *PELM;
 
 // Reverse equation
 typedef struct RevEq {
-	int len; // length of equation = unique elements it produces
-	ELM inp; // origin element & quantity
-	ELM out[MAXELM]; // elements & quantities produced by this equation
+    int len; // length of equation = unique elements it produces
+    ELM inp; // origin element & quantity
+    ELM out[MAXELM]; // elements & quantities produced by this equation
 } REVEQ, *PREVEQ;
 
 ////////// Globals ////////////////////////////////////////////////////////////
@@ -70,240 +70,240 @@ void init(void);
 
 int elmindex(int id, int n)
 {
-	int i = 0;
+    int i = 0;
 
-	while (i < n && eq[i].inp.id != id)
-		++i;
-	return i;
+    while (i < n && eq[i].inp.id != id)
+        ++i;
+    return i;
 }
 
 int elmid(char *s)
 {
-	static const int e0 = 'A' - 1;  // A=1, zero=A-1
-	static const int en = 'Z';      // Z=26
-	static const int base = en - e0 + 1;  // range=0..26=27
-	int id = 0;
-	char c, *pc;
+    static const int e0 = 'A' - 1;  // A=1, zero=A-1
+    static const int en = 'Z';      // Z=26
+    static const int base = en - e0 + 1;  // range=0..26=27
+    int id = 0;
+    char c, *pc;
 
-	pc = s;
-	while ((c = *pc++) && c > e0 && c <= en)  // stop at '\0' or out of range
-		id = id * base + c - e0;
-	return id;
+    pc = s;
+    while ((c = *pc++) && c > e0 && c <= en)  // stop at '\0' or out of range
+        id = id * base + c - e0;
+    return id;
 }
 
 int elmname(int id)
 {
-	static const int e0 = 'A' - 1;  // A=1, zero=A-1
-	static const int base = 'Z' - e0 + 1;  // range=0..26=27
-	char s[MAXNAME + 1];  // name & '\0'
-	int i, n = 0;
+    static const int e0 = 'A' - 1;  // A=1, zero=A-1
+    static const int base = 'Z' - e0 + 1;  // range=0..26=27
+    char s[MAXNAME + 1];  // name & '\0'
+    int i, n = 0;
 
-	while (id && n < MAXNAME)
-	{
-		s[n++] = e0 + id % base;
-		id /= base;
-	}
-	s[n] = '\0';
-	for (i = n - 1; i >= 0; --i)
-		printf("%c", s[i]);
-	return n;
+    while (id && n < MAXNAME)
+    {
+        s[n++] = e0 + id % base;
+        id /= base;
+    }
+    s[n] = '\0';
+    for (i = n - 1; i >= 0; --i)
+        printf("%c", s[i]);
+    return n;
 }
 
 ELM parseelm(char *s)
 {
-	int id = 0, q = 0;
-	char c, *pc;
+    int id = 0, q = 0;
+    char c, *pc;
 
-	pc = s;
-	while ((c = *pc) && (c < '0' || c > '9'))
-		pc++;
-	if (c)
-	{
-		q = atoi(pc);
-		while ((c = *pc) && (c < 'A' || c > 'Z'))
-			pc++;
-		if (c)
-			id = elmid(pc);
-	}
-	return (ELM){ 0, id, q };
+    pc = s;
+    while ((c = *pc) && (c < '0' || c > '9'))
+        pc++;
+    if (c)
+    {
+        q = atoi(pc);
+        while ((c = *pc) && (c < 'A' || c > 'Z'))
+            pc++;
+        if (c)
+            id = elmid(pc);
+    }
+    return (ELM){ 0, id, q };
 }
 
 int readfile(void)
 {
-	FILE *fp;        // file pointer
-	char *s = NULL;  // dynamically allocated buffer
-	size_t t = 0;    // size of buffer
-	char c, *pc;
-	int i, j, ix, id, line = 0;
+    FILE *fp;        // file pointer
+    char *s = NULL;  // dynamically allocated buffer
+    size_t t = 0;    // size of buffer
+    char c, *pc;
+    int i, j, ix, id, line = 0;
 
-	if ((fp = fopen(inp, "r")) != NULL)
-	{
-		// Read data
-		while (getline(&s, &t, fp) > 0)
-		{
-			pc = s;  // start at beginning of line
-			i = 0;   // element index
-			while ((c = *pc) && c != '\r' && c != '\n')
-			{
-				eq[line].out[i++] = parseelm(pc);
-				while ((c = *pc) && c != ',' && c != '>')
-					pc++;
-				if (c)
-					pc++;  // skip the divider but not '\0'
-				if (c == '>')
-				{
-					eq[line].inp = parseelm(pc);
-					break;
-				}
-			}
-			eq[line++].len = i;
-		}
-		free(s);
-		fclose(fp);
+    if ((fp = fopen(inp, "r")) != NULL)
+    {
+        // Read data
+        while (getline(&s, &t, fp) > 0)
+        {
+            pc = s;  // start at beginning of line
+            i = 0;   // element index
+            while ((c = *pc) && c != '\r' && c != '\n')
+            {
+                eq[line].out[i++] = parseelm(pc);
+                while ((c = *pc) && c != ',' && c != '>')
+                    pc++;
+                if (c)
+                    pc++;  // skip the divider but not '\0'
+                if (c == '>')
+                {
+                    eq[line].inp = parseelm(pc);
+                    break;
+                }
+            }
+            eq[line++].len = i;
+        }
+        free(s);
+        fclose(fp);
 
-	}
-	return line;
+    }
+    return line;
 }
 
 int cmpelm(const void *a, const void *b)
 {
-	if (((PELM)a)->id < ((PELM)b)->id)
-		return -1;
-	if (((PELM)a)->id > ((PELM)b)->id)
-		return 1;
-	return 0;
+    if (((PELM)a)->id < ((PELM)b)->id)
+        return -1;
+    if (((PELM)a)->id > ((PELM)b)->id)
+        return 1;
+    return 0;
 }
 
 // Pre: global fuelid
 int cmpeq(const void *a, const void *b)
 {
-	if (((PREVEQ)a)->inp.id == ((PREVEQ)b)->inp.id)
-		return 0;
-	if (((PREVEQ)a)->inp.id == fuelid)
-		return -1;
-	if (((PREVEQ)b)->inp.id == fuelid)
-		return 1;
-	if (((PREVEQ)a)->inp.id < ((PREVEQ)b)->inp.id)
-		return -1;
-	return 1;
+    if (((PREVEQ)a)->inp.id == ((PREVEQ)b)->inp.id)
+        return 0;
+    if (((PREVEQ)a)->inp.id == fuelid)
+        return -1;
+    if (((PREVEQ)b)->inp.id == fuelid)
+        return 1;
+    if (((PREVEQ)a)->inp.id < ((PREVEQ)b)->inp.id)
+        return -1;
+    return 1;
 }
 
 // Pre: global oreid
 void makeindex(int n)
 {
-	int i, j, ix, id;
+    int i, j, ix, id;
 
-	// Sort
-	qsort(eq, n, sizeof(REVEQ), cmpeq);
-	for (i = 0; i < n; ++i)
-		qsort(eq[i].out, eq[i].len, sizeof(ELM), cmpelm);
+    // Sort
+    qsort(eq, n, sizeof(REVEQ), cmpeq);
+    for (i = 0; i < n; ++i)
+        qsort(eq[i].out, eq[i].len, sizeof(ELM), cmpelm);
 
-	// Prepare indices
-	for (i = 0; i < n; ++i)
-	{
-		eq[i].inp.ix = i;
-		for (j = 0; j < eq[i].len; ++j)
-			eq[i].out[j].ix = elmindex(eq[i].out[j].id, n);
-	}
+    // Prepare indices
+    for (i = 0; i < n; ++i)
+    {
+        eq[i].inp.ix = i;
+        for (j = 0; j < eq[i].len; ++j)
+            eq[i].out[j].ix = elmindex(eq[i].out[j].id, n);
+    }
 
-	// Test indices
-	for (i = 0; i < n; ++i)
-		for (j = 0; j < eq[i].len; ++j)
-		{
-			ix = eq[i].out[j].ix;
-			id = eq[i].out[j].id;
-			if (!(ix == n && id == oreid) &&
-				id != eq[ix].inp.id)
-			{
-				printf("Index error\n");
-				exit(1);
-			}
-		}
+    // Test indices
+    for (i = 0; i < n; ++i)
+        for (j = 0; j < eq[i].len; ++j)
+        {
+            ix = eq[i].out[j].ix;
+            id = eq[i].out[j].id;
+            if (!(ix == n && id == oreid) &&
+                id != eq[ix].inp.id)
+            {
+                printf("Index error\n");
+                exit(1);
+            }
+        }
 }
 
 void printequations(int n)
 {
-	int i, j;
+    int i, j;
 
-	for (i = 0; i < n; ++i)
-	{
-		printf("%d ", eq[i].inp.q);
-		elmname(eq[i].inp.id);
-		printf("(%d) =>", eq[i].inp.ix);
-		for (j = 0; j < eq[i].len; ++j)
-		{
-			if (j)
-				printf(",");
-			printf(" %d ", eq[i].out[j].q);
-			elmname(eq[i].out[j].id);
-			printf("(%d)", eq[i].out[j].ix);
-		}
-		printf("\n");
-	}
+    for (i = 0; i < n; ++i)
+    {
+        printf("%d ", eq[i].inp.q);
+        elmname(eq[i].inp.id);
+        printf("(%d) =>", eq[i].inp.ix);
+        for (j = 0; j < eq[i].len; ++j)
+        {
+            if (j)
+                printf(",");
+            printf(" %d ", eq[i].out[j].q);
+            elmname(eq[i].out[j].id);
+            printf("(%d)", eq[i].out[j].ix);
+        }
+        printf("\n");
+    }
 }
 
 void printproduction(int n)
 {
-	int i, j;
+    int i, j;
 
-	for (i = 0; i < n; ++i)
-		if (prod[i])
-		{
-			elmname(eq[i].inp.id);
-			printf(" %d\n", prod[i]);
-		}
+    for (i = 0; i < n; ++i)
+        if (prod[i])
+        {
+            elmname(eq[i].inp.id);
+            printf(" %d\n", prod[i]);
+        }
 }
 
 void init(void)
 {
-	int i, j;
+    int i, j;
 
-	oreid = elmid("ORE");
-	fuelid = elmid("FUEL");
+    oreid = elmid("ORE");
+    fuelid = elmid("FUEL");
 
-	for (i = 0; i < MAXEQ; ++i)
-	{
-		eq[i].len = MAXELM;
-		eq[i].inp = (ELM){ 0, 0, 0 };
-		for (j = 0; j < MAXELM; ++j)
-			eq[i].out[j] = (ELM){ 0, 0, 0 };
-		prod[i] = 0;
-	}
+    for (i = 0; i < MAXEQ; ++i)
+    {
+        eq[i].len = MAXELM;
+        eq[i].inp = (ELM){ 0, 0, 0 };
+        for (j = 0; j < MAXELM; ++j)
+            eq[i].out[j] = (ELM){ 0, 0, 0 };
+        prod[i] = 0;
+    }
 }
 
 ////////// Main ///////////////////////////////////////////////////////////////
 
 int main(void)
 {
-	int i, j, n, stock;
-	long ore = 0;
+    int i, j, n, stock;
+    long ore = 0;
 
-	init();
-	if ((n = readfile()))
-	{
-		makeindex(n);  // also sorts FUEL equation to the top
-		//printequations(n);
+    init();
+    if ((n = readfile()))
+    {
+        makeindex(n);  // also sorts FUEL equation to the top
+        //printequations(n);
 
-		prod[0] = 1000;  // 1 FUEL in stock
-		do
-		{
-			stock = 0;
-			for (i = 0; i < n; ++i)
-				while (prod[i] > 0)
-				{
-					stock = 1;
-					prod[i] -= eq[i].inp.q;
-					for (j = 0; j < eq[i].len; ++j)
-						if (eq[i].out[j].id == oreid)
-							ore += eq[i].out[j].q;
-						else
-							prod[eq[i].out[j].ix] += eq[i].out[j].q;
-				}
-		} while (stock);
+        prod[0] = 1000;  // 1 FUEL in stock
+        do
+        {
+            stock = 0;
+            for (i = 0; i < n; ++i)
+                while (prod[i] > 0)
+                {
+                    stock = 1;
+                    prod[i] -= eq[i].inp.q;
+                    for (j = 0; j < eq[i].len; ++j)
+                        if (eq[i].out[j].id == oreid)
+                            ore += eq[i].out[j].q;
+                        else
+                            prod[eq[i].out[j].ix] += eq[i].out[j].q;
+                }
+        } while (stock);
 
-		//printproduction(n);
-		printf("%ld\n", ore);  // 278404
-	}
+        //printproduction(n);
+        printf("%ld\n", ore);  // 278404
+    }
 
-	return 0;
+    return 0;
 }

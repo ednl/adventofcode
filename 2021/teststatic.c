@@ -2,13 +2,13 @@
 
 static void foo(void)
 {
-	static int var = 0;
-	printf("%d\n", ++var);
+    static int var = 0;
+    printf("%d\n", ++var);
 }
 
 int main(void)
 {
-	foo();
-	foo();
-	return 0;
+    foo();
+    foo();
+    return 0;
 }
