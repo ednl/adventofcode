@@ -102,7 +102,7 @@ static int evolve(__uint128_t traps, const __uint128_t mask, const int rows)
 // Fast manual conversion non-negative int->ascii, +newline
 static void print_int(int x)
 {
-    char buf[16];  // large enough for 1<<31 in decimal
+    char buf[sizeof x * 4];
     size_t i = sizeof buf;
     buf[--i] = '\n';
     do {

@@ -47,7 +47,7 @@ static u128 next(void)
 // Fast manual conversion non-negative int->ascii, +newline
 static void print_int(int x)
 {
-    char buf[16];  // large enough for 1<<31 in decimal
+    char buf[sizeof x * 4];
     size_t i = sizeof buf;
     buf[--i] = '\n';
     do {
