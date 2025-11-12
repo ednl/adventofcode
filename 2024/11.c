@@ -5,11 +5,9 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -Wall -Wextra 11.c
- *    gcc   -std=gnu17 -Wall -Wextra 11.c
+ *    cc -std=c17 -Wall -Wextra -pedantic 11.c
  * Enable timer:
- *    clang -DTIMER -O3 -march=native 11.c ../startstoptimer.c
- *    gcc   -DTIMER -O3 -march=native 11.c ../startstoptimer.c
+ *    cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 11.c
  * Get minimum runtime from timer output:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
