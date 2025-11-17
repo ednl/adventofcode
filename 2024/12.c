@@ -8,7 +8,7 @@
  *    cc -std=c99 -Wall -Wextra -pedantic 12.c
  * Enable timer:
  *    cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 12.c
- * Get minimum runtime from timer output:
+ * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz)                    :  154 µs

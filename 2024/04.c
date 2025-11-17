@@ -5,157 +5,73 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -Wall -Wextra 04.c
- *    gcc   -std=gnu17 -Wall -Wextra 04.c
+ *     cc -std=c17 -Wall -Wextra -pedantic 04.c
  * Enable timer:
- *    clang -DTIMER -O3 -march=native 04.c ../startstoptimer.c
- *    gcc   -DTIMER -O3 -march=native 04.c ../startstoptimer.c
- * Get minimum runtime from timer output:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 04.c
+ * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz)                    : 246 µs
- *     Mac Mini 2020 (M1 3.2 GHz)                       : 332 µs
- *     Raspberry Pi 5 (2.4 GHz)                         : 357 µs
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 360 µs
- *     Raspberry Pi 4 (1.8 GHz)                         : 820 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz)                    : 108 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)                       : 193 µs
+ *     Raspberry Pi 5 (2.4 GHz)                         : 259 µs
+ *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 334 µs
+ *     Raspberry Pi 4 (1.8 GHz)                         : 571 µs
  *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz)         :   ? µs
- *
- * Faster and way simpler version without rotations, see: 04simple.c
  */
 
 #include <stdio.h>
-#include <string.h>  // memcpy
-#include <stdint.h>  // int32_t
+#include <stdint.h>
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
 #define EXAMPLE 0
 #if EXAMPLE
-    #define FNAME "../aocinput/2024-04-example.txt"
-    #define N 10  // square char matrix in example file
+    #define F "../aocinput/2024-04-example.txt"
+    #define N 10
 #else
-    #define FNAME "../aocinput/2024-04-input.txt"
-    #define N 140  // square char matrix in input file
+    #define F "../aocinput/2024-04-input.txt"
+    #define N 140
 #endif
-#define FSIZE (N * (N + 1))   // input file size in bytes
-#define SLEN 4                // search string length
-#define SKIP (SLEN - 1)       // safety margin
-#define DIAGROWS (N * 2 - 1)  // row count of grid rotated by 45 degrees
-#define DIAGSKIP (DIAGROWS - SKIP * 2)  // rows in diag that can hold search string
+#define M (N + 1)  // +newline
+#define X (('M' + 'S') << 1)  // X-MAS corners for part 2
 
-// Interpret 4 chars as 32-bit int (little-endian)
-#define XMAS INT32_C(0x53414d58)  // *(int *)"XMAS"
-#define SAMX INT32_C(0x584d4153)  // *(int *)"SAMX"
-#define MM   INT32_C(0x004d004d)  // *(int *)"M_M_"
-#define SM   INT32_C(0x004d0053)  // *(int *)"S_M_"
-#define MS   INT32_C(0x0053004d)  // *(int *)"M_S_"
-#define SS   INT32_C(0x00530053)  // *(int *)"S_S_"
-#define MASK INT32_C(0x00ff00ff)  // blank out don't-care bytes
-
-// Unaligned int pointer
-typedef int32_t unaligned_int32_t __attribute__((aligned(1)));
-
-static char input[FSIZE];
-static char grid[N][N];
-static char copy[N][N];
-static char diag[DIAGROWS][N];
-
-// Discrete rotation left by 45 degrees: src(x,y) -> diag(x+y,N-1-x+y)
-// Divide new x-coordinate by 2 to skip empty columns
-// Return pointer to first row with enough data to hold search string
-static char *rot45(const char *const src)
-{
-    for (int y = 0; y < N; ++y) {
-        const int dy = N * y;
-        for (int x = 0; x < N; ++x)
-            diag[N - 1 + y - x][(x + y) >> 1] = src[dy + x];
-    }
-    return &diag[SKIP][0];
-}
-
-// Sum of "XMAS" and "SAMX" count in rows of arr[rows][cols]
-static int count(const char *arr, const int rows, const int cols)
-{
-    int sum = 0;
-    for (int i = 0; i < rows; ++i) {  // for each row
-    #if EXAMPLE
-        int part = 0;  // count rows separately
-        for (int j = 0; j < cols; ++j)  // print row
-            putchar(arr[j] ? arr[j] : '.');
-    #endif
-        // End of row with room for 4 chars from a, including a
-        const char *const end = arr + cols - SKIP;
-        while (arr < end)
-            switch (*(unaligned_int32_t *)arr) {
-            case XMAS:
-            case SAMX:
-                arr += SKIP;  // words can overlap by 1
-                ++sum;
-            #if EXAMPLE
-                ++part;
-            #endif
-                break;
-            default:
-                ++arr;  // word not found, go to next char
-            }
-        arr = end + SKIP;  // next row
-    #if EXAMPLE
-        if (part)
-            printf(" %d", part);
-        putchar('\n');
-    #endif
-    }
-#if EXAMPLE
-    printf("\n%d\n\n", sum);
-#endif
-    return sum;
-}
+static char g[N][M];  // grid
 
 int main(void)
 {
-#ifdef TIMER
-    starttimer();
-#endif
-
-    // Read input file
-    FILE *f = fopen(FNAME, "rb");  // fread() requires binary mode
+    FILE *f = fopen(F, "rb");  // fread() requires binary mode
     if (!f) { fputs("File not found.\n", stderr); return 1; }
-    fread(input, sizeof input, 1, f);  // read whole file at once
+    fread(g, sizeof g, 1, f);  // read whole file at once
     fclose(f);
 
-    // Copy input to grid, skip newlines
-    for (int i = 0; i < N; ++i)
-        memcpy(&grid[i][0], &input[i * (N + 1)], N);
-    // Rotate left by 90 degrees: grid(x,y) -> copy(N-1-y,x)
-    for (int i = 0; i < N; ++i)
-        for (int j = 0; j < N; ++j)
-            copy[j][N - 1 - i] = grid[i][j];
+#ifdef TIMER
+    starttimer();  // timing excludes file read from disk
+#endif
 
     // Part 1
-    // Horizontal and vertical
-    int sum = count(&grid[0][0], N, N) + count(&copy[0][0], N, N);
-    // Rotate 'grid' left by 45 degrees, skip rows that are too short
-    sum += count(rot45(&grid[0][0]), DIAGSKIP, N);
-    // Rotate 'copy' left by 45 degrees, skip rows that are too short
-    sum += count(rot45(&copy[0][0]), DIAGSKIP, N);
-    printf("Part 1: %d\n", sum);  // example: 18, input: 2414
+    int sum = 0;
+    for (int i = 0; i < N; ++i)
+        for (int j = 0; j < N; ++j)
+            if (g[i][j] == 'X') {
+                sum +=            j > 2   && g[i  ][j-1] == 'M' && g[i  ][j-2] == 'A' && g[i  ][j-3] == 'S';
+                sum +=            j < N-3 && g[i  ][j+1] == 'M' && g[i  ][j+2] == 'A' && g[i  ][j+3] == 'S';
+                sum += i > 2   &&            g[i-1][j  ] == 'M' && g[i-2][j  ] == 'A' && g[i-3][j  ] == 'S';
+                sum += i > 2   && j > 2   && g[i-1][j-1] == 'M' && g[i-2][j-2] == 'A' && g[i-3][j-3] == 'S';
+                sum += i > 2   && j < N-3 && g[i-1][j+1] == 'M' && g[i-2][j+2] == 'A' && g[i-3][j+3] == 'S';
+                sum += i < N-3 &&            g[i+1][j  ] == 'M' && g[i+2][j  ] == 'A' && g[i+3][j  ] == 'S';
+                sum += i < N-3 && j > 2   && g[i+1][j-1] == 'M' && g[i+2][j-2] == 'A' && g[i+3][j-3] == 'S';
+                sum += i < N-3 && j < N-3 && g[i+1][j+1] == 'M' && g[i+2][j+2] == 'A' && g[i+3][j+3] == 'S';
+            }
+    printf("%d\n", sum);  // example: 18, input: 2414
 
     // Part 2
     sum = 0;
     for (int i = 1; i < N - 1; ++i)
         for (int j = 1; j < N - 1; ++j)
-            if (grid[i][j] == 'A') {  // search for central character
-                // Read one byte past total size of 'grid' at last pass, which is
-                // technically global-buffer-overflow but it's masked out anyway.
-                const int32_t top = *(unaligned_int32_t *)&grid[i - 1][j - 1] & MASK;
-                const int32_t btm = *(unaligned_int32_t *)&grid[i + 1][j - 1] & MASK;
-                sum += (top == MM && btm == SS)
-                    || (top == MS && btm == MS)
-                    || (top == SM && btm == SM)
-                    || (top == SS && btm == MM);
-            }
-    printf("Part 2: %d\n", sum);  // example: 9, input: 1871
+            if (g[i][j] == 'A')
+                sum += g[i-1][j-1] + g[i-1][j+1] + g[i+1][j-1] + g[i+1][j+1] == X && g[i-1][j-1] != g[i+1][j+1];
+    printf("%d\n", sum);  // example: 9, input: 1871
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());

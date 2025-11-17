@@ -14,12 +14,10 @@
  * - Avoid branch to get the non-negative remainder, instead add (positive) period before taking the modulus.
  *
  * Compile:
- *    clang -std=gnu17 -Wall -Wextra 14alt.c
- *    gcc   -std=gnu17 -Wall -Wextra 14alt.c
+ *    cc -std=c17 -Wall -Wextra -pedantic 14alt.c
  * Enable timer:
- *    clang -DTIMER -O3 -march=native 14alt.c ../startstoptimer.c
- *    gcc   -DTIMER -O3 -march=native 14alt.c ../startstoptimer.c
- * Get minimum runtime from timer output:
+ *    cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 14alt.c
+ * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz)                    :  16 µs
