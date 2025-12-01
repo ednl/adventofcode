@@ -71,8 +71,8 @@ int main(void)
         // Save old dial, set new dial
         const Dial prev = cur;
         cur.val += turn * dir;
-        cur.div = cur.val / 100;
-        cur.mod = cur.val % 100;
+        cur.div = cur.val / SIZE;
+        cur.mod = cur.val % SIZE;
 
         // Part 1
         zero1 += !cur.mod;
