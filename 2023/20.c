@@ -40,6 +40,10 @@ typedef struct conjunction {
     Signal out;
 } Conjunction;
 
+typedef struct module {
+    int type;
+} Module;
+
 static Module module[MODULES];
 
 int main(void)
