@@ -84,17 +84,17 @@ int main(void)
         // Part 1
         zero1 += cur.iszero;
 
-        //    -200  -100    0    100   200
-        // -----+-----+-----+-----+-----+----
-        // 2222221111110000000000011111122222
+        //    dial :   -200 -100   0   100  200
+        //           ----+----+----+----+----+---
+        // div 100 : 2222211111000000000111112222
 
         // Part 2
         zero2 += (cur.fullturns - old.fullturns) * dir;
         if (dir * cur.dial <= 0)
-            // increasing non-positive, or decreasing non-negative
+            // Increasing while non-positive, or decreasing while non-negative
             zero2 += cur.iszero - old.iszero;
         else if (old.dial * cur.dial < 0)
-            // across zero
+            // Went across zero
             zero2 += 1 - old.iszero;
     }
     printf("%d %d\n", zero1, zero2);  // example: 3 6, input: 1180 6892
