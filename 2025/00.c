@@ -30,6 +30,7 @@
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
+
 #if EXAMPLE == 1
     #define FNAME "../aocinput/"STR(AOCYEAR)"-"STR(AOCDAY)"-example.txt"
     #define N 10
