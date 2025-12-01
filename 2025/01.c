@@ -11,7 +11,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 19 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 12 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :  ? µs
  *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
  */
@@ -38,9 +38,12 @@
     #define FSIZE 19650  // input file size in bytes
 #endif
 
+// Dial starts at 50 and goes from 0 to 99
 #define START 50
 #define SIZE 100
 
+// Fictional or raw dial value (any int, not just 0-99),
+// the value div SIZE and the value mod SIZE
 typedef struct dial {
     int val, div, mod;
 } Dial;
@@ -61,7 +64,7 @@ int main(void)
 
     int zero1 = 0, zero2 = 0;
     Dial cur = {.val=START, .div=START / SIZE, .mod=START % SIZE};
-    for (const char *c = input; c != end; ++c) {
+    for (const char *c = input; c != end; ++c) {  // skips newline
         // L = anti-clockwise = negative, R = clockwise = positive
         const int dir = *c++ == 'L' ? -1 : 1;
         // Convert ascii to int
@@ -83,10 +86,10 @@ int main(void)
 
         // Part 2
         zero2 += (cur.div - prev.div) * dir;
-        if ((dir == 1 && cur.val <= 0) || (dir == -1 && cur.val >= 0))
+        if (dir * cur.val <= 0)
             // increasing non-positive, or decreasing non-negative
             zero2 += !cur.mod - !prev.mod;
-        else if ((prev.val < 0 && cur.val > 0) || (cur.val < 0 && prev.val > 0))
+        else if (prev.val * cur.val < 0)
             // across zero
             zero2 += 1 - !prev.mod;
     }
