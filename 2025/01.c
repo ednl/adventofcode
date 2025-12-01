@@ -21,16 +21,12 @@
     #include "../startstoptimer.h"
 #endif
 
-#define AOCYEAR 2025
-#define AOCDAY  01
-#define EXAMPLE 1
+#define EXAMPLE 0
+#define AOCDAY "01"
 
-#define STR_HELPER(x) #x
-#define STR(x) STR_HELPER(x)
-#define AOCPRE "../aocinput/"STR(AOCYEAR)"-"STR(AOCDAY)"-"
+#define AOCPRE "../aocinput/2025-"AOCDAY"-"
 #define AOCSUF ".txt"
-
-#if EXAMPLE == 0
+#if EXAMPLE == 1
     #define FNAME AOCPRE"example"AOCSUF
     #define FSIZE 38  // example file size in bytes
 #else

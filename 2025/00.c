@@ -1,19 +1,19 @@
 /**
  * Advent of Code 2025
- * Day 1: ?
- * https://adventofcode.com/2025/day/1
+ * Day ?: ?
+ * https://adventofcode.com/2025/day/?
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    cc -lm -std=c17 -Wall -Wextra -pedantic 01.c
+ *    cc -lm -std=c17 -Wall -Wextra -pedantic ??.c
  * Enable timer:
- *    cc -lm -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 01.c
+ *    cc -lm -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c ??.c
  * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : ? µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
  */
 
 #include <stdio.h>
@@ -24,21 +24,19 @@
     #include "../startstoptimer.h"
 #endif
 
-#define AOCYEAR 2025
-#define AOCDAY  01
-#define EXAMPLE 1  // 0=input, 1=example1, 2=example2 etc.
+#define EXAMPLE 1
+#define AOCDAY "??"
 
-#define STR_HELPER(x) #x
-#define STR(x) STR_HELPER(x)
-
+#define AOCPRE "../aocinput/2025-"AOCDAY"-"
+#define AOCSUF ".txt"
 #if EXAMPLE == 1
-    #define FNAME "../aocinput/"STR(AOCYEAR)"-"STR(AOCDAY)"-example.txt"
-    #define N 10
+    #define FNAME AOCPRE"example"AOCSUF
+    #define N 10  // adjust for actual input
 #else
-    #define FNAME "../aocinput/"STR(AOCYEAR)"-"STR(AOCDAY)"-input.txt"
-    #define N 1000
+    #define FNAME AOCPRE"input"AOCSUF
+    #define N 1000  // adjust for actual input
 #endif
-#define FSIZE (N * 10)
+#define FSIZE (N * 10)  // adjust for actual input
 
 static char input[FSIZE];
 
