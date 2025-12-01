@@ -32,10 +32,10 @@
 
 #if EXAMPLE == 0
     #define FNAME AOCPRE"example"AOCSUF
-    #define FSIZE 38
+    #define FSIZE 38  // example file size in bytes
 #else
     #define FNAME AOCPRE"input"AOCSUF
-    #define FSIZE 19650
+    #define FSIZE 19650  // input file size in bytes
 #endif
 
 #define START 50
@@ -62,10 +62,13 @@ int main(void)
     int zero1 = 0, zero2 = 0;
     Dial cur = {.val=START, .div=START / SIZE, .mod=START % SIZE};
     for (const char *c = input; c != end; ++c) {
+        // L = anti-clockwise = negative, R = clockwise = positive
         const int dir = *c++ == 'L' ? -1 : 1;
+        // Convert ascii to int
         int turn = *c++ & 15;
         while (*c != '\n')
             turn = turn * 10 + (*c++ & 15);
+        // Save old dial, set new dial
         const Dial prev = cur;
         cur.val += turn * dir;
         cur.div = cur.val / 100;
@@ -81,7 +84,7 @@ int main(void)
         // Part 2
         zero2 += (cur.div - prev.div) * dir;
         if ((dir == 1 && cur.val <= 0) || (dir == -1 && cur.val >= 0))
-            // increasing negative, or decreasing positive
+            // increasing non-positive, or decreasing non-negative
             zero2 += !cur.mod - !prev.mod;
         else if ((prev.val < 0 && cur.val > 0) || (cur.val < 0 && prev.val > 0))
             // across zero
