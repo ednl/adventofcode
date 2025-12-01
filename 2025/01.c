@@ -43,9 +43,9 @@
 #define SIZE 100
 
 // Fictional or raw dial value (any int, not just 0-99),
-// the value div SIZE and the value mod SIZE
+// dial value div SIZE, and dial value mod SIZE == 0
 typedef struct dial {
-    int val, div, mod;
+    int dial, fullturns, iszero;
 } Dial;
 
 static char input[FSIZE];
@@ -63,8 +63,12 @@ int main(void)
 #endif
 
     int zero1 = 0, zero2 = 0;
-    Dial cur = {.val=START, .div=START / SIZE, .mod=START % SIZE};
-    for (const char *c = input; c != end; ++c) {  // skips newline
+    Dial cur = {
+        .dial      = START,
+        .fullturns = START / SIZE,
+        .iszero    = !(START % SIZE),
+    };
+    for (const char *c = input; c != end; ++c) {  // skip newline
         // L = anti-clockwise = negative, R = clockwise = positive
         const int dir = *c++ == 'L' ? -1 : 1;
         // Convert ascii to int
@@ -72,26 +76,26 @@ int main(void)
         while (*c != '\n')
             turn = turn * 10 + (*c++ & 15);
         // Save old dial, set new dial
-        const Dial prev = cur;
-        cur.val += turn * dir;
-        cur.div = cur.val / SIZE;
-        cur.mod = cur.val % SIZE;
+        const Dial old = cur;
+        cur.dial += turn * dir;
+        cur.fullturns = cur.dial / SIZE;
+        cur.iszero = !(cur.dial % SIZE);
 
         // Part 1
-        zero1 += !cur.mod;
+        zero1 += cur.iszero;
 
         //    -200  -100    0    100   200
         // -----+-----+-----+-----+-----+----
         // 2222221111110000000000011111122222
 
         // Part 2
-        zero2 += (cur.div - prev.div) * dir;
-        if (dir * cur.val <= 0)
+        zero2 += (cur.fullturns - old.fullturns) * dir;
+        if (dir * cur.dial <= 0)
             // increasing non-positive, or decreasing non-negative
-            zero2 += !cur.mod - !prev.mod;
-        else if (prev.val * cur.val < 0)
+            zero2 += cur.iszero - old.iszero;
+        else if (old.dial * cur.dial < 0)
             // across zero
-            zero2 += 1 - !prev.mod;
+            zero2 += 1 - old.iszero;
     }
     printf("%d %d\n", zero1, zero2);  // example: 3 6, input: 1180 6892
 
