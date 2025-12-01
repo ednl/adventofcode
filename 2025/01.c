@@ -1,46 +1,52 @@
 /**
  * Advent of Code 2025
- * Day 1: ?
+ * Day 1: Secret Entrance
  * https://adventofcode.com/2025/day/1
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    cc -lm -std=c17 -Wall -Wextra -pedantic 01.c
+ *    cc -std=c17 -Wall -Wextra -pedantic 01.c
  * Enable timer:
- *    cc -lm -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 01.c
+ *    cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 01.c
  * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : ? µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 19 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
  */
 
 #include <stdio.h>
-#include <stdlib.h>    // qsort
-#include <stdint.h>    // int64_t
-#include <inttypes.h>  // PRId64
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
 #define AOCYEAR 2025
 #define AOCDAY  01
-#define EXAMPLE 1  // 0=input, 1=example1, 2=example2 etc.
+#define EXAMPLE 1
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
+#define AOCPRE "../aocinput/"STR(AOCYEAR)"-"STR(AOCDAY)"-"
+#define AOCSUF ".txt"
 
-#if EXAMPLE == 1
-    #define FNAME "../aocinput/"STR(AOCYEAR)"-"STR(AOCDAY)"-example.txt"
-    #define N 10
+#if EXAMPLE == 0
+    #define FNAME AOCPRE"example"AOCSUF
+    #define FSIZE 38
 #else
-    #define FNAME "../aocinput/"STR(AOCYEAR)"-"STR(AOCDAY)"-input.txt"
-    #define N 1000
+    #define FNAME AOCPRE"input"AOCSUF
+    #define FSIZE 19650
 #endif
-#define FSIZE (N * 10)
+
+#define START 50
+#define SIZE 100
+
+typedef struct dial {
+    int val, div, mod;
+} Dial;
 
 static char input[FSIZE];
+static const char *const end = input + FSIZE;
 
 int main(void)
 {
@@ -53,13 +59,35 @@ int main(void)
     starttimer();
 #endif
 
-    int part1 = 0;
-    // TODO
-    printf("Part 1: %d\n", part1);
+    int zero1 = 0, zero2 = 0;
+    Dial cur = {.val=START, .div=START / SIZE, .mod=START % SIZE};
+    for (const char *c = input; c != end; ++c) {
+        const int dir = *c++ == 'L' ? -1 : 1;
+        int turn = *c++ & 15;
+        while (*c != '\n')
+            turn = turn * 10 + (*c++ & 15);
+        const Dial prev = cur;
+        cur.val += turn * dir;
+        cur.div = cur.val / 100;
+        cur.mod = cur.val % 100;
 
-    int64_t part2 = 0;
-    // TODO
-    printf("Part 2: %"PRId64"\n", part2);
+        // Part 1
+        zero1 += !cur.mod;
+
+        //    -200  -100    0    100   200
+        // -----+-----+-----+-----+-----+----
+        // 2222221111110000000000011111122222
+
+        // Part 2
+        zero2 += (cur.div - prev.div) * dir;
+        if ((dir == 1 && cur.val <= 0) || (dir == -1 && cur.val >= 0))
+            // increasing negative, or decreasing positive
+            zero2 += !cur.mod - !prev.mod;
+        else if ((prev.val < 0 && cur.val > 0) || (cur.val < 0 && prev.val > 0))
+            // across zero
+            zero2 += 1 - !prev.mod;
+    }
+    printf("%d %d\n", zero1, zero2);  // example: 3 6, input: 1180 6892
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
