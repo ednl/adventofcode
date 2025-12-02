@@ -20,7 +20,7 @@
 #include <stdlib.h>    // lldiv, lldiv_t
 #include <stdint.h>    // int64_t
 #include <inttypes.h>  // PRId64
-#include <stdbool.h>   // bool
+#include <stdbool.h>   // bool, true
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
@@ -136,7 +136,7 @@ int main(void)
             //   range = 74025-113072
             //     2x3=6 : 100-112 includes 111111
             //     3x2=6 :  10- 11 includes 111111
-            //     5x1   :   7-  9
+            //     5x1   :   7-  9 no dup!
             //     6x1   :   1-  1 includes 111111
             //   range = 79725385-79874177
             //     2*4=8 : 7972-7986 includes 79797979
@@ -144,7 +144,7 @@ int main(void)
             //   range = 4526-8370
             //     2*2=4 : 45-82 includes 5555, 6666, 7777
             //     4*1=4 :  5- 7 includes 5555, 6666, 7777
-            if (partlen == 1 && !(n & 1))  // no odd lengths because multiples would be at least 6, 10 etc. and we don't have those
+            if (partlen == 1 && !(n & 1))  // no odd lengths because multiples would be 6, 9 etc. and we don't have those
                 for (int j = 2; j <= MAXPARTLEN; ++j)  // max partlen is 5
                     if (haspartlen[j])
                         sum2 -= rangesum;
