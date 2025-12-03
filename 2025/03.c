@@ -34,30 +34,23 @@
     #define BANKLEN 100
 #endif
 #define LINELEN (BANKLEN + 1)
-#define FSIZE (BANKS * LINELEN)
-#define MAXJOLT '9'
-#define SERIES1  2
-#define SERIES2 12
 
 static char battery[BANKS][LINELEN];
 
-static int64_t joltage(const int len) {
-    const int bankend = BANKLEN + 1 - len;
+static int64_t joltage(const int batteries) {
+    const int firstend = LINELEN - batteries;
     int64_t total = 0;
-    for (int i = 0; i < BANKS; ++i) {
-        int64_t jolt = 0;
-        for (int j = 0, key = -1; j < len; ++j) {
-            const int end = bankend + j;
+    for (int bank = 0; bank < BANKS; ++bank) {
+        int64_t series = 0;
+        for (int i = 0, key = -1; i < batteries; ++i) {
+            const int end = firstend + i;
             char maxjolt = 0;
-            for (int k = key + 1; maxjolt < MAXJOLT && k < end; ++k) {
-                if (battery[i][k] > maxjolt) {
-                    maxjolt = battery[i][k];
-                    key = k;
-                }
-            }
-            jolt = jolt * 10 + (maxjolt & 15);
+            for (int k = key + 1; maxjolt < '9' && k < end; ++k)
+                if (battery[bank][k] > maxjolt)
+                    maxjolt = battery[bank][(key = k)];
+            series = series * 10 + (maxjolt & 15);
         }
-        total += jolt;
+        total += series;
     }
     return total;
 }
@@ -74,7 +67,7 @@ int main(void)
 #endif
 
     // example: 357 3121910778619, input: 17324 171846613143331
-    printf("%"PRId64" %"PRId64"\n", joltage(SERIES1), joltage(SERIES2));
+    printf("%"PRId64" %"PRId64"\n", joltage(2), joltage(12));
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
