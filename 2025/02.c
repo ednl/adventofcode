@@ -1,6 +1,6 @@
 /**
  * Advent of Code 2025
- * Day 2: ?
+ * Day 2: Gift Shop
  * https://adventofcode.com/2025/day/2
  * By: E. Dronkert https://github.com/ednl
  *
