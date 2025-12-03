@@ -36,7 +36,8 @@
 
 static char battery[BANKS][BANKLEN + 1];
 
-static int64_t joltage(const int batteries) {
+static int64_t joltage(const int batteries)
+{
     const int firstend = BANKLEN + 1 - batteries;
     int64_t total = 0;
     for (int bank = 0; bank < BANKS; ++bank) {
