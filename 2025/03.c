@@ -26,31 +26,32 @@
 #define EXAMPLE 0
 #if EXAMPLE
     #define FNAME "../aocinput/2025-03-example.txt"
-    #define BANKS    4
-    #define BANKLEN 15
+    #define BANKS     4
+    #define BANKLEN  15
 #else
     #define FNAME "../aocinput/2025-03-input.txt"
     #define BANKS   200
     #define BANKLEN 100
 #endif
 
-static char battery[BANKS][BANKLEN + 1];
+static char battery[BANKS][BANKLEN + 1];  // +'\n'
 
 static int64_t joltage(const int batteries)
 {
-    const int firstend = BANKLEN + 1 - batteries;
+    const int firstend = BANKLEN + 1 - batteries;  // one past last index of first window
     int64_t total = 0;
     for (int bank = 0; bank < BANKS; ++bank) {
-        int64_t series = 0;
-        for (int i = 0, key = -1; i < batteries; ++i) {
-            const int end = firstend + i;
-            char maxjolt = 0;
-            for (int k = key + 1; maxjolt < '9' && k < end; ++k)
-                if (battery[bank][k] > maxjolt)
-                    maxjolt = battery[bank][(key = k)];
-            series = series * 10 + (maxjolt & 15);
+        int64_t jolt = 0;
+        for (int i = 0; i < batteries; ++i) {
+            const int end = firstend + i;  // one past last index of current window
+            int maxkey = -1;
+            char maxval = 0;
+            for (int k = maxkey + 1; maxval < '9' && k < end; ++k)  // search window and shortcut
+                if (battery[bank][k] > maxval)
+                    maxval = battery[bank][(maxkey = k)];
+            jolt = jolt * 10 + (maxval & 15);
         }
-        total += series;
+        total += jolt;
     }
     return total;
 }
@@ -66,7 +67,8 @@ int main(void)
     starttimer();
 #endif
 
-    // example: 357 3121910778619, input: 17324 171846613143331
+    // example:   357   3121910778619
+    // input  : 17324 171846613143331
     printf("%"PRId64" %"PRId64"\n", joltage(2), joltage(12));
 
 #ifdef TIMER
