@@ -23,18 +23,23 @@
 #endif
 
 #define EXAMPLE 0
-#if EXAMPLE
+#if EXAMPLE == 1
     #define FNAME "../aocinput/2025-04-example.txt"
     #define N 10
+    #define QSIZE 16
+#elif EXAMPLE == 2
+    #define FNAME "04_extra.txt"
+    #define N 258
+    #define QSIZE 10000  // max needed for extra input: 8638
 #else
     #define FNAME "../aocinput/2025-04-input.txt"
     #define N 140
+    #define QSIZE 2048  // max needed for my input: 1495 (=first iteration)
 #endif
 
 #define ROLL  '@'   // paper roll
 #define SPACE '.'   // free space/floor
 #define BOXED 4     // 4 or more neighbours = unreachable for the forklift
-#define QSIZE 2048  // max needed for my input: 1495 (=first iteration)
 
 typedef struct vec {
     int row, col;
@@ -71,7 +76,7 @@ static bool dequeue(Vec *const v)
     return true;
 }
 
-#if EXAMPLE
+#if EXAMPLE == 1
 static void show(void)
 {
     for (int i = 1; i <= N; ++i)
@@ -104,7 +109,7 @@ int main(void)
     if (!f) { fprintf(stderr, "File not found: %s\n", FNAME); return 1; }
     for (int i = 1; i <= N && fgets(&grid[i][1], N + 2, f); ++i);  // +"\n\0"
     fclose(f);
-#if EXAMPLE
+#if EXAMPLE == 1
     show();
 #endif
 
@@ -126,7 +131,7 @@ int main(void)
             for (int j = -1; j < 2; ++j)
                 check(pos.row + i, pos.col + j);  // neighbours might be reachable now
     }
-#if EXAMPLE
+#if EXAMPLE == 1
     show();
 #endif
     printf("%d\n", removed); // example: 43, input: 8768
