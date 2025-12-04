@@ -11,9 +11,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 709 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :   ? µs
- *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  709 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :    ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 2970 µs
  */
 
 #include <stdio.h>
@@ -30,6 +30,9 @@
     #define FNAME "../aocinput/2025-04-input.txt"
     #define N 140
 #endif
+#define ROLL  '@'
+#define SPACE '.'
+#define BOXED 4
 
 static char grid[N + 2][N + 3];  // +border, +'\0'
 
@@ -46,17 +49,17 @@ static int forklift(const bool remove)
     int count = 0;
     for (int i = 1; i < N + 1; ++i)
         for (int j = 1; j < N + 1; ++j)
-            if (grid[i][j] == '@') {
+            if (grid[i][j] == ROLL) {
                 const int y0 = i - 1, y1 = i + 2;
                 const int x0 = j - 1, x1 = j + 2;
                 int sum = 0;
                 for (int y = y0; y < y1; ++y)
                     for (int x = x0; x < x1; ++x)
-                        sum += grid[y][x] == '@';
-                if (sum < 5) {  // includes centre roll
+                        sum += grid[y][x] == ROLL;
+                if (sum < BOXED + 1) {  // includes centre roll
                     ++count;
                     if (remove)
-                        grid[i][j] = '.';
+                        grid[i][j] = SPACE;
                 }
             }
     return count;
@@ -77,18 +80,20 @@ int main(void)
 #endif
 
     // Part 1
+    // Count accessible rolls (=fewer than 4 neighbours)
     printf("%d\n", forklift(false));  // example: 13, input: 1495
 
     // Part 2
-    int total = 0, prev;
+    // Remove accessible rolls until no moves possible
+    int removed = 0, prev;
     do {
-        prev = total;
-        total += forklift(true);
-    } while (total != prev);
+        prev = removed;
+        removed += forklift(true);
+    } while (removed != prev);
 #if EXAMPLE
     show();
 #endif
-    printf("%d\n", total);  // example: 43, input: 8768
+    printf("%d\n", removed);  // example: 43, input: 8768
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
