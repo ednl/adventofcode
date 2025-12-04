@@ -117,14 +117,12 @@ int main(void)
     printf("%d\n", qlen);  // example: 13, input: 1495
 
     // Part 2: remove, check neighbours, repeat until no more paper rolls removable
-    Vec pos;
     int removed = 0;
-    while (dequeue(&pos)) {
-        grid[pos.row][pos.col] = SPACE;
-        ++removed;
+    for (Vec pos; dequeue(&pos); ++removed) {
+        grid[pos.row][pos.col] = SPACE;  // forklift action
         for (int i = -1; i < 2; ++i)
             for (int j = -1; j < 2; ++j)
-                check(pos.row + i, pos.col + j);
+                check(pos.row + i, pos.col + j);  // neighbours might be reachable now
     }
 #if EXAMPLE
     show();
