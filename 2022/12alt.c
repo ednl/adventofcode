@@ -41,6 +41,7 @@ static Vec dequeue(void)
 {
     if (qlen == 0)
         return error;
+    qlen--;
     const int i = qtail;
     if (++qtail == QSIZE)
         qtail = 0;
