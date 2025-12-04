@@ -11,7 +11,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 250 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 244 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :   ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : 603 µs
  */
@@ -45,6 +45,8 @@ static bool seen[N + 2][N + 3];  // marked for removal (=queued)
 static Vec queue[QSIZE];
 static int qhead, qtail, qlen;
 
+// Add to head of queue (FIFO)
+// Return false if queue was full
 static bool enqueue(const Vec pos)
 {
     if (qlen == QSIZE)
@@ -56,6 +58,8 @@ static bool enqueue(const Vec pos)
     return true;
 }
 
+// Remove from tail of queue (FIFO)
+// Return false if queue was empty
 static bool dequeue(Vec *const v)
 {
     if (qlen == 0)
@@ -76,14 +80,13 @@ static void show(void)
 #endif
 
 // Neigbour count low enough?
-// Centre cell is always '@', so adds 1
 static bool reachable(const int row, const int col)
 {
     int nb = 0;
     for (int i = row - 1; i < row + 2; ++i)
         for (int j = col - 1; j < col + 2; ++j)
-            nb += grid[i][j] == ROLL;
-    return nb < BOXED + 1;
+            nb += grid[i][j] == ROLL;  // count self, too
+    return nb < BOXED + 1;  // +1 because self is always '@'
 }
 
 // Is it a paper roll, and not in the queue yet, and doesn't have too many neighbours?
@@ -91,7 +94,7 @@ static void check(const int row, const int col)
 {
     if (grid[row][col] == ROLL && !seen[row][col] && reachable(row, col)) {
         enqueue((Vec){row, col});
-        seen[row][col] = true;
+        seen[row][col] = true;  // marked for removal = in the queue
     }
 }
 
@@ -109,7 +112,7 @@ int main(void)
     starttimer();
 #endif
 
-    // Part 1: fill the queue with all paper rolls to be removed
+    // Part 1: fill queue with all paper rolls to be removed
     for (int i = 1; i < N + 1; ++i)
         for (int j = 1; j < N + 1; ++j)
             check(i, j);
