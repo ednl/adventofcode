@@ -60,11 +60,10 @@ static bool dequeue(Vec *const v)
 {
     if (qlen == 0)
         return false;
-    qlen--;
-    const int i = qtail;
-    if (++qtail == QSIZE)
+    *v = queue[qtail++];
+    if (qtail == QSIZE)
         qtail = 0;
-    *v = queue[i];
+    qlen--;
     return true;
 }
 
