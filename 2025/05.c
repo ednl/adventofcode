@@ -11,15 +11,18 @@
  * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : ? µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 70 µs
+ *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
  */
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <inttypes.h>
+#include <stdlib.h>    // qsort
+#include <stdint.h>    // uint64_t
+#include <inttypes.h>  // PRIu64
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
 #define EXAMPLE 0
 #if EXAMPLE == 1
@@ -79,6 +82,10 @@ int main(void)
     fread(input, sizeof input, 1, f);  // read whole file at once
     fclose(f);
 
+#ifdef TIMER
+    starttimer();
+#endif
+
     // Parse input file
     const char *c = input;
     for (int i = 0; i < N; ++i) {
@@ -95,17 +102,15 @@ int main(void)
     // Merge ranges
     int n = N;
     {
-        int i = 0, j = 1;
-        while (j < n) {
-            while (j < n && range[i].b + 1 >= range[j].a) {
+        int i = 0;
+        for (int j = 1; j < n; ) {
+            for (; j < n && range[i].b + 1 >= range[j].a; ++j)
                 if (range[j].b > range[i].b)
                     range[i].b = range[j].b;
-                ++j;
-            }
             if (j < n)
                 range[++i] = range[j++];
         }
-        n = i + 1;  // n is new size, index 0..n-1, non-overlapping/non-touching ranges
+        n = i + 1;  // n is new size, index 0..n-1, non-overlapping and non-touching ranges
     }
 
     int fresh = 0;
@@ -121,5 +126,8 @@ int main(void)
         allfresh += range[i].b - range[i].a + 1;
     printf("%"PRIu64"\n", allfresh);  // example: 14, input: 344486348901788
 
+#ifdef TIMER
+    printf("Time: %.0f us\n", stoptimer_us());
+#endif
     return 0;
 }
