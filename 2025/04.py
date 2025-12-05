@@ -24,8 +24,8 @@ kernel[1, 1] = 0
 def forklift():
     global state
     nb = convolve2d(state, kernel, mode='same')  # neighbour count per cell
-    state = state & (nb > 3)  # leave rolls that have more than 3 neighbours
-    return np.sum(state)      # new number of paper rolls
+    state &= nb > 3       # leave rolls that have more than 3 neighbours
+    return np.sum(state)  # new number of paper rolls
 
 t2 = monotonic_ns()
 
