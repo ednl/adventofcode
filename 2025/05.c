@@ -77,9 +77,9 @@ static uint64_t readnum(const char **const s)
     return x;
 }
 
-// Merge ranges in-place in an array of size 'len' which must
+// Merge ranges in-place in array 'r' of size 'len' which must
 // already be sorted in ascending order, first by .a then by .b
-// Returns new len (index 0..len-1) of non-overlapping and non-touching ranges
+// Returns new len (index=0..len-1) of non-overlapping and non-touching ranges
 static int mergeranges(Range *const r, const int len)
 {
     int i = 0;
@@ -124,7 +124,7 @@ int main(void)
 
     // Part 1
     int fresh = 0;
-    for (int i = 0, j = 0; i < M && j < n; ++j) {
+    for (int i = 0, j = 0; j < n; ++j) {
         for (; i < M && id[i] <  range[j].a; ++i);
         for (; i < M && id[i] <= range[j].b; ++i)
             ++fresh;
