@@ -108,27 +108,15 @@ int main(void)
         n = i + 1;  // n is new size, index 0..n-1, non-overlapping/non-touching ranges
     }
 
-    // Find first ID that is in a range (assumes one exists)
-    int i = 0, j = 0;
-    while (id[i] < range[j].a || id[i] > range[j].b) {
-        while (id[i] < range[j].a)
-            ++i;
-        while (id[i] > range[j].b)
-            ++j;
-    }
-
-    int fresh = 0;
+    int fresh = 0, i = 0, j = 0;
     while (i < M && j < n) {
+        while (i < M && id[i] < range[j].a)
+            ++i;
         while (i < M && id[i] <= range[j].b) {
             ++fresh;
             ++i;
         }
-        if (i == M) break;
         ++j;
-        if (j == n) break;
-        while (i < M && id[i] < range[j].a)
-            ++i;
-        if (i == M) break;
     }
     printf("%d\n", fresh);  // example: 3, input: 739
 
