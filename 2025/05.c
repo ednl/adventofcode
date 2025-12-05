@@ -83,7 +83,7 @@ static int mergeranges(Range *const r, const int len)
 {
     int i = 0;
     for (int j = 1; j < len; ) {
-        for (; j < len && r[i].b + 1 >= r[j].a; ++j)
+        for (; j < len && r[i].b + 1 >= r[j].a; ++j)  // inclusive, so merge when touching
             if (r[j].b > r[i].b)
                 r[i].b = r[j].b;
         if (j < len)
