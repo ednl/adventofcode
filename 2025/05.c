@@ -42,15 +42,6 @@ static char input[FSIZE];
 static Range range[N];
 static uint64_t id[M];
 
-static uint64_t readnum(const char **const s)
-{
-    uint64_t x = 0;
-    while (**s >= '0' && **s <= '9')
-        x = x * 10 + (*(*s)++ & 15);  // next digit
-    (*s)++;  // skip '-' or '\n'
-    return x;
-}
-
 static int cmprange(const void *p, const void *q)
 {
     const Range *r1 = p;
@@ -69,6 +60,15 @@ static int cmpid(const void *p, const void *q)
     if (a < b) return -1;
     if (a > b) return  1;
     return 0;
+}
+
+static uint64_t readnum(const char **const s)
+{
+    uint64_t x = 0;
+    while (**s >= '0' && **s <= '9')
+        x = x * 10 + (*(*s)++ & 15);  // next digit
+    (*s)++;  // skip '-' or '\n'
+    return x;
 }
 
 int main(void)
@@ -108,17 +108,18 @@ int main(void)
         n = i + 1;  // n is new size, index 0..n-1, non-overlapping/non-touching ranges
     }
 
-    int fresh = 0, i = 0, j = 0;
-    while (i < M && j < n) {
-        while (i < M && id[i] < range[j].a)
-            ++i;
-        while (i < M && id[i] <= range[j].b) {
+    int fresh = 0;
+    for (int i = 0, j = 0; i < M && j < n; ++j) {
+        for (; i < M && id[i] <  range[j].a; ++i);
+        for (; i < M && id[i] <= range[j].b; ++i)
             ++fresh;
-            ++i;
-        }
-        ++j;
     }
     printf("%d\n", fresh);  // example: 3, input: 739
+
+    uint64_t allfresh = 0;
+    for (int i = 0; i < n; ++i)
+        allfresh += range[i].b - range[i].a + 1;
+    printf("%"PRIu64"\n", allfresh);  // example: 14, input: 344486348901788
 
     return 0;
 }
