@@ -27,14 +27,14 @@
 #define EXAMPLE 0
 #if EXAMPLE == 1
     #define FNAME "../aocinput/2025-05-example.txt"
-    #define N 4
-    #define M 6
-    #define FSIZE (N * 6 + M * 3)
+    #define N 4  // 4 ranges
+    #define M 6  // 6 IDs
+    #define FSIZE (N * 6 + M * 3)  // all numbers max. 2 digits
 #else
     #define FNAME "../aocinput/2025-05-input.txt"
-    #define N 182
-    #define M 1000
-    #define FSIZE (N * 32 + M * 16)
+    #define N 182   // 182 ranges
+    #define M 1000  // 1000 IDs
+    #define FSIZE (N * 32 + M * 16)  // all numbers max. 15 digits
 #endif
 
 typedef struct range {
@@ -45,6 +45,7 @@ static char input[FSIZE];
 static Range range[N];
 static uint64_t id[M];
 
+// Qsort helper: sort range[] ascending, first by .a then by .b
 static int cmprange(const void *p, const void *q)
 {
     const Range *r1 = p;
@@ -56,6 +57,7 @@ static int cmprange(const void *p, const void *q)
     return 0;
 }
 
+// Qsort helper: sort id[] ascending
 static int cmpid(const void *p, const void *q)
 {
     const uint64_t a = *(const uint64_t *)p;
@@ -65,6 +67,7 @@ static int cmpid(const void *p, const void *q)
     return 0;
 }
 
+// Parse number, advance char pointer 1 past last digit
 static uint64_t readnum(const char **const s)
 {
     uint64_t x = 0;
@@ -72,6 +75,21 @@ static uint64_t readnum(const char **const s)
         x = x * 10 + (*(*s)++ & 15);  // next digit
     (*s)++;  // skip '-' or '\n'
     return x;
+}
+
+// Merge ranges in-place in an array of size 'len'
+// Returns new len (index 0..len-1) of non-overlapping and non-touching ranges
+static int mergeranges(Range *const r, const int len)
+{
+    int i = 0;
+    for (int j = 1; j < len; ) {
+        for (; j < len && r[i].b + 1 >= r[j].a; ++j)
+            if (r[j].b > r[i].b)
+                r[i].b = r[j].b;
+        if (j < len)
+            r[++i] = r[j++];
+    }
+    return i + 1;
 }
 
 int main(void)
@@ -96,23 +114,14 @@ int main(void)
     for (int i = 0; i < M; ++i)
         id[i] = readnum(&c);
 
+    // Sort ranges *and* IDs for easy matchy-matchy
     qsort(range, N, sizeof *range, cmprange);
     qsort(id   , M, sizeof *id   , cmpid   );
 
-    // Merge ranges
-    int n = N;
-    {
-        int i = 0;
-        for (int j = 1; j < n; ) {
-            for (; j < n && range[i].b + 1 >= range[j].a; ++j)
-                if (range[j].b > range[i].b)
-                    range[i].b = range[j].b;
-            if (j < n)
-                range[++i] = range[j++];
-        }
-        n = i + 1;  // n is new size, index 0..n-1, non-overlapping and non-touching ranges
-    }
+    // Merge ranges in-place
+    int n = mergeranges(range, N);
 
+    // Part 1
     int fresh = 0;
     for (int i = 0, j = 0; i < M && j < n; ++j) {
         for (; i < M && id[i] <  range[j].a; ++i);
@@ -121,6 +130,7 @@ int main(void)
     }
     printf("%d\n", fresh);  // example: 3, input: 739
 
+    // Part 2
     uint64_t allfresh = 0;
     for (int i = 0; i < n; ++i)
         allfresh += range[i].b - range[i].a + 1;
