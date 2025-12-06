@@ -12,7 +12,7 @@
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 22 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :  ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 52 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 79 µs
  */
 
@@ -27,51 +27,25 @@
 #define EXAMPLE 0
 #if EXAMPLE == 1
     #define FNAME "../aocinput/2025-06-example.txt"
-    #define ROWS 3   // 3 rows of numbers
-    #define COLS 4   // 4 cols of numbers
-    #define LLEN 16  // line length
+    #define H 4   // line count
+    #define W 16  // line length incl. newline
+    #define N 4   // problem count
+    #define M 3   // problem size (3x3)
 #else
     #define FNAME "../aocinput/2025-06-input.txt"
-    #define ROWS 4     // 4 rows of numbers
-    #define COLS 1000  // 1000 cols of numbers
-    #define LLEN 3740  // line length
+    #define H 5     // line count
+    #define W 3740  // line length incl. newline
+    #define N 1000  // problem count
+    #define M 4     // problem size (4x4)
 #endif
-#define DATASIZE (ROWS * LLEN)
-#define FSIZE ((ROWS + 1) * LLEN)  // +1 row of operations
+#define FSIZE (H * W)
+#define MUL '*'
+#define ADD '+'
 
-static char input[FSIZE];
-static const char *grp[COLS + 1];  // start of grouped data, +1 for endpoint
-static bool mul[COLS];
-
-// Parse number horizontally (step=1) or vertically (step=LLEN)
-static int readnum(const char *s, const int step)
-{
-    for (; *s == ' '; s += step);  // skip spaces
-    int x = 0;
-    for (; *s >= '0' && *s <= '9'; s += step)  // terminated by space or newline or operator
-        x = x * 10 + (*s & 15);
-    return x;
-}
-
-// Part 1: data grouped in columns, numbers horizontal
-// Part 2: data grouped in columns, numbers vertical
-static int64_t pivot(const bool ispart2)
-{
-    const int numberstep = ispart2 ? 1 : LLEN;  // change char pointer to next number
-    const int digitstep  = ispart2 ? LLEN : 1;  // change char pointer to next digit
-    uint64_t total = 0;
-    for (int i = 0; i < COLS; ++i) {
-        uint64_t part = mul[i];  // 1 for mul=true (op='*'), 0 for mul=false (op='+')
-        const char *pc = grp[i];  // top left corner of grouped data
-        const char *const end = ispart2 ? grp[i + 1] - 1 : pc + DATASIZE;  // first char not in group by cols/rows
-        if (mul[i])
-            for (; pc != end; pc += numberstep) part *= readnum(pc, digitstep);
-        else
-            for (; pc != end; pc += numberstep) part += readnum(pc, digitstep);
-        total += part;
-    }
-    return total;
-}
+static char input[H][W];
+static uint64_t problem[N];
+static bool mul[N];
+static int col[N + 1];
 
 int main(void)
 {
@@ -85,22 +59,58 @@ int main(void)
     starttimer();
 #endif
 
-    // Parse input: find operators and grouped data column start
-    {
-        const char *pc = input + DATASIZE;  // skip data
-        grp[0] = input;  // data starts in column 0
-        mul[0] = *pc++ == '*';  // operator always in first column of grouped data
-        for (int i = 1; i < COLS; ++i) {
-            for (; *pc == ' '; ++pc);  // skip spaces between operators
-            grp[i] = pc - DATASIZE;
-            mul[i] = *pc++ == '*';
+    // Find operators
+    const char *const op = &input[H - 1][0];
+    for (int j = 0, n = 0; n < N; ++j)
+        if (op[j] != ' ') {
+            if (op[j] == MUL)
+                problem[n] = mul[n] = 1;
+            col[n++] = j;
         }
-        grp[COLS] = input + LLEN;  // end of last group
-    }
+    col[N] = W;
 
-    // example: 4277556 3263827
-    // input: 4648618073226 7329921182115
-    printf("%"PRIu64" %"PRIu64"\n", pivot(0), pivot(1));
+    // Part 1: horizontal numbers
+    for (int i = 0; i < M; ++i) {
+        const char *const s = input[i];
+        for (int n = 0; n < N; ++n) {
+            int x = 0;
+            const char *t = s + col[n];
+            for (; *t == ' '; ++t);
+            for (; *t >= '0' && *t <= '9'; ++t)
+                x = x * 10 + (*t & 15);
+            if (mul[n])
+                problem[n] *= x;
+            else
+                problem[n] += x;
+        }
+    }
+    uint64_t total = 0;
+    for (int n = 0; n < N; ++n)
+        total += problem[n];
+    printf("%"PRIu64"\n", total);  // example: 4277556, input: 4648618073226
+
+    // Part 2: vertical numbers
+    total = 0;
+    const char *s = &input[0][0];
+    for (int n = 0; n < N; ++n) {
+        uint64_t prob = mul[n];
+        for (;;) {
+            int x = 0;
+            const char *const end = s + W * M;
+            for (const char *t = s; t != end; t += W)
+                if (*t >= '0' && *t <= '9')
+                    x = x * 10 + (*t & 15);
+            ++s;
+            if (!x)
+                break;
+            if (mul[n])
+                prob *= x;
+            else
+                prob += x;
+        }
+        total += prob;
+    }
+    printf("%"PRIu64"\n", total);  // example: 3263827, input: 7329921182115
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
