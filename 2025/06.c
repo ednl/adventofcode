@@ -57,13 +57,13 @@ static int readnum(const char *s, const int step)
 // Part 2: data grouped in columns, numbers vertical
 static int64_t pivot(const bool ispart2)
 {
-    const int numberstep = ispart2 ? 1 : LLEN;
-    const int digitstep  = ispart2 ? LLEN : 1;
+    const int numberstep = ispart2 ? 1 : LLEN;  // change char pointer to next number
+    const int digitstep  = ispart2 ? LLEN : 1;  // change char pointer to next digit
     uint64_t total = 0;
     for (int i = 0; i < COLS; ++i) {
         uint64_t part = mul[i];  // 1 for mul=true (op='*'), 0 for mul=false (op='+')
-        const char *pc = grp[i];  // start on row 0 of grouped data
-        const char *const end = ispart2 ? grp[i + 1] - 1 : pc + DATASIZE;
+        const char *pc = grp[i];  // top left corner of grouped data
+        const char *const end = ispart2 ? grp[i + 1] - 1 : pc + DATASIZE;  // first char not in group by cols/rows
         if (mul[i])
             for (; pc != end; pc += numberstep) part *= readnum(pc, digitstep);
         else
@@ -85,24 +85,22 @@ int main(void)
     starttimer();
 #endif
 
-    // Find operators and grouped data column start
+    // Parse input: find operators and grouped data column start
     {
         const char *pc = input + DATASIZE;  // skip data
-        grp[0] = input;
-        mul[0] = *pc++ == '*';
+        grp[0] = input;  // data starts in column 0
+        mul[0] = *pc++ == '*';  // operator always in first column of grouped data
         for (int i = 1; i < COLS; ++i) {
-            for (; *pc == ' '; ++pc);  // skip spaces
+            for (; *pc == ' '; ++pc);  // skip spaces between operators
             grp[i] = pc - DATASIZE;
             mul[i] = *pc++ == '*';
         }
-        grp[COLS] = input + LLEN;
+        grp[COLS] = input + LLEN;  // end of last group
     }
 
-    // example | input
-    // --------+--------------
-    // 4277556 | 4648618073226
-    // 3263827 | 7329921182115
-    printf("%"PRIu64"\n%"PRIu64"\n", pivot(0), pivot(1));
+    // example: 4277556 3263827
+    // input: 4648618073226 7329921182115
+    printf("%"PRIu64" %"PRIu64"\n", pivot(0), pivot(1));
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
