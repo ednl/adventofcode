@@ -11,102 +11,36 @@
  * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : ? µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 10 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
  */
 
 #include <stdio.h>
-#include <stdint.h>    // uint64_t
-#include <inttypes.h>  // PRIu64
-#include <stdbool.h>
+#include <stdint.h>    // int64_t
+#include <inttypes.h>  // PRId64
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 1
+#define EXAMPLE 0
 #if EXAMPLE == 1
     #define FNAME "../aocinput/2025-07-example.txt"
     #define N 15
-    #define QSIZE 32  // max needed for example part 1: 10, part 2: 22
 #else
     #define FNAME "../aocinput/2025-07-input.txt"
     #define N 141
-    #define QSIZE 128  // max needed for my input part 1: 92, part 2: ?
 #endif
 #define M (N + 1)
-#define FSIZE (M * M)  // +1 bottom row, +1 '\n'
-
-#define START (N >> 1)  // example: 7, input: 70
-#define SPLIT '^'   // splitter
-#define SPACE '.'   // free space
-#define BEAM  '|'
-
-typedef struct vec {
-    int row, col;
-} Vec;
+#define FSIZE (M * M)  // +bottom row, +'\n'
+#define HALF (N >> 1)  // col index of 'S', also number of peg rows (ex: 7, inp: 70)
+#define SPLIT '^'
 
 static char grid[M][M];
-static bool seen[M][M];  // beam was here
-static Vec queue[QSIZE];
-static int qhead, qtail, qlen;
-#if DEBUG
-    static int maxq;
-#endif
 
-// Add to head of queue (FIFO)
-// Return false if queue was full
-static bool enqueue(const Vec pos)
-{
-    if (qlen == QSIZE)
-        return false;
-    queue[qhead++] = pos;
-    if (qhead == QSIZE)
-        qhead = 0;
-    qlen++;
-#if DEBUG
-    if (qlen > maxq)
-        maxq = qlen;
-#endif
-    return true;
-}
-
-// Remove from tail of queue (FIFO)
-// Return false if queue was empty
-static bool dequeue(Vec *const v)
-{
-    if (qlen == 0)
-        return false;
-    *v = queue[qtail++];
-    if (qtail == QSIZE)
-        qtail = 0;
-    qlen--;
-    return true;
-}
-
-static bool splitter(const Vec pos)
-{
-    return grid[pos.row][pos.col] == SPLIT;
-}
-
-static bool setbeam(const Vec pos)
-{
-#if EXAMPLE || DEBUG
-    if (grid[pos.row][pos.col] == SPACE)
-        grid[pos.row][pos.col] = BEAM;
-#endif
-    return seen[pos.row][pos.col] = true;
-}
-
-static Vec side(const Vec pos, const int dx)
-{
-    return (Vec){pos.row, pos.col + dx};
-}
-
-static bool check(const Vec pos)
-{
-    return !seen[pos.row][pos.col] && enqueue(pos) && setbeam(pos);
-}
+// Also "plinko board"
+// https://en.wikipedia.org/wiki/Galton_board
+static int64_t galton[HALF + 1][N];  // ex: 8x15, inp: 71x141
 
 int main(void)
 {
@@ -125,44 +59,22 @@ int main(void)
     starttimer();
 #endif
 
-    int split = 0;
-    enqueue((Vec){0, START});
-    for (Vec pos; dequeue(&pos); ) {
-        ++pos.row;
-        setbeam(pos);
-        if (pos.row == N)
-            continue;
-        ++pos.row;
-        if (splitter(pos)) {
-            ++split;
-            check(side(pos, -1));
-            check(side(pos, +1));
-        } else
-            check(pos);
-    }
-#if EXAMPLE || DEBUG
-    fwrite(grid, sizeof grid, 1, stdout);
-    printf("\n");
-#endif
-#if DEBUG
-    printf("maxq=%d\n", maxq);
-#endif
-    printf("%d\n", split);  // example: 21, input: 1598
-
-    uint64_t paths = 1;
-    enqueue((Vec){0, START});
-    for (Vec pos; dequeue(&pos); ) {
-        for (; pos.row < M && !splitter(pos); pos.row++);
-        if (pos.row == M)
-            continue;
-        ++paths;
-        enqueue(side(pos, -1));
-        enqueue(side(pos, +1));
-    }
-#if DEBUG
-    printf("maxq=%d\n", maxq);
-#endif
-    printf("%"PRIu64"\n", paths);  // example: 40, input: ?
+    int split = 0, row = 2, col = HALF, end = HALF + 1;
+    galton[0][col] = 1;  // start with one tachyon beam at 'S'
+    for (int i = 0, next = 1; i < HALF; ++i, ++next, row += 2, --col, ++end)  // peg rows i,next
+        for (int j = col; j < end; ++j)
+            if (galton[i][j])  // is there at least one beam in this column?
+                if (grid[row][j] == SPLIT) {
+                    ++split;  //  beam has hit a splitter
+                    galton[next][j - 1] += galton[i][j];
+                    galton[next][j + 1] += galton[i][j];
+                    galton[next][j] = 0;
+                } else
+                    galton[next][j] += galton[i][j];
+    int64_t worlds = 0;
+    for (int j = 0; j < N; ++j)
+        worlds += galton[HALF][j];
+    printf("%d %"PRId64"\n", split, worlds);  // example: 21 40, input: 1598 4509723641302
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
