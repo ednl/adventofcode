@@ -12,7 +12,7 @@
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) :  5.6 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :  9   µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  9.2 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 20   µs
  */
 
@@ -59,18 +59,18 @@ int main(void)
 #endif
 
     // Pascal's Triangle but with columns for every x-coordinate,
-    // not just a hex grid for the splitter nodes (="plinko pegs")
+    // not just a hex grid for the nodes (splitters or plinko pegs)
     galton[HALF] = 1;  // start with one tachyon beam at 'S'
-    int split = 0;  // part 1
+    int split = 0;  // part 1: sum of splitters hit with a beam
     int col = HALF, end = HALF + 1;  // start/stop columns
     for (int i = 2; i < M; i += 2, --col, ++end)  // peg row on grid
         for (int j = col; j < end; ++j)
-            if (grid[i][j] == SPLIT && galton[j]) { // is there a splitter and at least one beam in this column?
-                    ++split;  //  part 1: beam has hit a splitter
-                    galton[j - 1] += galton[j];  // may already have value
-                    galton[j + 1] += galton[j];  // may already have value
-                    galton[j] = 0;  // peg shadow
-                }
+            if (grid[i][j] == SPLIT && galton[j]) { // splitter and beam in this column?
+                ++split;  //  part 1: beam has hit a splitter
+                galton[j - 1] += galton[j];  // may already have value
+                galton[j + 1] += galton[j];  // may already have value
+                galton[j] = 0;  // peg shadow
+            }
     int64_t worlds = 0;  // part 2
     for (int j = 0; j < N; ++j)
         worlds += galton[j];
