@@ -26,12 +26,12 @@
 #define EXAMPLE 0
 #if EXAMPLE == 1
     #define FNAME "../aocinput/2025-07-example.txt"
-    #define N 15  // grid columns in example file
+    #define N 15  // grid columns
 #else
     #define FNAME "../aocinput/2025-07-input.txt"
-    #define N 141  // grid columns in input file
+    #define N 141  // grid columns
 #endif
-#define M (N + 1)
+#define M (N + 1)      // grid rows
 #define FSIZE (M * M)  // +bottom row, +'\n'
 #define HALF (N >> 1)  // col index of 'S', also number of splitter rows (ex: 7, inp: 70)
 #define SPLIT '^'
@@ -49,27 +49,22 @@ int main(void)
     fread(grid, sizeof grid, 1, f);  // read whole file at once
     fclose(f);
 
-#if EXAMPLE
-    fwrite(grid, sizeof grid, 1, stdout);
-    printf("\n");
-#endif
-
 #ifdef TIMER
     starttimer();
 #endif
 
     // Pascal's Triangle but with columns for every x-coordinate,
     // not just a hex grid for the nodes (splitters or plinko pegs)
-    galton[HALF] = 1;                               // start with one tachyon beam at 'S'
-    int splits = 0;                                 // part 1: number of splitters hit with a beam
-    int col = HALF, end = HALF + 1;                 // start/stop columns of Pascal's triangle
-    for (int i = 2; i < M; i += 2, --col, ++end)    // peg row on grid
-        for (int j = col; j < end; ++j)             // only look at triangle, not whole square
-            if (grid[i][j] == SPLIT && galton[j]) { // splitter and beam in this column?
-                ++splits;                           //  part 1: beam has hit a splitter
-                galton[j - 1] += galton[j];         // may already have value
-                galton[j + 1] += galton[j];         // may already have value
-                galton[j] = 0;                      // peg shadow
+    galton[HALF] = 1;                                // start with one tachyon beam at 'S'
+    int splits = 0;                                  // part 1: number of splitters hit with a beam
+    int col = HALF, end = HALF + 1;                  // start/stop columns of Pascal's triangle
+    for (int i = 2; i < M; i += 2, --col, ++end)     // peg row on grid
+        for (int j = col; j < end; ++j)              // only look at triangle, not whole square
+            if (grid[i][j] == SPLIT && galton[j]) {  // splitter and beam in this column?
+                ++splits;                            //  part 1: beam has hit a splitter
+                galton[j - 1] += galton[j];          // may already have value
+                galton[j + 1] += galton[j];          // may already have value
+                galton[j] = 0;                       // peg shadow
             }
     int64_t worlds = 0;  // part 2: all possible tachyon beam paths
     for (int j = 0; j < N; ++j)
