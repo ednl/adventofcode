@@ -11,9 +11,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 10 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 22 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 29 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  6 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
  */
 
 #include <stdio.h>
@@ -26,10 +26,10 @@
 #define EXAMPLE 0
 #if EXAMPLE == 1
     #define FNAME "../aocinput/2025-07-example.txt"
-    #define N 15
+    #define N 15  // grid columns in example file
 #else
     #define FNAME "../aocinput/2025-07-input.txt"
-    #define N 141
+    #define N 141  // grid columns in input file
 #endif
 #define M (N + 1)
 #define FSIZE (M * M)  // +bottom row, +'\n'
@@ -38,9 +38,9 @@
 
 static char grid[M][M];
 
-// Also "plinko board"
+// Partial vertical sums of the Plinko game
 // https://en.wikipedia.org/wiki/Galton_board
-static int64_t galton[HALF + 1][N];  // ex: 8x15, inp: 71x141
+static int64_t plinko[N];
 
 int main(void)
 {
@@ -59,24 +59,21 @@ int main(void)
     starttimer();
 #endif
 
-    // Pascal's Triangle with columns for every x-coordinate,
-    // not just a hex grid for the splitter nodes ("plinko pegs")
-    int split = 0, row = 2, col = HALF, end = HALF + 1;  // 'row'=peg row indexes, col/end=start/stop
-    galton[0][col] = 1;  // start with one tachyon beam at 'S'
-    for (int i = 0, next = 1; i < HALF; ++i, ++next, row += 2, --col, ++end)  // peg rows: i,next
+    // Pascal's Triangle but with columns for every x-coordinate,
+    // not just a hex grid for the splitter nodes (="plinko pegs")
+    int split = 0, row = 2, col = HALF, end = HALF + 1;  // 'row' of grid, col/end=start/stop
+    plinko[col] = 1;  // start with one tachyon beam at 'S'
+    for (int i = 0; i < HALF; ++i, row += 2, --col, ++end)  // peg rows: i,next
         for (int j = col; j < end; ++j)
-            if (galton[i][j]) { // is there at least one beam in this column?
-                if (grid[row][j] == SPLIT) {
-                    ++split;  //  beam has hit a splitter
-                    galton[next][j - 1] += galton[i][j];  // may already have value
-                    galton[next][j + 1]  = galton[i][j];
-                    galton[next][j] = 0;  // peg shadow
-                } else
-                    galton[next][j] += galton[i][j];  // may already have value
-            }  // avoid dangling-else warning
+            if (grid[row][j] == SPLIT && plinko[j]) { // is there a splitter and at least one beam in this column?
+                    ++split;  //  part 1: beam has hit a splitter
+                    plinko[j - 1] += plinko[j];  // may already have value
+                    plinko[j + 1] += plinko[j];
+                    plinko[j] = 0;  // peg shadow
+                }
     int64_t worlds = 0;
     for (int j = 0; j < N; ++j)
-        worlds += galton[HALF][j];
+        worlds += plinko[j];
     printf("%d %"PRId64"\n", split, worlds);  // example: 21 40, input: 1598 4509723641302
 
 #ifdef TIMER
