@@ -60,16 +60,16 @@ int main(void)
 
     // Pascal's Triangle but with columns for every x-coordinate,
     // not just a hex grid for the nodes (splitters or plinko pegs)
-    galton[HALF] = 1;  // start with one tachyon beam at 'S'
-    int splits = 0;  // part 1: number of splitters hit with a beam
-    int col = HALF, end = HALF + 1;  // start/stop columns
-    for (int i = 2; i < M; i += 2, --col, ++end)  // peg row on grid
-        for (int j = col; j < end; ++j)  // only look at triangle, not whole square
+    galton[HALF] = 1;                               // start with one tachyon beam at 'S'
+    int splits = 0;                                 // part 1: number of splitters hit with a beam
+    int col = HALF, end = HALF + 1;                 // start/stop columns of Pascal's triangle
+    for (int i = 2; i < M; i += 2, --col, ++end)    // peg row on grid
+        for (int j = col; j < end; ++j)             // only look at triangle, not whole square
             if (grid[i][j] == SPLIT && galton[j]) { // splitter and beam in this column?
-                ++splits;  //  part 1: beam has hit a splitter
-                galton[j - 1] += galton[j];  // may already have value
-                galton[j + 1] += galton[j];  // may already have value
-                galton[j] = 0;  // peg shadow
+                ++splits;                           //  part 1: beam has hit a splitter
+                galton[j - 1] += galton[j];         // may already have value
+                galton[j + 1] += galton[j];         // may already have value
+                galton[j] = 0;                      // peg shadow
             }
     int64_t worlds = 0;  // part 2: all possible tachyon beam paths
     for (int j = 0; j < N; ++j)
