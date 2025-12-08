@@ -61,12 +61,12 @@ int main(void)
     // Pascal's Triangle but with columns for every x-coordinate,
     // not just a hex grid for the nodes (splitters or plinko pegs)
     galton[HALF] = 1;  // start with one tachyon beam at 'S'
-    int split = 0;  // part 1: sum of splitters hit with a beam
+    int splits = 0;  // part 1: number of splitters hit with a beam
     int col = HALF, end = HALF + 1;  // start/stop columns
     for (int i = 2; i < M; i += 2, --col, ++end)  // peg row on grid
         for (int j = col; j < end; ++j)
             if (grid[i][j] == SPLIT && galton[j]) { // splitter and beam in this column?
-                ++split;  //  part 1: beam has hit a splitter
+                ++splits;  //  part 1: beam has hit a splitter
                 galton[j - 1] += galton[j];  // may already have value
                 galton[j + 1] += galton[j];  // may already have value
                 galton[j] = 0;  // peg shadow
@@ -74,7 +74,7 @@ int main(void)
     int64_t worlds = 0;  // part 2
     for (int j = 0; j < N; ++j)
         worlds += galton[j];
-    printf("%d %"PRId64"\n", split, worlds);  // example: 21 40, input: 1598 4509723641302
+    printf("%d %"PRId64"\n", splits, worlds);  // example: 21 40, input: 1598 4509723641302
 
 #ifdef TIMER
     printf("Time: %.0f ns\n", stoptimer_ns());
