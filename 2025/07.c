@@ -11,9 +11,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  6.17 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :  9 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 20 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  5.6 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  9   µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 20   µs
  */
 
 #include <stdio.h>
@@ -37,7 +37,6 @@
 #define SPLIT '^'
 
 static char grid[M][M];
-
 // Partial vertical sums of the Plinko game
 // https://en.wikipedia.org/wiki/Galton_board
 static int64_t galton[N];
@@ -61,20 +60,20 @@ int main(void)
 
     // Pascal's Triangle but with columns for every x-coordinate,
     // not just a hex grid for the splitter nodes (="plinko pegs")
-    int split = 0;       // part 1
-    int64_t worlds = 1;  // part 2
-    int row = 2, col = HALF, end = HALF + 1;  // peg row on grid, start/stop columns
-    galton[col] = 1;  // start with one tachyon beam at 'S'
-    for (int i = 0; i < HALF; ++i, row += 2, --col, ++end)  // peg rows: i,next
+    galton[HALF] = 1;  // start with one tachyon beam at 'S'
+    int split = 0;  // part 1
+    int col = HALF, end = HALF + 1;  // start/stop columns
+    for (int i = 2; i < M; i += 2, --col, ++end)  // peg row on grid
         for (int j = col; j < end; ++j)
-            if (grid[row][j] == SPLIT && galton[j]) { // is there a splitter and at least one beam in this column?
+            if (grid[i][j] == SPLIT && galton[j]) { // is there a splitter and at least one beam in this column?
                     ++split;  //  part 1: beam has hit a splitter
-                    worlds += galton[j];  // part 2: this amount splits in two so creates more worlds
                     galton[j - 1] += galton[j];  // may already have value
                     galton[j + 1] += galton[j];  // may already have value
                     galton[j] = 0;  // peg shadow
-                    ++j;  // skip next column which can't have a splitter
                 }
+    int64_t worlds = 0;  // part 2
+    for (int j = 0; j < N; ++j)
+        worlds += galton[j];
     printf("%d %"PRId64"\n", split, worlds);  // example: 21 40, input: 1598 4509723641302
 
 #ifdef TIMER
