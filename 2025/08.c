@@ -11,13 +11,14 @@
  * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : ? µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 32 ms
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  ? ms
+ *     Raspberry Pi 5 (2.4 GHz)      :  ? ms
  */
 
 #include <stdio.h>
-#include <stdlib.h>    // qsort
+#include <stdlib.h>    // qsort, malloc, free
+#include <string.h>    // memcpy
 #include <stdint.h>    // int64_t
 #include <inttypes.h>  // PRId64
 #include <stdbool.h>
@@ -29,70 +30,36 @@
 #if EXAMPLE == 1
     #define FNAME "../aocinput/2025-08-example.txt"
     #define N 20  // junction boxes
-    #define L 10  // closest pairs to connect
-    #define QSIZE 8  // max for example: 3
+    #define M 10  // closest pairs to connect for part 1
 #else
     #define FNAME "../aocinput/2025-08-input.txt"
     #define N 1000  // junction boxes
-    #define L 1000  // closest pairs to connect
-    #define QSIZE 32  // max for my input: 17
+    #define M 1000  // closest pairs to connect for part 1
 #endif
-
-// Lower/upper triangle count of NxN matrix
-#define M ((N - 1) * N >> 1)
+#define PAIRS ((N - 1) * N >> 1)  // lower/upper triangle count of NxN matrix
+#define CIRCUITS (N >> 1)
+#define INITCOUNT 8
 
 typedef struct vec {
-    int64_t x, y, z;
+    int x, y, z;
 } Vec;
 
 typedef struct pair {
-    int index[2];
     int64_t dist;
+    int index[2];
 } Pair;
 
+typedef struct circuit {
+    int *boxindex;
+    int len, size;
+} Circuit;
+
 static Vec box[N];
-static Pair pair[M];
-static bool conn[N][N];
-static bool seen[N];
-
-static int circuitsize[N];
+static Pair pair[PAIRS];
+static Circuit circuit[CIRCUITS];
 static int circuits;
-
-static int queue[QSIZE];
-static int qhead, qtail, qlen;
-#if DEBUG
-    static int qmax;
-#endif
-
-// Add to head of queue (FIFO)
-// Return false if queue was full
-static bool enqueue(const int data)
-{
-    if (qlen == QSIZE)
-        return false;
-    queue[qhead++] = data;
-    if (qhead == QSIZE)
-        qhead = 0;
-    qlen++;
-#if DEBUG
-    if (qlen > qmax)
-        qmax = qlen;
-#endif
-    return true;
-}
-
-// Remove from tail of queue (FIFO)
-// Return false if queue was empty
-static bool dequeue(int *const data)
-{
-    if (qlen == 0)
-        return false;
-    *data = queue[qtail++];
-    if (qtail == QSIZE)
-        qtail = 0;
-    qlen--;
-    return true;
-}
+static int circuitid[N];  // circuit ID per box index
+static int circuitlen[N];
 
 static Vec sub(const Vec a, const Vec b)
 {
@@ -101,21 +68,12 @@ static Vec sub(const Vec a, const Vec b)
 
 static int64_t sqrsum(const Vec a)
 {
-    return a.x * a.x + a.y * a.y + a.z * a.z;
+    return (int64_t)a.x * a.x + (int64_t)a.y * a.y + (int64_t)a.z * a.z;
 }
 
 static int64_t sqrdist(const Vec a, const Vec b)
 {
     return sqrsum(sub(a, b));
-}
-
-static int cmpdist(const void *p, const void *q)
-{
-    const Pair *a = p;
-    const Pair *b = q;
-    if (a->dist < b->dist) return -1;
-    if (a->dist > b->dist) return  1;
-    return 0;
 }
 
 static int desc(const void *p, const void *q)
@@ -127,6 +85,123 @@ static int desc(const void *p, const void *q)
     return 0;
 }
 
+static int cmpdist(const void *p, const void *q)
+{
+    const Pair *a = p;
+    const Pair *b = q;
+    if (a->dist < b->dist) return -1;
+    if (a->dist > b->dist) return  1;
+    return 0;
+}
+
+static bool grow(void **curptr, const size_t ptrsize, int *curcount)
+{
+#if DEBUG
+    if (!curptr || !*curptr || !ptrsize || !curcount) {
+        fprintf(stderr, "Error: null pointer in grow()\n");
+        return false;
+    }
+#endif
+    const int newcount = *curcount > 0 ? *curcount << 1 : INITCOUNT;
+#if DEBUG
+    if (newcount <= *curcount) {
+        fprintf(stderr, "Error: overflow in grow()\n");
+        return false;
+    }
+#endif
+    void *newptr = realloc(*curptr, ptrsize * newcount);
+#if DEBUG
+    if (!newptr) {
+        fprintf(stderr, "Error: out of memory in grow()\n");
+        return false;
+    }
+#endif
+    *curptr = newptr;
+    *curcount = newcount;
+    return true;
+}
+
+static int createcircuit(const int boxindex0, const int boxindex1)
+{
+    if (circuits == CIRCUITS) {
+#if DEBUG
+    fprintf(stderr, "Error: too many circuits in createcircuit()\n");
+#endif
+        return 0;
+    }
+    const int size = INITCOUNT;
+    void *p = calloc(size, sizeof circuit->boxindex[0]);
+#if DEBUG
+    if (!p) {
+        fprintf(stderr, "Error: out of memory in createcircuit()\n");
+        return 0;
+    }
+#endif
+    const int len = 2;
+    circuit[circuits] = (Circuit){p, len, size};
+    circuit[circuits].boxindex[0] = boxindex0;
+    circuit[circuits].boxindex[1] = boxindex1;
+    circuits++;  // circuit[x] has ID x+1
+    circuitid[boxindex0] = circuits;
+    circuitid[boxindex1] = circuits;
+    return len;
+}
+
+static int addtocircuit(const int id, const int boxindex)
+{
+#if DEBUG
+    if (id < 1 || id > CIRCUITS)
+        return 0;
+#endif
+    Circuit *const c = &circuit[id - 1];  // circuit[x] has ID x+1
+    if (c->len == c->size && !grow((void **)&c->boxindex, sizeof *(c->boxindex), &c->size))
+        return c->len;
+    c->boxindex[c->len++] = boxindex;
+    circuitid[boxindex] = id;
+    return c->len;
+}
+
+static int mergecircuit(const int id0, const int id1)
+{
+#if DEBUG
+    if (id0 < 1 || id0 > CIRCUITS || id1 < 1 || id1 > CIRCUITS || id0 == id1) {
+        fprintf(stderr, "Error: ID(s) out of range in mergecircuit(): %d,%d\n", id0, id1);
+        return 0;
+    }
+#endif
+    const int dstid = id0 < id1 ? id0 : id1;
+    const int srcid = id0 < id1 ? id1 : id0;
+    Circuit *const dst = &circuit[dstid - 1];  // circuit[x] has ID x+1
+#if DEBUG
+    if (!dst->boxindex || dst->len <= 0 || dst->len > dst->size) {
+        fprintf(stderr, "Error: wrong destination ID in mergecircuit(): %d\n", dstid);
+        return 0;
+    }
+#endif
+    Circuit *const src = &circuit[srcid - 1];  // circuit[x] has ID x+1
+#if DEBUG
+    if (!src->boxindex || src->len <= 0 || src->len > src->size) {
+        fprintf(stderr, "Error: wrong source ID in mergecircuit(): %d\n", srcid);
+        return 0;
+    }
+#endif
+    const int newlen = dst->len + src->len;
+    while (newlen > dst->size && grow((void **)&dst->boxindex, sizeof *(dst->boxindex), &dst->size));
+#if DEBUG
+    if (newlen > dst->size) {
+        fprintf(stderr, "Error: out of memory in mergecircuit(): %d\n", newlen);
+        return 0;
+    }
+#endif
+    memcpy(dst->boxindex + dst->len, src->boxindex, src->len * sizeof *(src->boxindex));
+    dst->len = newlen;
+    for (int i = 0; i < src->len; ++i)
+        circuitid[src->boxindex[i]] = dstid;
+    free(src->boxindex);
+    *src = (Circuit){0};
+    return newlen;
+}
+
 int main(void)
 {
     // Read input file from disk
@@ -136,12 +211,6 @@ int main(void)
         box[i] = (Vec){x, y, z};
     fclose(f);
 
-#if DEBUG
-    for (int i = N - 3; i < N; ++i)
-        printf("box[%d] = %"PRId64",%"PRId64",%"PRId64"\n", i, box[i].x, box[i].y, box[i].z);
-    printf("\n");
-#endif
-
 #ifdef TIMER
     starttimer();
 #endif
@@ -149,58 +218,80 @@ int main(void)
     // Distance between unique index pairs
     for (int i = 0, m = 0; i < N - 1; ++i)
         for (int j = i + 1; j < N; ++j)
-            pair[m++] = (Pair){{i, j}, sqrdist(box[i], box[j])};
+            pair[m++] = (Pair){sqrdist(box[i], box[j]), {i, j}};
 
-    // Sort connected pairs by distance
-    qsort(pair, M, sizeof *pair, cmpdist);
+    // Sort connected pairs by distance ascending
+#ifdef TIMER
+    printf("Time1: %.0f us\n", stoptimer_us());
+    starttimer();
+#endif
+    qsort(pair, PAIRS, sizeof *pair, cmpdist);
+#ifdef TIMER
+    printf("Time2: %.0f us\n", stoptimer_us());
+    starttimer();
+#endif
 
-#if EXAMPLE || DEBUG
-    for (int i = 0; i < L && i < 15; ++i)
-        printf("%2d: %3d %3d %8"PRId64"\n", i, pair[i].index[0], pair[i].index[1], pair[i].dist);
+#if DEBUG
+    for (int i = 0; i < M && i < 15; ++i)
+        printf("%3d: %3d %3d %8"PRId64"\n", i, pair[i].index[0], pair[i].index[1], pair[i].dist);
     printf("\n");
 #endif
 
-    // Connection matrix of L shortest distance pairs
-    for (int k = 0; k < L; ++k) {
-        const int i = pair[k].index[0];
-        const int j = pair[k].index[1];
-        conn[i][j] = conn[j][i] = true;
+    for (int k = 0; k < M; ++k) {
+        const int *const x = &pair[k].index[0];
+        const int id0 = circuitid[x[0]];
+        const int id1 = circuitid[x[1]];
+        if (!id0 && !id1)
+            createcircuit(x[0], x[1]);
+        else if (!id0)
+            addtocircuit(id1, x[0]);
+        else if (!id1)
+            addtocircuit(id0, x[1]);
+        else if (id0 != id1)
+            mergecircuit(id0, id1);
     }
-
-    for (int k = 0; k < L; ++k) {
-        int i = pair[k].index[0];
-        if (!seen[i]) {
-            seen[i] = enqueue(i);
-            while (dequeue(&i)) {
-                circuitsize[circuits]++;
-                for (int j = 0; j < N; ++j)
-                    if (conn[i][j] && !seen[j])
-                        seen[j] = enqueue(j);
-            }
-            circuits++;
-        }
-    }
-
-#if DEBUG
-    printf("qmax=%d\n", qmax);
-#endif
-
-    qsort(circuitsize, circuits, sizeof *circuitsize, desc);
-
 #if DEBUG
     printf("circuits=%d\n", circuits);
-    for (int i = 0; i < circuits; ++i)
-        printf(" %d", circuitsize[i]);
-    printf("\n\n");
 #endif
 
-    int64_t prod = 1;
-    for (int i = 0; i < 3; ++i)
-        prod *= circuitsize[i];
-    printf("Part 1: %"PRId64"\n", prod);  // example: 40, input: 163548
+    {
+        int k = 0;
+        for (int i = 0; i < circuits; ++i)
+            if (circuit[i].len > 1)
+                circuitlen[k++] = circuit[i].len;
+        qsort(circuitlen, k, sizeof *circuitlen, desc);
+    }
+    printf("Part 1: %d\n", circuitlen[0] * circuitlen[1] * circuitlen[2]);  // example: 40, input: 163548
+
+    int k = M;
+    int maxlen = circuitlen[0];
+    for (int len; k < PAIRS && maxlen != N; ++k) {
+        const int *const x = &pair[k].index[0];
+        const int id0 = circuitid[x[0]];
+        const int id1 = circuitid[x[1]];
+        if (!id0 && !id1)
+            len = createcircuit(x[0], x[1]);
+        else if (!id0)
+            len = addtocircuit(id1, x[0]);
+        else if (!id1)
+            len = addtocircuit(id0, x[1]);
+        else if (id0 != id1)
+            len = mergecircuit(id0, id1);
+        if (len > maxlen)
+            maxlen = len;
+    }
+#if DEBUG
+    printf("circuits=%d\n", circuits);
+    printf("maxlen=%d\n", maxlen);
+#endif
+    --k;
+    printf("Part 2: %"PRId64"\n", (int64_t)box[pair[k].index[0]].x * box[pair[k].index[1]].x);  // example: 25272, input: 772452514
+
+    for (int i = 0; i < circuits; ++i)
+        free(circuit[i].boxindex);
 
 #ifdef TIMER
-    printf("Time: %.0f ms\n", stoptimer_ms());
+    printf("Time3: %.0f us\n", stoptimer_us());
 #endif
     return 0;
 }
