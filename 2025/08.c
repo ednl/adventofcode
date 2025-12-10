@@ -71,9 +71,9 @@ static int64_t sqrsum(const Vec a)
     return (int64_t)a.x * a.x + (int64_t)a.y * a.y + (int64_t)a.z * a.z;
 }
 
-static int64_t sqrdist(const Vec a, const Vec b)
+static int64_t sqrdist(const int i, const int j)
 {
-    return sqrsum(sub(a, b));
+    return sqrsum(sub(junctionbox[i], junctionbox[j]));
 }
 
 static int desc(const void *p, const void *q)
@@ -238,7 +238,7 @@ int main(void)
     // Distance between unique index pairs
     for (int i = 0, m = 0; i < N - 1; ++i)
         for (int j = i + 1; j < N; ++j)
-            pair[m++] = (Pair){sqrdist(junctionbox[i], junctionbox[j]), {i, j}};
+            pair[m++] = (Pair){sqrdist(i, j), {i, j}};
     // Sort connected pairs by distance ascending
     qsort(pair, PAIRS, sizeof *pair, cmpdist);
     // Add first M connected pairs with shortest distance
@@ -254,12 +254,11 @@ int main(void)
     printf("Part 2: %"PRId64"\n", addpairs(M, PAIRS));  // example: 25272, input: 772452514
 
     // Cleanup
-    printf("circuitcount=%d\n", circuitcount);
     for (int i = 0; i < circuitcount; ++i)
         free(circuit[i].box);
 
 #ifdef TIMER
-    printf("Time3: %.0f us\n", stoptimer_us());
+    printf("Time: %.0f us\n", stoptimer_us());
 #endif
     return 0;
 }

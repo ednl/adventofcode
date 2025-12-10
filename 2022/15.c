@@ -109,7 +109,7 @@ static int dedup_int(int *const arr, const int len)
 {
     if (arr == NULL || len <= 0)
         return 0;
-    qsort(arr, (size_t)len, sizeof(*arr), cmp_int);
+    qsort(arr, len, sizeof *arr, cmp_int);
     int i = 0, j = 0;
     while (j < len) {
         while (++j < len && arr[i] == arr[j]);  // find first a[j] != a[i]
