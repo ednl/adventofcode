@@ -39,7 +39,7 @@
     #define FSIZE 9448
     #define LINES 560  // lines in input file
 #endif
-#define NODES (LINES + 1)  // unique node count
+#define NODES (LINES + 1)  // unique node count (+"out")
 #define STRLEN 3           // node name are 3 chars
 #define NAME (STRLEN + 1)  // +'\0'
 
@@ -73,7 +73,7 @@ static int64_t paths(const int u, const int end)
 {
     if (u == end)
         return 1;
-    if (cache[u] != -1)  // -1 is init value (not cached yet)
+    if (cache[u] != -1)  // -1 is init value (="not cached")
         return cache[u];
     int64_t count = 0;
     for (int j = 0; j < node[u].len; ++j)
@@ -114,13 +114,14 @@ int main(void)
     // Add last node, unlisted because it has no children
     node[LINES] = (Node){*(int32_t *)"out", 0, NULL};
 
-    // Sort by node name and replace child node names with index of node array
+    // Sort by node name and replace child node names with index of node array.
     // Use standard strcmp as comparison function, but needs to have void* params
     qsort(node, NODES, sizeof *node, (int(*)(const void *, const void *))strcmp);
     for (int i = 0; i < NODES; ++i)
         for (int j = 0; j < node[i].len; ++j)
             node[i].child[j] = nodeindex(&node[i].child[j]);
 
+    // Part 1
     const int out = nodeindex("out");
 #if EXAMPLE != 2  // example 2 does not have "you" node
     const int you = nodeindex("you");
@@ -128,6 +129,7 @@ int main(void)
     printf("Part 1: %"PRId64"\n", paths(you, out));  // example: 5, input: 670
 #endif
 
+    // Part 2
 #if EXAMPLE != 1  // example 1 does not have svr,fft,dac nodes
     // Input is directed acyclic graph, so either fft->dac or dac->fft is
     // possible, not both. For my input, full path is svr->fft->dac->out.
