@@ -14,7 +14,7 @@ int *combinations(const int n, const int k)
 
     // Initialisation
     if (!index) {
-        index = malloc((size_t)(k + 2) * sizeof *index);
+        index = malloc((k + 2) * sizeof *index);
         if (index == NULL)
             return NULL;
         for (int i = 0; i < k; ++i)

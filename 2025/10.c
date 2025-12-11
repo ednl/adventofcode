@@ -11,108 +11,84 @@
  * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : ? µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 82 µs (part 1)
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
  */
 
 #include <stdio.h>
-// #include <stdlib.h>  // qsort
 #include "../combperm.h"
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 1
+#define EXAMPLE 0
 #if EXAMPLE == 1
     #define FNAME "../aocinput/2025-10-example.txt"
+    #define FSIZE 175
     #define M 3  // number of machines (=lines in example file)
     #define L 6  // max number of lights/joltages per machine
     #define B 6  // max number of buttons per machine
 #else
     #define FNAME "../aocinput/2025-10-input.txt"
+    #define FSIZE 19254
     #define M 185  // number of machines (=lines in input file)
     #define L  10  // max number of lights/joltages per machine
     #define B  13  // max number of buttons per machine
 #endif
 
-// Wrong: must use current button count
-// #define P (1 << L)  // power of 2 = combinations pattern count
-
-typedef struct button {
-    int btn[B];  // button masks
-    int len;     // number of buttons
-} Button;
-
-// Machine::active  = buttons with 1+ bits in common with 'lights'
-// Machine::passive = buttons with no bits in common with 'lights'
 typedef struct machine {
     int lights;  // light mask (light 0 is at bit len-1, 1 at len-2, etc.)
-    int size;    // number of lights and joltages
-    Button active, passive;
-    int jolt[L];
+    int size;    // number of lights and joltages 4..L
+    int btns;    // number of buttons 1..B
+    int button[B];
+    int jolts[L];
 } Machine;
 
+static char input[FSIZE];
 static Machine machine[M];
-// static int pat[P];
-// static int pop[P];
 
+#if EXAMPLE || DEBUG
 static void bin(const int x, const int len)
 {
     for (int mask = 1 << (len - 1); mask; mask >>= 1)
         putchar(x & mask ? '#' : '.');
 }
+#endif
 
-// static int cmp_pop(const void *p, const void *q)
-// {
-//     const int i = *(const int *)p;
-//     const int j = *(const int *)q;
-//     if (pop[i] < pop[j]) return -1;
-//     if (pop[i] > pop[j]) return  1;
-//     if (i < j) return -1;
-//     if (i > j) return  1;
-//     return 0;
-// }
-
-// static void init(void)
-// {
-//     pat[0] = pop[0] = 0;
-//     for (int i = 1; i < P; ++i) {
-//         pat[i] = i;
-//         pop[i] = __builtin_popcount(i);
-//     }
-//     qsort(pat, sizeof pat / sizeof *pat, sizeof *pat, cmp_pop);
-// }
-
-// static void show(void)
-// {
-//     for (int i = 0; i < 3; ++i) {
-//         printf("    %2d %2d ", i, pat[i]);
-//         bin(pat[i], L);
-//         printf(" %d", pop[pat[i]]);
-//         putchar('\n');
-//     }
-//     printf("    (snip)\n");
-//     for (int i = P - 3; i < P; ++i) {
-//         printf("    %2d %2d ", i, pat[i]);
-//         bin(pat[i], L);
-//         printf(" %d", pop[pat[i]]);
-//         putchar('\n');
-//     }
-//     putchar('\n');
-// }
+static int clicks(const int *const button, const int n, const int lights)
+{
+    const int *a = combinations(0, 0);  // reset
+    for (int k = 1; k < n; ++k)
+        while ((a = combinations(n, k))) {
+            int xor = lights;
+            for (int i = 0; i < k; ++i)
+                xor ^= button[a[i]];
+            if (!xor)
+                return k;
+        }
+    return n;
+}
 
 int main(void)
 {
+    // Read input file from disk
+    FILE *f = fopen(FNAME, "rb");  // fread requires binary mode
+    if (!f) { fprintf(stderr, "File not found: %s\n", FNAME); return 1; }
+    fread(input, sizeof input, 1, f);  // read whole file at once
+    fclose(f);
+
+#if DEBUG
+    fwrite(input, sizeof input, 1, stdout);
+#endif
+
 #ifdef TIMER
     starttimer();
 #endif
 
-    FILE *f = fopen(FNAME, "r");
-    if (!f) { fprintf(stderr, "File not found: %s\n", FNAME); return 1; }
-    char buf[BUFSIZ];
-    for (int i = 0; i < M && fgets(buf, sizeof buf, f); ++i) {
-        const char *c = buf + 1;
+    const char *c = input;
+    for (int i = 0; i < M; ++i) {
+        c++;  // skip '['
         int lights = 0, size = 0;
         for (; *c != ']'; ++c, ++size)
             lights = lights << 1 | (*c == '#');  // last light ends up in bit 0
@@ -124,35 +100,44 @@ int main(void)
             do {  // store in reverse: wire '0' ends up in bit size-1
                 btn |= 1 << (size - 1 - (*c++ & 15));  // skip digit
             } while (*c++ == ',');  // skip ',' or ')'
-            if (btn & lights)
-                machine[i].active.btn[machine[i].active.len++] = btn;
-            else
-                machine[i].passive.btn[machine[i].passive.len++] = btn;
+            machine[i].button[machine[i].btns++] = btn;
             c++;  // skip space
         }
+        for (int j = 0; j < size; ++j) {
+            int x = *c++ & 15;  // skip digit
+            if (*c >= '0' && *c <= '9')
+                x = x * 10 + (*c++ & 15);  // skip digit
+            if (*c >= '0' && *c <= '9')
+                x = x * 10 + (*c++ & 15);  // skip digit
+            machine[i].jolts[j] = x;
+            c++;  // skip ',' or '}'
+        }
+        c++;  // skip '\n'
     }
-    fclose(f);
 
-    // init();
-    // show();
-
+#if EXAMPLE || DEBUG
     for (int i = 0; i < M; ++i) {
-        printf("Machine %d\n  %2d lights  : [", i, machine[i].size);
+        printf("Machine %d\n%4d lights  : [", i, machine[i].size);
         bin(machine[i].lights, machine[i].size);
-        printf("]\n  %2d active  :", machine[i].active.len);
-        for (int j = 0; j < machine[i].active.len; ++j) {
+        printf("]\n%4d buttons :", machine[i].btns);
+        for (int j = 0; j < machine[i].btns; ++j) {
             printf(" (");
-            bin(machine[i].active.btn[j], machine[i].size);
+            bin(machine[i].button[j], machine[i].size);
             printf(")");
         }
-        printf("\n  %2d passive :", machine[i].passive.len);
-        for (int j = 0; j < machine[i].passive.len; ++j) {
-            printf(" (");
-            bin(machine[i].passive.btn[j], machine[i].size);
-            printf(")");
-        }
-        printf("\n\n");
+        printf("\n%4d jolts   : {%d", machine[i].size, machine[i].jolts[0]);
+        for (int j = 1; j < machine[i].size; ++j)
+            printf(",%d", machine[i].jolts[j]);
+        printf("}\n\n");
     }
+#endif
+
+    int total = 0;
+    for (int i = 0; i < M; ++i)
+        total += clicks(machine[i].button, machine[i].btns, machine[i].lights);
+    printf("Part 1: %d\n", total);  // example: 7, input: 512
+    combinations(0, 0);  // free memory
+
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
 #endif
