@@ -17,11 +17,10 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>    // qsort, malloc, free, exit
+#include <stdlib.h>    // qsort, malloc
 #include <string.h>    // strcmp, memcpy, memset
 #include <stdint.h>    // int64_t
 #include <inttypes.h>  // PRId64
-#include <assert.h>    // static_assert
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
@@ -41,14 +40,14 @@
     #define LINES 560  // lines in input file
 #endif
 #define NODES (LINES + 1)  // unique node count
-#define NAMESIZE 4         // 3 chars + '\0'
-static_assert(sizeof(int) == NAMESIZE, "int is not 32-bit");  // 4=4
+#define STRLEN 3           // node name are 3 chars
+#define NAME (STRLEN + 1)  // +'\0'
 
 // Node::name must be first member, for qsort() and bsearch()
 typedef struct node {
-    int name;    // 4 bytes = string of len 3 +'\0'
-    int len;     // child nodes count
-    int *child;  // child nodes as indexes of node array
+    int32_t name;    // must be 32-bit = 4 bytes = string of len 3 +'\0'
+    int32_t len;     // child node count
+    int32_t *child;  // child nodes as indexes of node array
 } Node;
 
 static char input[FSIZE];
@@ -90,11 +89,6 @@ int main(void)
     fread(input, sizeof input, 1, f);  // read whole file at once
     fclose(f);
 
-#if DEBUG
-    fwrite(input, sizeof input, 1, stdout);
-    printf("\n");
-#endif
-
 #ifdef TIMER
     starttimer();
 #endif
@@ -102,26 +96,23 @@ int main(void)
     // Parse nodes and children
     char *c = input;
     for (int i = 0; i < LINES; ++i) {
-        *(c + NAMESIZE - 1) = '\0';      // terminate node name
-        memcpy(&node[i].name, c, NAMESIZE);
-        c += NAMESIZE + 1;               // go to first child (+1 for ':')
-        const char *const src = c;       // remember as src
-        int children = 1;                // always at least one child for listed nodes
-        for (; *(c + NAMESIZE - 1) != '\n'; c += NAMESIZE, ++children)
-            *(c + NAMESIZE - 1) = '\0';  // terminate child name
-        *(c + NAMESIZE - 1) = '\0';      // terminate last child name
-        c += NAMESIZE;                   // c now points to start of next line
-        const int bytes = children * NAMESIZE;
-        void *dst = malloc(bytes);
-#if DEBUG
-        if (!dst) { fprintf(stderr, "Error: out of memory while parsing line %d\n", i + 1); exit(EXIT_FAILURE); }
-#endif
-        memcpy(dst, src, bytes);         // copy strings of len 3+'\0'=4 to int array, reinterpret later
+        *(c + STRLEN) = '\0';               // terminate node name
+        memcpy(&node[i].name, c, NAME);     // avoid awkward casts with memcpy
+        c += NAME + 1;                      // go to first child (+1 for ':')
+        const char *const src = c;          // remember as src
+        int children = 1;                   // always at least one child for listed nodes
+        for (; *(c + STRLEN) != '\n'; c += NAME, ++children)
+            *(c + STRLEN) = '\0';           // terminate child name
+        *(c + STRLEN) = '\0';               // terminate last child name
+        c += NAME;                          // c now points to start of next line
+        const int bytes = children * NAME;  // NAME must be sizeof(int32_t)
+        void *dst = malloc(bytes);          // if this fails, you have bigger problems
+        memcpy(dst, src, bytes);            // copy strings of len 3+'\0'=4 to int32 array
         node[i].child = dst;
         node[i].len = children;
     }
     // Add last node, unlisted because it has no children
-    node[LINES] = (Node){*(int *)"out", 0, NULL};
+    node[LINES] = (Node){*(int32_t *)"out", 0, NULL};
 
     // Sort by node name and replace child node names with index of node array
     // Use standard strcmp as comparison function, but needs to have void* params
@@ -129,16 +120,6 @@ int main(void)
     for (int i = 0; i < NODES; ++i)
         for (int j = 0; j < node[i].len; ++j)
             node[i].child[j] = nodeindex(&node[i].child[j]);
-
-#if EXAMPLE || DEBUG
-    for (int i = 0; i < NODES; ++i) {
-        printf("%s:", (char *)&node[i].name);
-        for (int j = 0; j < node[i].len; ++j)
-            printf(" %s", (char *)&node[node[i].child[j]].name);  // child is now index of node array
-        printf("\n");
-    }
-    printf("\n");
-#endif
 
     const int out = nodeindex("out");
 #if EXAMPLE != 2  // example 2 does not have "you" node
@@ -155,28 +136,13 @@ int main(void)
     const int dac = nodeindex("dac");
     resetcache();
     const int64_t p1 = paths(svr, fft);  // input: 8049
-#if EXAMPLE || DEBUG
-    printf("p1=%"PRId64"\n", p1);
-#endif
     resetcache();
     const int64_t p2 = paths(fft, dac);  // input: 3377314
-#if EXAMPLE || DEBUG
-    printf("p1=%"PRId64"\n", p2);
-#endif
     resetcache();
     const int64_t p3 = paths(dac, out);  // input: 12215
-#if EXAMPLE || DEBUG
-    printf("p1=%"PRId64"\n", p3);
-#endif
     printf("Part 2: %"PRId64"\n", p1 * p2 * p3);  // example: 2, input: 332052564714990
 #endif
-
-#if DEBUG || !defined(TIMER)  // otherwise leave cleanup to OS
-    for (int i = 0; i < NODES; ++i) {
-        free(node[i].child);  // node["out"].child is already null but that's fine
-        node[i].child = NULL;
-    }
-#endif
+    // leave cleanup of malloc'ed memory to OS
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
