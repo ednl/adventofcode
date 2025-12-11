@@ -53,7 +53,7 @@ typedef struct node {
 
 static char input[FSIZE];
 static Node node[NODES];
-static int cache[NODES];
+static int64_t cache[NODES];
 
 // Zero can be legit cache value in part 2, so don't use that
 static void resetcache(void)
@@ -68,20 +68,17 @@ static int nodeindex(const void *name)
     return (Node *)bsearch(name, node, NODES, sizeof *node, (int(*)(const void *, const void *))strcmp) - node;
 }
 
-// Recursive DFS for all paths from start to goal
-// Shortcut for part 2: avoid particular node (paths=0)
-static int paths(const int start, const int goal, const int avoid)
+// Recursive DFS with memoization to count all paths from u to end
+static int64_t paths(const int u, const int end)
 {
-    if (start == goal)
+    if (u == end)
         return 1;
-    if (start == avoid)
-        return 0;
-    if (cache[start] >= 0)  // not cached: -1
-        return cache[start];
-    int count = 0;
-    for (int j = 0; j < node[start].len; ++j)
-        count += paths(node[start].child[j], goal, avoid);
-    return (cache[start] = count);
+    if (cache[u] != -1)  // -1 is init value (not cached yet)
+        return cache[u];
+    int64_t count = 0;
+    for (int j = 0; j < node[u].len; ++j)
+        count += paths(node[u].child[j], end);
+    return (cache[u] = count);
 }
 
 int main(void)
@@ -145,24 +142,31 @@ int main(void)
 #if EXAMPLE != 2  // example 2 does not have "you" node
     const int you = nodeindex("you");
     resetcache();  // must reset at start because "not cached" = -1
-    printf("Part 1: %d\n", paths(you, out, -1));  // example: 5, input: 670
+    printf("Part 1: %"PRId64"\n", paths(you, out));  // example: 5, input: 670
 #endif
 
 #if EXAMPLE != 1  // example 1 does not have svr,fft,dac nodes
-    // Input is directed acyclic graph, so either fft->dac=0 or dac->fft=0
-    // For my input: must pass fft first, so full path is svr->fft->dac->out
-    // which means: avoid dac when searching for svr->fft, otherwise way too
-    // many paths svr->dac that go nowhere
+    // Input is directed acyclic graph, so either fft->dac or dac->fft is
+    // possible, not both. For my input, full path is svr->fft->dac->out.
     const int svr = nodeindex("svr");
     const int fft = nodeindex("fft");
     const int dac = nodeindex("dac");
     resetcache();
-    const int p1 = paths(svr, fft, dac);  // input: 8049
+    const int64_t p1 = paths(svr, fft);  // input: 8049
+#if EXAMPLE || DEBUG
+    printf("p1=%"PRId64"\n", p1);
+#endif
     resetcache();
-    const int p2 = paths(fft, dac, -1);  // input: 3377314
+    const int64_t p2 = paths(fft, dac);  // input: 3377314
+#if EXAMPLE || DEBUG
+    printf("p1=%"PRId64"\n", p2);
+#endif
     resetcache();
-    const int p3 = paths(dac, out, -1);  // input: 12215
-    printf("Part 2: %"PRId64"\n", (int64_t)p1 * p2 * p3);  // example: 2, input: 332052564714990
+    const int64_t p3 = paths(dac, out);  // input: 12215
+#if EXAMPLE || DEBUG
+    printf("p1=%"PRId64"\n", p3);
+#endif
+    printf("Part 2: %"PRId64"\n", p1 * p2 * p3);  // example: 2, input: 332052564714990
 #endif
 
 #if DEBUG || !defined(TIMER)  // otherwise leave cleanup to OS
