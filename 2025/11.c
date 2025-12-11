@@ -44,7 +44,7 @@
 #define NAMESIZE 4         // 3 chars + '\0'
 static_assert(sizeof(int) == NAMESIZE, "int is not 32-bit");  // 4=4
 
-// Node::name must be first member for qsort() and bsearch()
+// Node::name must be first member, for qsort() and bsearch()
 typedef struct node {
     int name;    // 4 bytes = string of len 3 +'\0'
     int len;     // child nodes count
@@ -159,9 +159,9 @@ int main(void)
     resetcache();
     const int p1 = paths(svr, fft, dac);  // input: 8049
     resetcache();
-    const int p2 = paths(fft, dac, out);  // input: 3377314
+    const int p2 = paths(fft, dac, -1);  // input: 3377314
     resetcache();
-    const int p3 = paths(dac, out, svr);  // input: 12215
+    const int p3 = paths(dac, out, -1);  // input: 12215
     printf("Part 2: %"PRId64"\n", (int64_t)p1 * p2 * p3);  // example: 2, input: 332052564714990
 #endif
 
