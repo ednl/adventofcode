@@ -65,6 +65,7 @@ static void resetcache(void)
 // Node::name must be first member, and name must exist in node array
 static int nodeindex(const void *name)
 {
+    // Use standard strcmp as comparison function, but needs to have void* params
     return (Node *)bsearch(name, node, NODES, sizeof *node, (int(*)(const void *, const void *))strcmp) - node;
 }
 
@@ -123,6 +124,7 @@ int main(void)
     node[LINES] = (Node){*(int *)"out", 0, NULL};
 
     // Sort by node name and replace child node names with index of node array
+    // Use standard strcmp as comparison function, but needs to have void* params
     qsort(node, NODES, sizeof *node, (int(*)(const void *, const void *))strcmp);
     for (int i = 0; i < NODES; ++i)
         for (int j = 0; j < node[i].len; ++j)
@@ -141,7 +143,7 @@ int main(void)
     const int out = nodeindex("out");
 #if EXAMPLE != 2  // example 2 does not have "you" node
     const int you = nodeindex("you");
-    resetcache();  // must reset at start because "not cached" = -1
+    resetcache();  // must init at start because "not cached" = -1
     printf("Part 1: %"PRId64"\n", paths(you, out));  // example: 5, input: 670
 #endif
 
