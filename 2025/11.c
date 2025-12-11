@@ -44,6 +44,7 @@
 #define NAMESIZE 4         // 3 chars + '\0'
 static_assert(sizeof(int) == NAMESIZE, "int is not 32-bit");  // 4=4
 
+// Node::name must be first member for qsort() and bsearch()
 typedef struct node {
     int name;    // 4 bytes = string of len 3 +'\0'
     int len;     // child nodes count
@@ -140,15 +141,14 @@ int main(void)
     printf("\n");
 #endif
 
-    const int avoidnone = -1;
     const int out = nodeindex("out");
-#if EXAMPLE != 2
+#if EXAMPLE != 2  // example 2 does not have "you" node
     const int you = nodeindex("you");
     resetcache();  // must reset at start because "not cached" = -1
-    printf("Part 1: %d\n", paths(you, out, avoidnone));  // example: 5, input: 670
+    printf("Part 1: %d\n", paths(you, out, -1));  // example: 5, input: 670
 #endif
 
-#if EXAMPLE != 1
+#if EXAMPLE != 1  // example 1 does not have svr,fft,dac nodes
     // Input is directed acyclic graph, so either fft->dac=0 or dac->fft=0
     // For my input: must pass fft first, so full path is svr->fft->dac->out
     // which means: avoid dac when searching for svr->fft, otherwise way too
