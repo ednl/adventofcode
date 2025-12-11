@@ -45,14 +45,14 @@
 static_assert(sizeof(int) == NAMESIZE, "int is not 32-bit");  // 4=4
 
 typedef struct node {
-    int name;    // 4 bytes = string of len 3 + nul terminator
-    int len;     // how many child nodes
-    int *child;  // child nodes as index of node array
+    int name;    // 4 bytes = string of len 3 +'\0'
+    int len;     // child nodes count
+    int *child;  // child nodes as indexes of node array
 } Node;
 
 static char input[FSIZE];
 static Node node[NODES];
-static int64_t cache[NODES];
+static int cache[NODES];
 
 // Zero can be legit cache value in part 2, so don't use that
 static void resetcache(void)
@@ -60,23 +60,24 @@ static void resetcache(void)
     memset(cache, -1, sizeof cache);
 }
 
-// Find index of node name
-// Node::name must be first member, node must exist
+// Find index of node name (as char* or int* with same length data)
+// Node::name must be first member, and name must exist in node array
 static int nodeindex(const void *name)
 {
     return (Node *)bsearch(name, node, NODES, sizeof *node, (int(*)(const void *, const void *))strcmp) - node;
 }
 
 // Recursive DFS for all paths from start to goal
-static int64_t paths(const int start, const int goal, const int avoid)
+// Shortcut for part 2: avoid particular node (paths=0)
+static int paths(const int start, const int goal, const int avoid)
 {
     if (start == goal)
         return 1;
     if (start == avoid)
         return 0;
-    if (cache[start] >= 0)  // not cached = -1
+    if (cache[start] >= 0)  // not cached: -1
         return cache[start];
-    int64_t count = 0;
+    int count = 0;
     for (int j = 0; j < node[start].len; ++j)
         count += paths(node[start].child[j], goal, avoid);
     return (cache[start] = count);
@@ -144,24 +145,24 @@ int main(void)
 #if EXAMPLE != 2
     const int you = nodeindex("you");
     resetcache();  // must reset at start because "not cached" = -1
-    printf("Part 1: %"PRId64"\n", paths(you, out, avoidnone));  // example: 5, input: 670
+    printf("Part 1: %d\n", paths(you, out, avoidnone));  // example: 5, input: 670
 #endif
 
 #if EXAMPLE != 1
     // Input is directed acyclic graph, so either fft->dac=0 or dac->fft=0
-    // For my input, must pass fft first, so full path is svr->fft->dac->out
-    // which means: avoid dac when searching for svr->fft,
-    // otherwise way too many paths svr->dac that go nowhere
+    // For my input: must pass fft first, so full path is svr->fft->dac->out
+    // which means: avoid dac when searching for svr->fft, otherwise way too
+    // many paths svr->dac that go nowhere
     const int svr = nodeindex("svr");
     const int fft = nodeindex("fft");
     const int dac = nodeindex("dac");
     resetcache();
-    const int64_t p1 = paths(svr, fft, dac);        // input: 8049
+    const int p1 = paths(svr, fft, dac);  // input: 8049
     resetcache();
-    const int64_t p2 = paths(fft, dac, avoidnone);  // input: 3377314
+    const int p2 = paths(fft, dac, out);  // input: 3377314
     resetcache();
-    const int64_t p3 = paths(dac, out, avoidnone);  // input: 12215
-    printf("Part 2: %"PRId64"\n", p1 * p2 * p3);    // example: 2, input: 332052564714990
+    const int p3 = paths(dac, out, svr);  // input: 12215
+    printf("Part 2: %"PRId64"\n", (int64_t)p1 * p2 * p3);  // example: 2, input: 332052564714990
 #endif
 
 #if DEBUG || !defined(TIMER)  // otherwise leave cleanup to OS
