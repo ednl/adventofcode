@@ -45,18 +45,19 @@
 static_assert(sizeof(int) == NAMESIZE, "int is not 32-bit");  // 4=4
 
 typedef struct node {
-    int name;
-    int len;
-    int *child;
+    int name;    // 4 bytes = string of len 3 + nul terminator
+    int len;     // how many child nodes
+    int *child;  // child nodes as index of node array
 } Node;
 
 static char input[FSIZE];
 static Node node[NODES];
 static int64_t cache[NODES];
 
-static void reset(void)
+// Zero can be legit cache value in part 2, so don't use that
+static void resetcache(void)
 {
-    memset(cache, -1, sizeof cache);  // zero can be legit cache value in part 2, so don't use that
+    memset(cache, -1, sizeof cache);
 }
 
 // Find index of node name
@@ -73,7 +74,7 @@ static int64_t paths(const int start, const int goal, const int avoid)
         return 1;
     if (start == avoid)
         return 0;
-    if (cache[start] >= 0)
+    if (cache[start] >= 0)  // not cached = -1
         return cache[start];
     int64_t count = 0;
     for (int j = 0; j < node[start].len; ++j)
@@ -101,21 +102,21 @@ int main(void)
     // Parse nodes and children
     char *c = input;
     for (int i = 0; i < LINES; ++i) {
-        *(c + NAMESIZE - 1) = '\0';  // terminate node name
+        *(c + NAMESIZE - 1) = '\0';      // terminate node name
         memcpy(&node[i].name, c, NAMESIZE);
-        c += NAMESIZE + 1;  // go to first child (+1 for ':')
-        const char *const src = c;  // remember as src
-        int children = 1;  // always at least one child for listed nodes
+        c += NAMESIZE + 1;               // go to first child (+1 for ':')
+        const char *const src = c;       // remember as src
+        int children = 1;                // always at least one child for listed nodes
         for (; *(c + NAMESIZE - 1) != '\n'; c += NAMESIZE, ++children)
             *(c + NAMESIZE - 1) = '\0';  // terminate child name
-        *(c + NAMESIZE - 1) = '\0';  // terminate last child name
-        c += NAMESIZE;  // now points at start of next line
+        *(c + NAMESIZE - 1) = '\0';      // terminate last child name
+        c += NAMESIZE;                   // c now points to start of next line
         const int bytes = children * NAMESIZE;
         void *dst = malloc(bytes);
 #if DEBUG
         if (!dst) { fprintf(stderr, "Error: out of memory while parsing line %d\n", i + 1); exit(EXIT_FAILURE); }
 #endif
-        memcpy(dst, src, bytes);
+        memcpy(dst, src, bytes);         // copy strings of len 3+'\0'=4 to int array, reinterpret later
         node[i].child = dst;
         node[i].len = children;
     }
@@ -142,23 +143,25 @@ int main(void)
     const int out = nodeindex("out");
 #if EXAMPLE != 2
     const int you = nodeindex("you");
-    reset();
+    resetcache();  // must reset at start because "not cached" = -1
     printf("Part 1: %"PRId64"\n", paths(you, out, avoidnone));  // example: 5, input: 670
 #endif
 
 #if EXAMPLE != 1
-    // For my input, paths(dac,fft)=0 (because directed acyclic graph) so must pass fft first
-    // which means: avoid dac, otherwise way too many paths svr->dac that go nowhere
+    // Input is directed acyclic graph, so either fft->dac=0 or dac->fft=0
+    // For my input, must pass fft first, so full path is svr->fft->dac->out
+    // which means: avoid dac when searching for svr->fft,
+    // otherwise way too many paths svr->dac that go nowhere
     const int svr = nodeindex("svr");
     const int fft = nodeindex("fft");
     const int dac = nodeindex("dac");
-    reset();
-    const int64_t p1 = paths(svr, fft, dac);  // 8049
-    reset();
-    const int64_t p2 = paths(fft, dac, avoidnone);  // 3377314
-    reset();
-    const int64_t p3 = paths(dac, out, avoidnone);  // 12215
-    printf("Part 2: %"PRId64"\n", p1 * p2 * p3);  // example: 2, input: 332052564714990
+    resetcache();
+    const int64_t p1 = paths(svr, fft, dac);        // input: 8049
+    resetcache();
+    const int64_t p2 = paths(fft, dac, avoidnone);  // input: 3377314
+    resetcache();
+    const int64_t p3 = paths(dac, out, avoidnone);  // input: 12215
+    printf("Part 2: %"PRId64"\n", p1 * p2 * p3);    // example: 2, input: 332052564714990
 #endif
 
 #if DEBUG || !defined(TIMER)  // otherwise leave cleanup to OS
