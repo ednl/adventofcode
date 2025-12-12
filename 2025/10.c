@@ -5,9 +5,9 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    cc -std=c17 -Wall -Wextra -pedantic 10.c
+ *    cc -std=c17 -Wall -Wextra -pedantic ../combperm.c 10.c
  * Enable timer:
- *    cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 10.c
+ *    cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c ../combperm.c 10.c
  * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
@@ -22,7 +22,7 @@
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 0
+#define EXAMPLE 1
 #if EXAMPLE == 1
     #define FNAME "../aocinput/2025-10-example.txt"
     #define FSIZE 175
@@ -105,9 +105,7 @@ int main(void)
         }
         for (int j = 0; j < size; ++j) {
             int x = *c++ & 15;  // skip digit
-            if (*c >= '0' && *c <= '9')
-                x = x * 10 + (*c++ & 15);  // skip digit
-            if (*c >= '0' && *c <= '9')
+            while (*c >= '0' && *c <= '9')
                 x = x * 10 + (*c++ & 15);  // skip digit
             machine[i].jolts[j] = x;
             c++;  // skip ',' or '}'
@@ -137,6 +135,33 @@ int main(void)
         total += clicks(machine[i].button, machine[i].btns, machine[i].lights);
     printf("Part 1: %d\n", total);  // example: 7, input: 512
     combinations(0, 0);  // free memory
+
+    // (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
+    // 0 0 0 0 1 1  |  3
+    // 0 1 0 0 0 1  |  5
+    // 0 0 1 1 1 0  |  4
+    // 1 1 0 1 0 0  |  7
+    // -------------+---
+    // 1 3 0 3 1 2  | 10
+
+    // (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}
+    // 1 0 1 1 0  |  7
+    // 0 0 0 1 1  |  5
+    // 1 1 0 1 1  | 12
+    // 1 1 0 0 1  |  7
+    // 1 0 1 0 1  |  2
+    // -----------+---
+    // 2 5 0 5 0  | 12
+
+    // (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}
+    // 1 1 1 0  | 10
+    // 1 0 1 1  | 11
+    // 1 0 1 1  | 11
+    // 1 1 0 0  |  5
+    // 1 1 1 0  | 10
+    // 0 0 1 0  |  5
+    // ---------+---
+    // 5 0 5 1  | 11
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
