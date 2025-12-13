@@ -32,7 +32,6 @@
     #define N 141  // grid columns
 #endif
 #define M (N + 1)      // grid rows
-#define FSIZE (M * M)  // +bottom row, +'\n'
 #define HALF (N >> 1)  // col index of 'S', also number of splitter rows (ex: 7, inp: 70)
 #define SPLIT '^'
 
