@@ -137,19 +137,19 @@ int main(void)
     combinations(0, 0);  // free memory
 
     // (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
-    // 0 0 0 0 1 1  |  3
-    // 0 1 0 0 0 1  |  5
-    // 0 0 1 1 1 0  |  4
-    // 1 1 0 1 0 0  |  7
+    // 0 0 0 0 1 1  |  3    1 0 0 1 0 -1  |  2    x0 = 2 - x3 + x5    x0+x1+x2+x3+x4+x5 = 11 - x3 + x5    x3 >= x5
+    // 0 1 0 0 0 1  |  5    0 1 0 0 0  1  |  5    x1 = 5 - x5         0 <= x5 <= 5
+    // 0 0 1 1 1 0  |  4    0 0 1 1 0 -1  |  1    x2 = 1 - x3 + x5
+    // 1 1 0 1 0 0  |  7    0 0 0 0 1  1  |  3    x4 = 3 - x5         0 <= x5 <= 3
     // -------------+---
     // 1 3 0 3 1 2  | 10
 
     // (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}
-    // 1 0 1 1 0  |  7
-    // 0 0 0 1 1  |  5
-    // 1 1 0 1 1  | 12
-    // 1 1 0 0 1  |  7
-    // 1 0 1 0 1  |  2
+    // 1 0 1 1 0  |  7    1 0  1  0 0  |  2     x0 = 2 - x2
+    // 0 0 0 1 1  |  5    0 1 -1  0 0  |  5     x1 = 5 + x2
+    // 1 1 0 1 1  | 12    0 0  0  1 0  |  5     x3 = 5
+    // 1 1 0 0 1  |  7    0 0  0  0 1  |  0     x4 = 0
+    // 1 0 1 0 1  |  2    0 0  0  0 0  |  0
     // -----------+---
     // 2 5 0 5 0  | 12
 
@@ -162,6 +162,13 @@ int main(void)
     // 0 0 1 0  |  5
     // ---------+---
     // 5 0 5 1  | 11
+
+    // https://www.reddit.com/r/adventofcode/comments/1plzhps/2025_day_10_part_2_pivot_your_way_to_victory/
+    // https://en.wikipedia.org/wiki/Gaussian_elimination
+    // https://en.wikipedia.org/wiki/Hermite_normal_form
+    // https://en.wikipedia.org/wiki/Graver_basis
+    // Bremner: "Figure 14.2 Algorithm for the Hermite normal form" p. 228
+    // ( https://github.com/Antonio-JP/dd_functions/blob/master/ajpastor/misc/hermite.py )
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
