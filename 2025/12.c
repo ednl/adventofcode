@@ -11,9 +11,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=9999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  2.0 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :  3.4 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 13.9 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 2.00 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
@@ -22,11 +22,19 @@
 #endif
 
 #define FNAME "../aocinput/2025-12-input.txt"
-#define FSIZE 25096
-#define SHAPES 6
-#define TREES 1000
+#define SHAPES 6  // number of shapes in input file
+#define TREES 1000  // number of trees in input file
 
-static char input[FSIZE];
+#define SHAPETEXT (SHAPES << 4)  // 16 char per shape
+#define FSIZE (SHAPETEXT + TREES * 25)  // 25 char per tree
+
+static char input[FSIZE];  // input file (does not work for example file)
+
+// Read 2-digit base 10 number at s
+static int readnum(const char *s)
+{
+    return (*s & 15) * 10 + (*(s + 1) & 15);
+}
 
 int main(void)
 {
@@ -40,23 +48,19 @@ int main(void)
     starttimer();
 #endif
 
-    int fits = 0;
-    // Skip whole shapes section... Pfft.
-    const char *c = input + (SHAPES << 4);  // one shape takes 16 chars in input file
+    int fit = 0;
+    const char *c = input + SHAPETEXT;  // skip all shapes
     for (int i = 0; i < TREES; ++i) {
-        // width x height, both 2-digit numbers
-        const int area = ((*c & 15) * 10 + (*(c + 1) & 15)) * ((*(c + 3) & 15) * 10 + (*(c + 4) & 15));
-        c += 7;  // skip "00x00: "
-        int presents = 0;  // how many presents in total under this tree
-        for (int j = 0; j < SHAPES; ++j, c += 3)  // also skip 2-digit number and space/newline
-            presents += (*c & 15) * 10 + (*(c + 1) & 15);  // 2-digit amount per shape
-        // Just assume average number of parts per present (tiles per shape) is 8... Pfft.
-        // For my input, 7 works too but would require a multiplication
-        fits += (presents << 3) < area;
+        const int area = (readnum(c) / 3) * (readnum(c + 3) / 3);  // WxH per block of 3x3
+        c += 7;  // skip to first shape count
+        int presents = 0;
+        for (int j = 0; j < SHAPES; ++j, c += 3)
+            presents += readnum(c);
+        fit += presents <= area;  // only count ones that will fit without interlocking
     }
-    printf("%d\n", fits);  // 521
+    printf("%d\n", fit);  // input: 521 (does not work on example)
 
 #ifdef TIMER
-    printf("Time: %.0f ns\n", stoptimer_ns());  // NB: nanoseconds
+    printf("Time: %.0f ns\n", stoptimer_ns());
 #endif
 }
