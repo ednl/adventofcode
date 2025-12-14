@@ -1,6 +1,7 @@
 #include <stdio.h>     // printf
 #include <stdint.h>    // uint32_t, UINT32_C, uint64_t, UINT64_C
 #include <inttypes.h>  // PRIu32, PRIu64
+#include "../startstoptimer.h"
 
 #define LABELS   (UINT32_C(9))
 #define CUPCOUNT (UINT32_C(1000000))
@@ -11,6 +12,7 @@ static uint_fast32_t next[CUPCOUNT + 1];  // index 0 not used, so, need one extr
 
 int main(void)
 {
+    starttimer();
     uint_fast32_t i, moves, cur, ins, p1, p2, p3;
 
     // Arrange all cups in a circle (cup 0 is extra)
@@ -59,5 +61,6 @@ int main(void)
         printf("%"PRIu64"\n", (uint64_t)next[1] * next[next[1]]);
     #endif
 
+    printf("Time: %.0f ms\n", stoptimer_ms());
     return 0;
 }
