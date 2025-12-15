@@ -72,33 +72,17 @@ int main(void)
         worlds += galton[j];
     printf("%d %"PRId64"\n", splits, worlds);  // example: 21 40, input: 1598 4509723641302
 
+    // Part 2: bottom-up, collect beams at splitters, sum will be in S
+    // Simpler and faster but impossible to combine with part 1
+    // for (int i = 0; i < N; ++i)
+    //     galton[i] = 1;
+    // for (int i = N - 1, beg = 1, end = N - 1; i > 0; i -= 2, ++beg, --end)
+    //     for (int j = beg; j < end; j += 2)
+    //         if (grid[i][j] == SPLIT)
+    //             galton[j] = galton[j - 1] + galton[j + 1];
+    // printf("%"PRId64"\n", galton[HALF]);  // example: 40, input: 4509723641302
+
 #ifdef TIMER
     printf("Time: %.0f ns\n", stoptimer_ns());
-    // starttimer();
-#endif
-
-    // Part 1: top-down, keep track of beams, count splitters if there's a beam
-    galton[HALF] = 1;
-    splits = 0;
-    for (int i = 2, beg = HALF, end = HALF + 1; i < N; i += 2, --beg, ++end)
-        for (int j = beg; j < end; j += 2)
-            if (grid[i][j] == SPLIT && galton[j]) {
-                ++splits;
-                galton[j - 1] = 1;
-                galton[j    ] = 0;
-                galton[j + 1] = 1;
-            }
-
-    // Part 2: bottom-up, collect beams at splitters, sum will be in S
-    for (int i = 0; i < N; ++i)
-        galton[i] = 1;
-    for (int i = N - 1, beg = 1, end = N - 1; i > 0; i -= 2, ++beg, --end)
-        for (int j = beg; j < end; j += 2)
-            if (grid[i][j] == SPLIT)
-                galton[j] = galton[j - 1] + galton[j + 1];
-    // printf("%d %"PRId64"\n", splits, galton[HALF]);  // example: 21 40, input: 1598 4509723641302
-
-#ifdef TIMER
-    // printf("Time: %.0f ns\n", stoptimer_ns());
 #endif
 }
