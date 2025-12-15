@@ -104,6 +104,6 @@ int main(void)
     printf("%d %d\n", always, maybe);  // input: 521 0
 
 #ifdef TIMER
-    printf("Time: %.0f ns\n", stoptimer_ns());
+    printf("Time: %.0f ns\n", stoptimer_ns());  // NB: nanoseconds
 #endif
 }
