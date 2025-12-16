@@ -73,8 +73,8 @@ static int64_t paths(const int u, const int end)
 {
     if (u == end)
         return 1;
-    if (cache[u] != -1)  // -1 is init value (="not cached")
-        return cache[u];
+    if (cache[u] != -1)  // -1 is init value (="not cached yet")
+        return cache[u];  // 0 for paths unable to reach end
     int64_t count = 0;
     for (int j = 0; j < node[u].len; ++j)
         count += paths(node[u].child[j], end);
@@ -125,12 +125,12 @@ int main(void)
     const int out = nodeindex("out");
 #if EXAMPLE != 2  // example 2 does not have "you" node
     const int you = nodeindex("you");
-    resetcache();  // must init at start because "not cached" = -1
+    resetcache();  // must init at program start because "not cached" = -1
     printf("Part 1: %"PRId64"\n", paths(you, out));  // example: 5, input: 670
 #endif
 
     // Part 2
-#if EXAMPLE != 1  // example 1 does not have svr,fft,dac nodes
+#if EXAMPLE != 1  // example 1 does not have svr, fft or dac nodes
     // Input is directed acyclic graph, so either fft->dac or dac->fft is
     // possible, not both. For my input, full path is svr->fft->dac->out.
     const int svr = nodeindex("svr");
