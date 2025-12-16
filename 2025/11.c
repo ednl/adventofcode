@@ -96,9 +96,9 @@ int main(void)
     // Parse nodes and children
     char *c = input;
     for (int i = 0; i < LINES; ++i) {
-        *(c + STRLEN) = '\0';               // terminate node name
-        memcpy(&node[i].name, c, NAME);     // avoid awkward casts with memcpy
-        c += NAME + 1;                      // go to first child (+1 for ':')
+        *(c + STRLEN) = '\0';               // terminate node name by replacing ':'
+        memcpy(&node[i].name, c, NAME);     // avoid awkward casts by using memcpy
+        c += NAME + 1;                      // go to first child (+1 to skip space)
         const char *const src = c;          // remember as src
         int children = 1;                   // always at least one child for listed nodes
         for (; *(c + STRLEN) != '\n'; c += NAME, ++children)
