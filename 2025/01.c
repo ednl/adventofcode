@@ -66,7 +66,7 @@ int main(void)
     };
     for (const char *c = input; c != end; ++c) {  // skip newline
         // L = anti-clockwise = negative, R = clockwise = positive
-        const int dir = *c++ == 'L' ? -1 : 1;
+        const int dir = (*c++ & 3) - 1;  // 'L'=-1, 'R'=1
         // Convert ascii to int
         int turn = *c++ & 15;
         while (*c != '\n')
@@ -89,9 +89,9 @@ int main(void)
         if (dir * cur.dial <= 0)
             // Increasing while non-positive, or decreasing while non-negative
             zero2 += cur.iszero - old.iszero;
-        else if (old.dial * cur.dial < 0)
+        else if (old.dial < 0 ^ cur.dial < 0)
             // Went across zero
-            zero2 += 1 - old.iszero;
+            zero2 += !old.iszero;
     }
     printf("%d %d\n", zero1, zero2);  // example: 3 6, input: 1180 6892
 
