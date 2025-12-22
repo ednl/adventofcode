@@ -22,26 +22,21 @@
 #endif
 
 #define EXAMPLE 0
-#define AOCDAY "01"
-
-#define AOCPRE "../aocinput/2025-"AOCDAY"-"
-#define AOCSUF ".txt"
 #if EXAMPLE == 1
-    #define FNAME AOCPRE"example"AOCSUF
+    #define FNAME "../aocinput/2025-01-example.txt"
     #define FSIZE 38  // example file size in bytes
 #else
-    #define FNAME AOCPRE"input"AOCSUF
-    #define FSIZE 19650  // input file size in bytes
+    #define FNAME "../aocinput/2025-01-input.txt"
+    #define FSIZE 19650 // input file size in bytes
 #endif
 
-// Dial starts at 50 and goes from 0 to 99
-#define START 50
-#define SIZE 100
+#define START 50  // dial starts at 50
+#define SIZE 100  // dial goes from 0 to 99
 
-// Fictional or raw dial value (any int, not just 0-99),
-// dial value div SIZE, and dial value mod SIZE == 0
 typedef struct dial {
-    int dial, fullturns, iszero;
+    int dial;  // unlimited dial value (any int, not just 0-99)
+    int full;  // dial div SIZE (number of full turns, negative for left)
+    int zero;  // dial mod SIZE == 0 (dial is at any multiple of 100)
 } Dial;
 
 static char input[FSIZE];
@@ -60,9 +55,9 @@ int main(void)
 
     int zero1 = 0, zero2 = 0;
     Dial cur = {
-        .dial      = START,
-        .fullturns = START / SIZE,
-        .iszero    = !(START % SIZE),
+        .dial = START,
+        .full = START / SIZE,
+        .zero = START % SIZE == 0,
     };
     for (const char *c = input; c != end; ++c) {  // skip newline
         // L = anti-clockwise = negative, R = clockwise = positive
@@ -73,25 +68,40 @@ int main(void)
             turn = turn * 10 + (*c++ & 15);
         // Save old dial, set new dial
         const Dial old = cur;
-        cur.dial += turn * dir;
-        cur.fullturns = cur.dial / SIZE;
-        cur.iszero = !(cur.dial % SIZE);
+        cur.dial += turn * dir;  // unlimited dial value
+        cur.full = cur.dial / SIZE;  // negative for net left turns
+        cur.zero = cur.dial % SIZE == 0;  // is at zero?
 
         // Part 1
-        zero1 += cur.iszero;
+        zero1 += cur.zero;
 
+        // Part 2
+        zero2 += (cur.full - old.full) * dir;
+
+        // special cases
+        //
         //    dial :   -200 -100   0   100  200
         //           ----+----+----+----+----+---
         // div 100 : 2222211111000000000111112222
+        //
+        //  R     cd<0   cd=0   cd>0
+        // od<0  +cz-oz  +1-oz  +1-oz
+        // od=0     -      -      0
+        // od>0     -      -      0
+        //
+        //  L     cd<0   cd=0   cd>0
+        // od<0     0      -      -
+        // od=0     0      -      -
+        // od>0   +1-oz  +1-oz +cz-oz
 
-        // Part 2
-        zero2 += (cur.fullturns - old.fullturns) * dir;
-        if (dir * cur.dial <= 0)
-            // Increasing while non-positive, or decreasing while non-negative
-            zero2 += cur.iszero - old.iszero;
-        else if (old.dial < 0 ^ cur.dial < 0)
-            // Went across zero
-            zero2 += !old.iszero;
+        if (dir * cur.dial < 0)
+            // Increasing while negative, or decreasing while positive
+            // (select first column for R, last column for L)
+            zero2 += cur.zero - old.zero;
+        else if (dir * old.dial < 0)
+            // Went to or across zero
+            // (select first row for R, last row for L)
+            zero2 += !old.zero;
     }
     printf("%d %d\n", zero1, zero2);  // example: 3 6, input: 1180 6892
 
