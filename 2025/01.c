@@ -13,7 +13,7 @@
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 12 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : 20 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 53 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 52 µs
  */
 
 #include <stdio.h>
@@ -59,7 +59,7 @@ int main(void)
         .full = START / SIZE,
         .zero = START % SIZE == 0,
     };
-    for (const char *c = input; c != end; ++c) {  // skip newline
+    for (const char *c = input; c != end; ++c) {  // also skip newline
         // L = anti-clockwise = negative, R = clockwise = positive
         const int dir = (*c++ & 3) - 1;  // 'L'=-1, 'R'=1
         // Convert ascii to int
@@ -78,11 +78,11 @@ int main(void)
         // Part 2
         zero2 += (cur.full - old.full) * dir;
 
-        // special cases
+        // Special cases (od=old.dial, cd=cur.dial, oz=old.zero, cz=cur.zero)
         //
         //    dial :   -200 -100   0   100  200
         //           ----+----+----+----+----+---
-        // div 100 : 2222211111000000000111112222
+        // div 100 : 2222211111000000000111112222 (neg for neg dial)
         //
         //  R     cd<0   cd=0   cd>0
         // od<0  +cz-oz  +1-oz  +1-oz
@@ -96,11 +96,11 @@ int main(void)
 
         if (dir * cur.dial < 0)
             // Increasing while negative, or decreasing while positive
-            // (select first column for R, last column for L)
+            // (=select first column for R, last column for L)
             zero2 += cur.zero - old.zero;
         else if (dir * old.dial < 0)
             // Went to or across zero
-            // (select first row for R, last row for L)
+            // (=select first row for R, last row for L)
             zero2 += !old.zero;
     }
     printf("%d %d\n", zero1, zero2);  // example: 3 6, input: 1180 6892
