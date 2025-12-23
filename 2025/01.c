@@ -34,7 +34,7 @@
 #define SIZE 100  // dial goes from 0 to 99
 
 typedef struct dial {
-    int dial;  // unlimited dial value (any int, not just 0-99)
+    int dial;  // unconstrained dial value (any int, not just 0-99)
     int full;  // dial div SIZE (number of full turns, negative for left)
     int zero;  // dial mod SIZE == 0 (dial is at any multiple of 100)
 } Dial;
@@ -68,7 +68,7 @@ int main(void)
             turn = turn * 10 + (*c++ & 15);
         // Save old dial, set new dial
         const Dial old = cur;
-        cur.dial += turn * dir;  // unlimited dial value
+        cur.dial += turn * dir;  // unconstrained dial value
         cur.full = cur.dial / SIZE;  // negative for net left turns
         cur.zero = cur.dial % SIZE == 0;  // is at zero?
 
@@ -84,15 +84,17 @@ int main(void)
         //           ----+----+----+----+----+---
         // div 100 : 2222211111000000000111112222 (neg for neg dial)
         //
-        //  R     cd<0   cd=0   cd>0
-        // od<0  +cz-oz  +1-oz  +1-oz
-        // od=0     -      -      0
-        // od>0     -      -      0
+        //  R   |  cd<0   cd=0   cd>0
+        // -----+---------------------
+        // od<0 | +cz-oz  +1-oz  +1-oz
+        // od=0 |    -      -      0
+        // od>0 |    -      -      0
         //
-        //  L     cd<0   cd=0   cd>0
-        // od<0     0      -      -
-        // od=0     0      -      -
-        // od>0   +1-oz  +1-oz +cz-oz
+        //  L   |  cd<0   cd=0   cd>0
+        // -----+---------------------
+        // od<0 |    0      -      -
+        // od=0 |    0      -      -
+        // od>0 |  +1-oz  +1-oz +cz-oz
 
         if (dir * cur.dial < 0)
             // Increasing while negative, or decreasing while positive
