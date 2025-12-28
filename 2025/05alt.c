@@ -11,7 +11,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 32 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 31 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :  ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : 76 µs
  */
@@ -45,6 +45,16 @@ static char input[FSIZE];
 static Range ranges[N];
 static uint64_t ids[M];
 
+// Parse number, advance char pointer 1 past last digit
+static uint64_t readnum(const char **const s)
+{
+    uint64_t x = 0;
+    while (**s >= '0' && **s <= '9')
+        x = x * 10 + (*(*s)++ & 15);  // next digit
+    (*s)++;  // skip '-' or '\n'
+    return x;
+}
+
 // Qsort helper: sort Range[] first by .a ascending then by .b descending
 static int cmprange(const void *p, const void *q)
 {
@@ -57,14 +67,15 @@ static int cmprange(const void *p, const void *q)
     return 0;
 }
 
-// Parse number, advance char pointer 1 past last digit
-static uint64_t readnum(const char **const s)
+// Bsearch helper
+// return -1 if key below range, +1 if key above range, 0 if key in range
+static int inrange(const void *key, const void *range)
 {
-    uint64_t x = 0;
-    while (**s >= '0' && **s <= '9')
-        x = x * 10 + (*(*s)++ & 15);  // next digit
-    (*s)++;  // skip '-' or '\n'
-    return x;
+    const uint64_t k = *(const uint64_t *)key;
+    const Range *r = range;
+    if (k < r->a) return -1;
+    if (k > r->b) return  1;
+    return 0;
 }
 
 // Merge ranges in-place in array 'r' of size 'len' which must
@@ -82,16 +93,6 @@ static int mergeranges(Range *const r, const int len)
             r[++i] = r[j];  // new range
     }
     return i + 1;
-}
-
-// Return -1 if key below range, +1 if key above range, 0 if key in range
-static int inrange(const void *key, const void *range)
-{
-    const uint64_t k = *(const uint64_t *)key;
-    const Range *r = range;
-    if (k < r->a) return -1;
-    if (k > r->b) return  1;
-    return 0;
 }
 
 int main(void)
@@ -123,8 +124,7 @@ int main(void)
     // Part 1
     int fresh = 0;
     for (int i = 0; i < M; ++i)
-        if (bsearch(&ids[i], ranges, n, sizeof *ranges, inrange))
-            ++fresh;
+        fresh += bsearch(&ids[i], ranges, n, sizeof *ranges, inrange) != NULL;
     printf("%d\n", fresh);  // example: 3, input: 739
 
     // Part 2
