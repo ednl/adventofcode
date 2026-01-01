@@ -11,7 +11,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  5.29 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  1.63 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :  ?    µs
  *     Raspberry Pi 5 (2.4 GHz)      : 16.8  µs
  */
@@ -27,6 +27,13 @@
 static char input[FSIZE];
 static const char *const end = input + FSIZE;
 
+// Up: '(' = 40 => +1
+// Dn: ')' = 41 => -1
+static int updown(const char *dir)
+{
+    return 1 - ((*dir & 1) << 1);
+}
+
 int main(void)
 {
     FILE *f = fopen(FNAME, "rb");  // fread requires binary mode
@@ -39,15 +46,15 @@ int main(void)
 #endif
 
     int floor = 0, basement = 0;         // elevator analogies
-    for (const char *p = input; p != end; ++p) {  // p = pointer, *p = parenthesis
-        floor += 1 - ((*p & 1) << 1);    // '(' = 40 = +1, ')' = 41 = -1
-        if (floor < 0 && !basement)      // first basement visit?
-            basement = p - input + 1;    // 1-based position
-    }
+    const char *dir = input;             // direction: '('= up, ')'=down
+    for (; !basement; ++dir)
+        if ((floor += updown(dir)) < 0)
+            basement = dir - input + 1;  // 1-based position
+    for (; dir != end; ++dir)
+        floor += updown(dir);
     printf("%d %d\n", floor, basement);  // input: 138 1771
 
 #ifdef TIMER
     printf("Time: %.0f ns\n", stoptimer_ns());
 #endif
-    return 0;
 }
