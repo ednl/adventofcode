@@ -11,7 +11,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 3.75 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
@@ -28,7 +28,6 @@
 
 #define FNAME "../aocinput/2019-05-input.txt"
 #define VMSIZE 1024  // virtual machine base memory size
-#define TARGET 19690720
 
 typedef enum opcode {
     ADD = 1,  // 1: add params and store
@@ -150,16 +149,20 @@ static bool vm_init(VM *vm, const VM *app)
     return true;
 }
 
-static int64_t vm_input(void)
+// Day 5 manual input automated: part 1: 1, part 2: 5
+static int vm_input(void)
 {
-    char buf[32] = {0};
-    int64_t val;
-    while (1) {
-        printf("? ");
-        fgets(buf, sizeof buf, stdin);
-        if (sscanf(buf, "%"PRId64, &val) == 1)
-            return val;
-    }
+    static const int inp[] = {1, 5};
+    static int i = 0;
+    return inp[i++];
+    // char buf[32] = {0};
+    // int64_t val;
+    // while (1) {
+    //     printf("? ");
+    //     fgets(buf, sizeof buf, stdin);
+    //     if (sscanf(buf, "%"PRId64, &val) == 1)
+    //         return val;
+    // }
 }
 
 static void vm_output(const int64_t val)
@@ -192,34 +195,28 @@ static int64_t vm_run(VM *vm)
             case LT : m[p[2]] = p[0] <  p[1];   break;
             case EQ : m[p[2]] = p[0] == p[1];   break;
             case RET: return 0;
+            default : return -1;
         }
     }
     return -RET;
 }
-
-// static int64_t day2(VM *vm, const VM *app, const int noun, const int verb)
-// {
-//     vm_init(vm, app);
-//     vm->mem[1] = noun;
-//     vm->mem[2] = verb;
-//     return vm_run(vm);
-// }
 
 int main(void)
 {
     VM app = {0}, vm = {0};
     if (!vm_csv(&app, FNAME))
         return 1;
-    vm_init(&vm, &app);
 
 #ifdef TIMER
     starttimer();
 #endif
 
-    // Part 1
+    // Part 1: input 1
+    vm_init(&vm, &app);
     vm_run(&vm);  // 13547311
 
-    // Part 2
+    // Part 2: input 5
+    vm_init(&vm, &app);  // reset is necessary
     vm_run(&vm);  // 236453
 
 #ifdef TIMER
