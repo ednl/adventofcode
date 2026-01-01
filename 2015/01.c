@@ -22,10 +22,10 @@
 #endif
 
 #define FNAME "../aocinput/2015-01-input.txt"
-#define LEN 7000
+#define FSIZE 7000  // input file size (no newline)
 
-static char input[LEN];
-static const char *const end = input + LEN;
+static char input[FSIZE];
+static const char *const end = input + FSIZE;
 
 int main(void)
 {
