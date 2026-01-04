@@ -5,15 +5,27 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 03.c
- *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 03.c
+ *    cc -std=c17 -Wall -Wextra -pedantic 03.c
+ * Enable timer:
+ *    cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 03.c
+ * Get minimum runtime from timer output in bash:
+ *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 44 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
  */
 
 #include <stdio.h>
 #include <stdlib.h>  // calloc, free
 #include <string.h>  // memset
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
-#define N 8192
+#define FNAME "../aocinput/2015-03-input.txt"
+#define N 8192  // characters in input file (no newline)
+
 static char move[N];
 
 typedef struct vec {
@@ -59,11 +71,14 @@ static int sum(const char *const a, const int len)
 
 int main(void)
 {
-    FILE *f = fopen("../aocinput/2015-03-input.txt", "r");
-    if (!f)
-        return 1;
-    fread(move, N, 1, f);  // read whole input file at once
+    FILE *f = fopen(FNAME, "rb");  // fread requires binary mode
+    if (!f) { fprintf(stderr, "File not found: %s\n", FNAME); return 1; }
+    fread(move, sizeof move, 1, f);  // read whole file at once
     fclose(f);
+
+#ifdef TIMER
+    starttimer();
+#endif
 
     // Calc grid size as outer bounding box of 3 different walks
     const Box a = walksize(0, 1);  // part 1
@@ -74,11 +89,11 @@ int main(void)
         {max(a.max.x, max(b.max.x, c.max.x)), max(a.max.y, max(b.max.y, c.max.y))}
     };
     const int cols = d.max.x - d.min.x + 1;
-    const int size = cols * (d.max.y - d.min.y + 1);
+    const int size = cols * (d.max.y - d.min.y + 1);  // 143x129=18447 for my input
     char *const grid = calloc(size, sizeof *grid);  // allocate and set to zero
     if (!grid)
         return 2;
-    char *const origin = grid - d.min.x - d.min.y * cols;  // starting position
+    char *const origin = grid - d.min.x - d.min.y * cols;  // starting position (min.x and min.y are <0)
 
     // Part 1
     char *p = origin;
@@ -111,6 +126,10 @@ int main(void)
         }
     }
     printf("Part 2: %d\n", sum(grid, size));  // 2639
+
+#ifdef TIMER
+    printf("Time: %.0f us\n", stoptimer_us());
+#endif
 
     free(grid);
     return 0;
