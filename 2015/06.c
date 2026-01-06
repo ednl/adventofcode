@@ -13,7 +13,7 @@
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 1052 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :    ? µs
- *     Raspberry Pi 5 (2.4 GHz)      :    ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 4695 µs
  */
 
 #include <stdio.h>
