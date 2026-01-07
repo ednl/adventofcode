@@ -31,7 +31,7 @@ for index, turn in enumerate(turns):
     # Debug output: intermediate values per line of the input file
     if debug:
         print(f'{index:4}: {'L' if turn['dir'] == -1 else 'R'}{turn['count']:<3} => {sum1},{sum2}')
-        if turn['count'] >= 100:
+        if turn['count'] >= 200:
             debug = False  # stop debug output after first big turn
             print()
 
