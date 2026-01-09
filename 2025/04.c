@@ -5,9 +5,9 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    cc -std=c17 -Wall -Wextra -pedantic 04alt.c
+ *    cc -std=c17 -Wall -Wextra -pedantic 04.c
  * Enable timer:
- *    cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 04alt.c
+ *    cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 04.c
  * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
