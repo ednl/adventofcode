@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
 #define DRAW 100  // how many numbers drawn, range 0..DRAW-1
 #define CARD 100  // number of cards in the game
@@ -21,6 +24,10 @@ static Index *index[DRAW] = {0};
 
 int main(void)
 {
+#ifdef TIMER
+    starttimer();
+#endif
+
     FILE *f = fopen("../aocinput/2021-04-input.txt", "r");
     unsigned int i = 0;
     unsigned char a;
@@ -98,6 +105,9 @@ int main(void)
             p = q;
         }
     }
-    return 0;
+
+#ifdef TIMER
+    printf("Time: %.0f ns\n", stoptimer_ns());
+#endif
 }
 
