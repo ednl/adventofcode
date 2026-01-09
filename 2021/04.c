@@ -56,6 +56,7 @@ static int score(const int cardindex, const int lastdrawn)
 
 int main(void)
 {
+    // Read from disk, don't time
     FILE *f = fopen(FNAME, "rb");  // fread requires binary mode
     if (!f) { fprintf(stderr, "File not found: %s\n", FNAME); return 1; }
     fread(input, sizeof input, 1, f);  // read whole file at once
@@ -77,9 +78,9 @@ int main(void)
         c++;  // skip blank line
         for (int i = 0; i < SIZE; ++i)  // 5 rows
             for (int j = 0; j < SIZE; ++j, c += 3) {  // 5 cols
-                const int x = (*c & 15) * 10 + (*(c + 1) & 15);
-                card[k][i][j] = (uint8_t)x;
-                pos[x][mult[x]++] = (Pos){k, i, j};
+                const int num = (*c & 15) * 10 + (*(c + 1) & 15);
+                card[k][i][j] = num;
+                pos[num][mult[num]++] = (Pos){k, i, j};
             }
     }
 
@@ -87,7 +88,7 @@ int main(void)
     for (int i = 0, bingocount = 0; bingocount < CARD; ++i) {
         const int num = call[i];
         const int numcount = mult[num];  // not sure if compiler even needs this hint
-        // Mark on every card where this number appears
+        // On every card where this number appears, mark it zero dude
         for (int j = 0; j < numcount; ++j) {
             const Pos *const p = &pos[num][j];  // convenience pointer
             const int k = p->card;
