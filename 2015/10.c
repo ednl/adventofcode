@@ -5,25 +5,27 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 10.c ../startstoptimer.c
- *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 10.c ../startstoptimer.c -lm
- * Get minimum runtime:
- *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
- * Minimum runtime:
- *     Mac Mini 2020 (M1 3.2 GHz)                       :    ? ms
- *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz)         : 17.6 ms
- *     Raspberry Pi 5 (2.4 GHz)                         :    ? ms
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :    ? ms
- *     Raspberry Pi 4 (1.8 GHz)                         :    ? ms
+ *    cc -std=c17 -Wall -Wextra -pedantic 10.c
+ * Enable timer:
+ *    cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 10.c
+ * Get minimum runtime from timer output in bash:
+ *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  4.47 ms
+ *     Mac Mini 2020 (M1 3.2 GHz)    :     ? ms
+ *     Raspberry Pi 5 (2.4 GHz)      :     ? ms
  */
 
 // Sequence info: https://en.wikipedia.org/wiki/Look-and-say_sequence
 
 #include <stdio.h>
-#include <stdlib.h>  // calloc, free
-#include <string.h>  // strcpy
-#include <math.h>    // exp, log
-#include "../startstoptimer.h"
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
+
+// Personalised input from AoC, element = Po
+// https://en.wikipedia.org/wiki/Look-and-say_sequence#Cosmological_decay
+static const char seed[] = "1113222113";
 
 // Problem parameters part 1 & 2
 #define ITER1  40
@@ -32,12 +34,36 @@
 // https://www.wolframalpha.com/input/?i=conway%27s+constant
 #define CONWAY 1.303577269034
 
-// Personalised input from AoC
-static const char *seed = "1113222113";
+// Smallest size enough for ITER2=50: floor(CC^57)=3654234
+// This version ceil(CC^58)=4763577, which is fine too
+// size_t maxlen = (size_t)(ceil(pow(CONWAY, ITER2 + floor(log(len) / log(CONWAY)))));
+#define SIZE (4 << 20)
 
-static void looksay(const char *const a, char *const b, size_t *const len)
+// Back & forth look and say sequences, start with a, sequence to b, back to a etc.
+static char a[SIZE];
+static char b[SIZE];
+
+// https://en.wikipedia.org/wiki/Look-and-say_sequence#Cosmological_decay
+//  0: Po
+//  1: Bi
+//  2: Pm                                                   .Pb
+//  3: Nd                                                   .Tl
+//  4: Pr                                                   .Hg
+//  5: Ce                                                   .Au
+//  6: La                     .H .Ca   .Co                  .Pt
+//  7: Ba                     .H .K    .Fe                  .Ir
+//  8: Cs                     .H .Ar   .Mn                  .Os
+//  9: Xe                     .H .Cl   .Cr            .Si   .Re
+// 10: I                      .H .S    .V             .Al   .Ge                           .Ca.W
+// 11: Ho   .Te               .H .P    .Ti            .Mg   .Ho   .Ga                     .K .Ta
+// 12: Dy   .Eu      .Ca.Sb   .H .Ho.Si.Sc            .Pm.Na.Dy   .Eu      .Ca.Ac.H .Ca.Zn.Ar.Hf.Pa.H .Ca.W
+// 13: Tb   .Sm      .K .Pm.Sn.H .Dy.Al.Ho.Pa.H .Ca.Co.Nd.Ne.Tb   .Sm      .K .Ra.H .K .Cu.Cl.Lu.Th.H .K .Ta
+// 14: Ho.Gd.Pm.Ca.Zn.Ar.Nd.In.H .Tb.Mg.Dy.Th.H .K .Fe.Pr.F .Ho.Gd.Pm.Ca.Zn.Ar.Fr.H .Ar.Ni.S .Yb.Ac.H .Ar.Hf.Pa.H .Ca.W
+//     etc.
+
+static void looksay(const char *const a, char *const b, int *const len)
 {
-    size_t i = 0, j, k = 0;
+    int i = 0, j, k = 0;
     while (i < *len) {
         j = i + 1;
         while (a[j] == a[i])  // a[j] == 0 != a[i] for all j >= len (assumes len < sizeof(a))
@@ -49,9 +75,9 @@ static void looksay(const char *const a, char *const b, size_t *const len)
     *len = k;
 }
 
-static size_t looksaytwice(char *const a, char *const b, size_t *const len, const size_t beg, const size_t end)
+static int looksaytwice(char *const a, char *const b, int *const len, const int beg, const int end)
 {
-    for (size_t i = beg; i < end; i += 2) {
+    for (int i = beg; i < end; i += 2) {
         looksay(a, b, len);
         looksay(b, a, len);
     }
@@ -60,34 +86,27 @@ static size_t looksaytwice(char *const a, char *const b, size_t *const len, cons
 
 int main(void)
 {
+#ifdef TIMER
     starttimer();
-    size_t len = strlen(seed);
-    // Smallest size enough for ITER2=50: floor(CC^57)=3654234
-    // This version ceil(CC^58)=4763577, which is fine too
-    // size_t maxlen = (size_t)(ceil(pow(CONWAY, ITER2 + floor(log(len) / log(CONWAY)))));
-    size_t maxlen = 4 * 1024 * 1024;  // nice & round 4 MB = 4194304 > 3579328
-    // printf("maxlen=%zu\n", maxlen);
+#endif
 
-    // make all zero to recognise end of sequence
-    char *a = calloc(maxlen, sizeof *a);
-    char *b = calloc(maxlen, sizeof *b);
+    int len = sizeof seed - 1;  // array length - NUL terminator
 
     // Replace chars by numerical values
-    strcpy(a, seed);
-    for (size_t i = 0; i < len; ++i)
-        a[i] -= '0';
+    for (int i = 0; i < len; ++i)
+        a[i] = seed[i] - '0';
 
-    size_t p1 = looksaytwice(a, b, &len, 0, ITER1);
-    printf("Part 1: %zu\n", p1);  // 252594
-    size_t p2 = looksaytwice(a, b, &len, ITER1, ITER2);
-    printf("Part 2: %zu\n", p2);  // 3579328
+    int p1 = looksaytwice(a, b, &len, 0, ITER1);
+    printf("Part 1: %d\n", p1);  // 252594
+
+    int p2 = looksaytwice(a, b, &len, ITER1, ITER2);
+    printf("Part 2: %d\n", p2);  // 3579328
 
     // Approximation good to 5 decimals (rounded)
     // printf("Conway's Constant : %.9f\n", CONWAY);
     // printf("This approximation: %.9f\n", exp((log(p2) - log(p1)) / (ITER2 - ITER1)));
 
-    free(a);
-    free(b);
+#ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
-    return 0;
+#endif
 }
