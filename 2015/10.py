@@ -5,10 +5,9 @@
 # https://en.wikipedia.org/wiki/Look-and-say_sequence
 
 from array import array
-from math import log, ceil
 
 say = '1113222113'
-cc = 1.30357727
+cc = 1.303577269034
 
 def looksay(a, b, len):
     i = k = 0
@@ -24,13 +23,13 @@ def looksay(a, b, len):
 
 def lookandsay(n):
     length = len(say)
-    maxlen = ceil(pow(cc, n + ceil(log(length, cc))))
+    maxlen = round(length * pow(cc, n))  # 5712668
     a = array('B', [0] * maxlen)
     b = array('B', [0] * maxlen)
     a[:length] = array('B', map(int, list(say)))
     for i in range(2, n + 1, 2):
-        length = looksay(a, b, length)
-        length = looksay(b, a, length)
-        print(i, length)
+        prev   = looksay(a, b, length)
+        length = looksay(b, a, prev  )
+        print(i, length, '{:.5f}'.format(length / prev))
 
-lookandsay(50)
+lookandsay(50)  # 40: 252594, 50: 3579328
