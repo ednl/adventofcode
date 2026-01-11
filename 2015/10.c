@@ -11,25 +11,34 @@
  * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  4.47 ms
- *     Mac Mini 2020 (M1 3.2 GHz)    :     ? ms
- *     Raspberry Pi 5 (2.4 GHz)      : 19.0  ms
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 22 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
  */
 
 #include <stdio.h>
-#include <math.h>  // exp, log
+#include <stdlib.h>    // qsort, bsearch
+#include <string.h>    // strlen
+#include <math.h>      // exp, log
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
-// My input: element Po
-static const char seed[] = "1113222113";
+// Personalised input
+static const char input[] = "1113222113";
 
-// Iteration (decay) steps parts 1 and 2
+// Decay steps parts 1 and 2
 #define N1 40
 #define N2 50
 
 // https://en.wikipedia.org/wiki/Look-and-say_sequence#Cosmological_decay
+#define ELEMENTS 92
+#define DECAYSIZE 6
+
+// https://www.wolframalpha.com/input/?i=conway%27s+constant
+#define CONWAY 1.303577269034
+
+// Decay process:
 //  0: Po
 //  1: Bi
 //  2: Pm                                                   .Pb
@@ -46,39 +55,52 @@ static const char seed[] = "1113222113";
 // 13: Tb   .Sm      .K .Pm.Sn.H .Dy.Al.Ho.Pa.H .Ca.Co.Nd.Ne.Tb   .Sm      .K .Ra.H .K .Cu.Cl.Lu.Th.H .K .Ta
 // 14: Ho.Gd.Pm.Ca.Zn.Ar.Nd.In.H .Tb.Mg.Dy.Th.H .K .Fe.Pr.F .Ho.Gd.Pm.Ca.Zn.Ar.Fr.H .Ar.Ni.S .Yb.Ac.H .Ar.Hf.Pa.H .Ca.W
 //     etc.
+// But these are elements that don't interact, so order doesn't matter which means
+// that extra elements can just be added to the end. Or: keep a count per element.
 
-// https://www.wolframalpha.com/input/?i=conway%27s+constant
-#define CONWAY 1.303577269034
+typedef struct pair {
+    int32_t key, val;
+} Pair;
 
-// Conway's constant is limit of growth factor between successive lengths
-// so for L(0) = 10, L(50) ~= 10 * CC^50 ~= 5712667
-#define SIZE (1 << 22)  // 4 * 1024 * 1024 = 4194304 is good enough for my input
+static Pair    elmname  [ELEMENTS];  // element name+index
+static int32_t elmdecay [ELEMENTS][DECAYSIZE];  // element splits into which elements
+static int     elmsplit [ELEMENTS];  // element splits into how many elements when decaying
+static int     elmlen   [ELEMENTS];  // element length, e.g. "12311" = 5
+static int     elmcounta[ELEMENTS];  // element count in the sequence (a)
+static int     elmcountb[ELEMENTS];  // element count in the sequence (b)
 
-// Back & forth look-and-say sequences, start with a, sequence to b, back to a, etc.
-static char a[SIZE];
-static char b[SIZE];
-
-static void looksay(const char *const a, char *const b, int *const len)
+// Qsort *and* bsearch helper
+// First field of struct must be int32_t
+static int byname(const void *p, const void *q)
 {
-    int i = 0, j, k = 0;
-    while (i < *len) {
-        j = i + 1;
-        while (a[j] == a[i])  // a[j] == 0 != a[i] for all j >= len (assumes len < sizeof(a))
-            ++j;
-        b[k++] = (char)(j - i);  // assumes k < sizeof(b)
-        b[k++] = a[i];
-        i = j;
-    }
-    *len = k;
+    const int32_t a = *(const int32_t *)p;
+    const int32_t b = *(const int32_t *)q;
+    if (a < b) return -1;
+    if (a > b) return  1;
+    return 0;
 }
 
-static int looksaytwice(char *const a, char *const b, int *const len, const int beg, const int end)
+// Decay elements from a to b
+static void decay_ab(const int *restrict a, int *restrict b)
 {
-    for (int i = beg; i < end; i += 2) {
-        looksay(a, b, len);
-        looksay(b, a, len);
+    memset(b, 0, sizeof *b * ELEMENTS);
+    for (int i = 0; i < ELEMENTS; ++i)
+        for (int j = 0; j < elmsplit[i]; ++j)
+            b[elmdecay[i][j]] += a[i];
+}
+
+// Decay sequence an even number of steps
+// Return final sequence length
+static int decay(const int steps)
+{
+    for (int i = 0; i < steps; i += 2) {
+        decay_ab(elmcounta, elmcountb);
+        decay_ab(elmcountb, elmcounta);
     }
-    return *len;
+    int len = 0;
+    for (int i = 0; i < ELEMENTS; ++i)
+        len += elmcounta[i] * elmlen[i];
+    return len;
 }
 
 int main(void)
@@ -87,16 +109,51 @@ int main(void)
     starttimer();
 #endif
 
-    // Strcpy and replace chars by numerical values
-    int len = sizeof seed - 1;  // array length - NUL terminator
-    for (int i = 0; i < len; ++i)
-        a[i] = seed[i] - '0';
+    // Parse the elements table = text version of
+    // https://en.wikipedia.org/wiki/Look-and-say_sequence#Cosmological_decay
+    // without the last column "abundance"
+    // Assumes input is an element
+    FILE *f = fopen("10.txt", "r");
+    if (!f) return 1;
+    char snum[4], sname[4], satoms[48], sdecay[20];
+    for (int i = 0; i < ELEMENTS && fscanf(f, "%2s %2s %42s %16s", snum, sname, satoms, sdecay) == 4; ++i) {
+        elmname[i] = (Pair){.key = sname[0] | sname[1] << 8, .val = i};
+        int j = 0;
+        for (const char *s = sdecay; j < DECAYSIZE; ++s) {
+            int x = *s++;
+            if (*s && *s != '.')
+                x |= *s++ << 8;
+            elmdecay[i][j++] = x;
+            if (!*s)
+                break;
+        }
+        elmsplit[ i] = j;
+        elmlen   [i] = strlen(satoms);
+        elmcounta[i] = !strcmp(satoms, input);  // starting element
+    }
+    fclose(f);
 
-    int p1 = looksaytwice(a, b, &len, 0, N1);
-    printf("Part 1: %d\n", p1);  // 252594
+    // Replace element names with indexes
+    // Assumes all elements can be found
+    qsort(elmname, ELEMENTS, sizeof *elmname, byname);
+    for (int i = 0; i < ELEMENTS; ++i)
+        for (int j = 0; j < elmsplit[i]; ++j)
+            elmdecay[i][j] = ((const Pair *)bsearch(&elmdecay[i][j], elmname, ELEMENTS, sizeof *elmname, byname))->val;
 
-    int p2 = looksaytwice(a, b, &len, N1, N2);
-    printf("Part 2: %d\n", p2);  // 3579328
+#ifdef DEBUG
+    // Check result
+    for (int i = 0; i < ELEMENTS; ++i) {
+        printf("%c%2d [%2d] %d->", elmcounta[i] ? '*' : ' ', i, elmlen[i], elmsplit[i]);
+        for (int j = 0; j < elmsplit[i]; ++j)
+            printf("%3d", elmdecay[i][j] + 1);
+        printf("\n");
+    }
+#endif
+
+    const int p1 = decay(N1);
+    const int p2 = decay(N2 - N1);
+    printf("%d\n", p1);  // 252594
+    printf("%d\n", p2);  // 3579328
 
 #ifdef TIMER
     double us = stoptimer_us();
@@ -105,7 +162,7 @@ int main(void)
     // True in the limit: p2 = p1 * pow(CONWAY, N2 - N1)
     // => log(p2 / p1) = (N2 - N1) * log(CONWAY)
     // => CONWAY = exp(log(p2 / p1) / (N2 - N1))
-    // Approximation good to 5 decimals (rounded)
+    // Approximation good to 5 decimals! (rounded)
     printf("Conway's Constant : %.9f\n", CONWAY);
     printf("This approximation: %.9f\n", exp(log((double)p2 / p1) / (N2 - N1)));
 
