@@ -17,9 +17,9 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>    // qsort, bsearch
-#include <string.h>    // strlen
-#include <math.h>      // exp, log
+#include <stdlib.h>  // qsort, bsearch
+#include <string.h>  // strlen
+#include <math.h>    // exp, log
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
