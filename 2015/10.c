@@ -13,7 +13,7 @@
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) :  4.47 ms
  *     Mac Mini 2020 (M1 3.2 GHz)    :     ? ms
- *     Raspberry Pi 5 (2.4 GHz)      :     ? ms
+ *     Raspberry Pi 5 (2.4 GHz)      : 19.0  ms
  */
 
 // Sequence info: https://en.wikipedia.org/wiki/Look-and-say_sequence
