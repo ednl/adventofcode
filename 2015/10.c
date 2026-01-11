@@ -117,18 +117,18 @@ int main(void)
     if (!f) return 1;
     char snum[4], sname[4], satoms[48], sdecay[20];
     for (int i = 0; i < ELEMENTS && fscanf(f, "%2s %2s %42s %16s", snum, sname, satoms, sdecay) == 4; ++i) {
-        elmname[i] = (Pair){.key = sname[0] | sname[1] << 8, .val = i};
+        elmname[i] = (Pair){.key = sname[0] | sname[1] << 8, .val = i};  // avoid type punning
         int j = 0;
         for (const char *s = sdecay; j < DECAYSIZE; ++s) {
-            int x = *s++;
+            int x = *s++;  // type punning impossible because of '.' characters
             if (*s && *s != '.')
                 x |= *s++ << 8;
             elmdecay[i][j++] = x;
             if (!*s)
                 break;
         }
-        elmsplit[ i] = j;
-        elmlen   [i] = strlen(satoms);
+        elmsplit [i] = j;  // element i splits into j elements
+        elmlen   [i] = strlen(satoms);  // element sequence length
         elmcounta[i] = !strcmp(satoms, input);  // starting element
     }
     fclose(f);
@@ -141,7 +141,7 @@ int main(void)
             elmdecay[i][j] = ((const Pair *)bsearch(&elmdecay[i][j], elmname, ELEMENTS, sizeof *elmname, byname))->val;
 
 #ifdef DEBUG
-    // Check result
+    // Check parse & replace result
     for (int i = 0; i < ELEMENTS; ++i) {
         printf("%c%2d [%2d] %d->", elmcounta[i] ? '*' : ' ', i, elmlen[i], elmsplit[i]);
         for (int j = 0; j < elmsplit[i]; ++j)
