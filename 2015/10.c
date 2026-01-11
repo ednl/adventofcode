@@ -10,150 +10,130 @@
  *    cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 10.c -lm
  * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
- * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 22 µs
+ * Minimum runtime measurements for parts 1-3:
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 13 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :  ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : 57 µs
+ *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
  */
 
 #include <stdio.h>
-#include <stdlib.h>  // qsort, bsearch
-#include <string.h>  // strlen
-#include <math.h>    // exp, log
+#include <stdlib.h>    // qsort, bsearch
+#include <string.h>    // strlen
+#include <math.h>      // exp, log
+#include <stdint.h>    // int64_t
+#include <inttypes.h>  // PRId64
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
-// Personalised input
+// Personalised input (= element 'Po')
 static const char input[] = "1113222113";
 
-// Decay steps parts 1 and 2
+// Decay steps part 1 and 2, and one extra to show off
 #define N1 40
 #define N2 50
+#define N3 100
 
 // https://en.wikipedia.org/wiki/Look-and-say_sequence#Cosmological_decay
 #define ELEMENTS 92
-#define DECAYSIZE 6
+#define DECAYSIZE 6  // max. number of decay elements
 
 // https://www.wolframalpha.com/input/?i=conway%27s+constant
 #define CONWAY 1.303577269034
 
-// Decay process:
-//  0: Po
-//  1: Bi
-//  2: Pm                                                   .Pb
-//  3: Nd                                                   .Tl
-//  4: Pr                                                   .Hg
-//  5: Ce                                                   .Au
-//  6: La                     .H .Ca   .Co                  .Pt
-//  7: Ba                     .H .K    .Fe                  .Ir
-//  8: Cs                     .H .Ar   .Mn                  .Os
-//  9: Xe                     .H .Cl   .Cr            .Si   .Re
-// 10: I                      .H .S    .V             .Al   .Ge                           .Ca.W
-// 11: Ho   .Te               .H .P    .Ti            .Mg   .Ho   .Ga                     .K .Ta
-// 12: Dy   .Eu      .Ca.Sb   .H .Ho.Si.Sc            .Pm.Na.Dy   .Eu      .Ca.Ac.H .Ca.Zn.Ar.Hf.Pa.H .Ca.W
-// 13: Tb   .Sm      .K .Pm.Sn.H .Dy.Al.Ho.Pa.H .Ca.Co.Nd.Ne.Tb   .Sm      .K .Ra.H .K .Cu.Cl.Lu.Th.H .K .Ta
-// 14: Ho.Gd.Pm.Ca.Zn.Ar.Nd.In.H .Tb.Mg.Dy.Th.H .K .Fe.Pr.F .Ho.Gd.Pm.Ca.Zn.Ar.Fr.H .Ar.Ni.S .Yb.Ac.H .Ar.Hf.Pa.H .Ca.W
-//     etc.
-// But these are elements that don't interact, so order doesn't matter which means
-// that extra elements can just be added to the end. Or: keep a count per element.
-
 typedef struct pair {
-    int32_t key, val;
+    int key, val;
 } Pair;
 
-static Pair    elmname  [ELEMENTS];  // element name+index
-static int32_t elmdecay [ELEMENTS][DECAYSIZE];  // element splits into which elements
-static int     elmsplit [ELEMENTS];  // element splits into how many elements when decaying
-static int     elmlen   [ELEMENTS];  // element length, e.g. "12311" = 5
-static int     elmcounta[ELEMENTS];  // element count in the sequence (a)
-static int     elmcountb[ELEMENTS];  // element count in the sequence (b)
+static Pair elname[ELEMENTS];  // element name+index
+static int  decay [ELEMENTS][DECAYSIZE];  // element splits into which elements
+static int  split [ELEMENTS];  // element splits into how many elements when decaying
+static int  elsize[ELEMENTS];  // element size, e.g. "12311" = 5
+
+// Elements don't interact, so order doesn't matter,
+// in fact we only need a running count per element
+static int64_t counta[ELEMENTS];
+static int64_t countb[ELEMENTS];
 
 // Qsort *and* bsearch helper
-// First field of struct must be int32_t
-static int byname(const void *p, const void *q)
+// First field of struct (Pair::key) must be int
+static int name_asc(const void *p, const void *q)
 {
-    const int32_t a = *(const int32_t *)p;
-    const int32_t b = *(const int32_t *)q;
+    const int a = *(const int *)p;
+    const int b = *(const int *)q;
     if (a < b) return -1;
     if (a > b) return  1;
     return 0;
 }
 
-// Decay elements from a to b
-static void decay_ab(const int *restrict a, int *restrict b)
+// Decay elements from a to b, one step to generate the next sequence
+// 'restrict' = must be non-overlapping arrays
+static void onestep(const int64_t *restrict a, int64_t *restrict b)
 {
     memset(b, 0, sizeof *b * ELEMENTS);
     for (int i = 0; i < ELEMENTS; ++i)
-        for (int j = 0; j < elmsplit[i]; ++j)
-            b[elmdecay[i][j]] += a[i];
+        for (int j = 0; j < split[i]; ++j)
+            b[decay[i][j]] += a[i];
 }
 
-// Decay sequence an even number of steps
+// Decay sequence after even number of steps
 // Return final sequence length
-static int decay(const int steps)
+static int64_t sequence(const int steps)
 {
     for (int i = 0; i < steps; i += 2) {
-        decay_ab(elmcounta, elmcountb);
-        decay_ab(elmcountb, elmcounta);
+        onestep(counta, countb);
+        onestep(countb, counta);
     }
-    int len = 0;
+    int64_t len = 0;
     for (int i = 0; i < ELEMENTS; ++i)
-        len += elmcounta[i] * elmlen[i];
+        len += counta[i] * elsize[i];
     return len;
 }
 
 int main(void)
 {
-#ifdef TIMER
-    starttimer();
-#endif
-
     // Parse the elements table = text version of
     // https://en.wikipedia.org/wiki/Look-and-say_sequence#Cosmological_decay
-    // without the last column "abundance"
-    // Assumes input is an element
+    // without the last, unexplained column "abundance"
     FILE *f = fopen("10.txt", "r");
     if (!f) return 1;
     char snum[4], sname[4], satoms[48], sdecay[20];
     for (int i = 0; i < ELEMENTS && fscanf(f, "%2s %2s %42s %16s", snum, sname, satoms, sdecay) == 4; ++i) {
-        elmname[i] = (Pair){.key = sname[0] | sname[1] << 8, .val = i};  // avoid type punning
+        // Element name (1 or 2 chars) is int in the same byte order
+        // so for 1-char names, terminating '\0' is fine as second byte
+        elname[i] = (Pair){.key = sname[0] | sname[1] << 8, .val = i};
         int j = 0;
-        for (const char *s = sdecay; j < DECAYSIZE; ++s) {
-            int x = *s++;  // type punning impossible because of '.' characters
+        for (const char *s = sdecay; j < DECAYSIZE; ++s) {  // read decay elements string
+            int x = *s++;  // shorter like above impossible b/c of '.' separator characters
             if (*s && *s != '.')
                 x |= *s++ << 8;
-            elmdecay[i][j++] = x;
+            decay[i][j++] = x;
             if (!*s)
                 break;
         }
-        elmsplit [i] = j;  // element i splits into j elements
-        elmlen   [i] = strlen(satoms);  // element sequence length
-        elmcounta[i] = !strcmp(satoms, input);  // starting element
+        split [i] = j;  // element i splits into j elements
+        elsize[i] = strlen(satoms);  // element size (atomic sequence length)
+        counta[i] = !strcmp(satoms, input);  // starting element (assumes input is element)
     }
     fclose(f);
 
-    // Replace element names with indexes
-    // Assumes all elements can be found
-    qsort(elmname, ELEMENTS, sizeof *elmname, byname);
-    for (int i = 0; i < ELEMENTS; ++i)
-        for (int j = 0; j < elmsplit[i]; ++j)
-            elmdecay[i][j] = ((const Pair *)bsearch(&elmdecay[i][j], elmname, ELEMENTS, sizeof *elmname, byname))->val;
-
-#ifdef DEBUG
-    // Check parse & replace result
-    for (int i = 0; i < ELEMENTS; ++i) {
-        printf("%c%2d [%2d] %d->", elmcounta[i] ? '*' : ' ', i, elmlen[i], elmsplit[i]);
-        for (int j = 0; j < elmsplit[i]; ++j)
-            printf("%3d", elmdecay[i][j] + 1);
-        printf("\n");
-    }
+#ifdef TIMER
+    starttimer();
 #endif
 
-    const int p1 = decay(N1);
-    const int p2 = decay(N2 - N1);
-    printf("%d\n", p1);  // 252594
-    printf("%d\n", p2);  // 3579328
+    // Replace element names with indexes
+    // Assumes all elements can be found, which is true for the Wikipedia table
+    qsort(elname, ELEMENTS, sizeof *elname, name_asc);
+    for (int i = 0; i < ELEMENTS; ++i)
+        for (int j = 0; j < split[i]; ++j)
+            decay[i][j] = ((const Pair *)bsearch(&decay[i][j], elname, ELEMENTS, sizeof *elname, name_asc))->val;
+
+    const int64_t p1 = sequence(N1);
+    const int64_t p2 = sequence(N2 - N1);
+    const int64_t p3 = sequence(N3 - N2);
+    printf("%3d: %"PRId64"\n", N1, p1);  // 252594
+    printf("%3d: %"PRId64"\n", N2, p2);  // 3579328
+    printf("%3d: %"PRId64"\n", N3, p3);  // 2044618355246
 
 #ifdef TIMER
     double us = stoptimer_us();
@@ -162,9 +142,9 @@ int main(void)
     // True in the limit: p2 = p1 * pow(CONWAY, N2 - N1)
     // => log(p2 / p1) = (N2 - N1) * log(CONWAY)
     // => CONWAY = exp(log(p2 / p1) / (N2 - N1))
-    // Approximation good to 5 decimals! (rounded)
+    // Approximation good to 5 decimals!
     printf("Conway's Constant : %.9f\n", CONWAY);
-    printf("This approximation: %.9f\n", exp(log((double)p2 / p1) / (N2 - N1)));
+    printf("This approximation: %.9f\n", exp(log((double)p3 / p2) / (N3 - N2)));
 
 #ifdef TIMER
     printf("Time: %.0f us\n", us);
