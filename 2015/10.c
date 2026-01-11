@@ -5,9 +5,9 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    cc -std=c17 -Wall -Wextra -pedantic 10.c
+ *    cc -std=c17 -Wall -Wextra -pedantic 10.c -lm
  * Enable timer:
- *    cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 10.c
+ *    cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 10.c -lm
  * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
@@ -16,32 +16,18 @@
  *     Raspberry Pi 5 (2.4 GHz)      : 19.0  ms
  */
 
-// Sequence info: https://en.wikipedia.org/wiki/Look-and-say_sequence
-
 #include <stdio.h>
+#include <math.h>  // exp, log
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
-// Personalised input from AoC, element = Po
-// https://en.wikipedia.org/wiki/Look-and-say_sequence#Cosmological_decay
+// My input: element Po
 static const char seed[] = "1113222113";
 
-// Problem parameters part 1 & 2
-#define ITER1  40
-#define ITER2  50
-
-// https://www.wolframalpha.com/input/?i=conway%27s+constant
-#define CONWAY 1.303577269034
-
-// Smallest size enough for ITER2=50: floor(CC^57)=3654234
-// This version ceil(CC^58)=4763577, which is fine too
-// size_t maxlen = (size_t)(ceil(pow(CONWAY, ITER2 + floor(log(len) / log(CONWAY)))));
-#define SIZE (4 << 20)
-
-// Back & forth look and say sequences, start with a, sequence to b, back to a etc.
-static char a[SIZE];
-static char b[SIZE];
+// Iteration (decay) steps parts 1 and 2
+#define N1 40
+#define N2 50
 
 // https://en.wikipedia.org/wiki/Look-and-say_sequence#Cosmological_decay
 //  0: Po
@@ -60,6 +46,17 @@ static char b[SIZE];
 // 13: Tb   .Sm      .K .Pm.Sn.H .Dy.Al.Ho.Pa.H .Ca.Co.Nd.Ne.Tb   .Sm      .K .Ra.H .K .Cu.Cl.Lu.Th.H .K .Ta
 // 14: Ho.Gd.Pm.Ca.Zn.Ar.Nd.In.H .Tb.Mg.Dy.Th.H .K .Fe.Pr.F .Ho.Gd.Pm.Ca.Zn.Ar.Fr.H .Ar.Ni.S .Yb.Ac.H .Ar.Hf.Pa.H .Ca.W
 //     etc.
+
+// https://www.wolframalpha.com/input/?i=conway%27s+constant
+#define CONWAY 1.303577269034
+
+// Conway's constant is limit of growth factor between successive lengths
+// so for L(0) = 10, L(50) ~= 10 * CC^50 ~= 5712667
+#define SIZE (1 << 22)  // 4 * 1024 * 1024 = 4194304 is good enough for my input
+
+// Back & forth look-and-say sequences, start with a, sequence to b, back to a, etc.
+static char a[SIZE];
+static char b[SIZE];
 
 static void looksay(const char *const a, char *const b, int *const len)
 {
@@ -90,23 +87,29 @@ int main(void)
     starttimer();
 #endif
 
+    // Strcpy and replace chars by numerical values
     int len = sizeof seed - 1;  // array length - NUL terminator
-
-    // Replace chars by numerical values
     for (int i = 0; i < len; ++i)
         a[i] = seed[i] - '0';
 
-    int p1 = looksaytwice(a, b, &len, 0, ITER1);
+    int p1 = looksaytwice(a, b, &len, 0, N1);
     printf("Part 1: %d\n", p1);  // 252594
 
-    int p2 = looksaytwice(a, b, &len, ITER1, ITER2);
+    int p2 = looksaytwice(a, b, &len, N1, N2);
     printf("Part 2: %d\n", p2);  // 3579328
 
+#ifdef TIMER
+    double us = stoptimer_us();
+#endif
+
+    // True in the limit: p2 = p1 * pow(CONWAY, N2 - N1)
+    // => log(p2 / p1) = (N2 - N1) * log(CONWAY)
+    // => CONWAY = exp(log(p2 / p1) / (N2 - N1))
     // Approximation good to 5 decimals (rounded)
-    // printf("Conway's Constant : %.9f\n", CONWAY);
-    // printf("This approximation: %.9f\n", exp((log(p2) - log(p1)) / (ITER2 - ITER1)));
+    printf("Conway's Constant : %.9f\n", CONWAY);
+    printf("This approximation: %.9f\n", exp(log((double)p2 / p1) / (N2 - N1)));
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+    printf("Time: %.0f us\n", us);
 #endif
 }
