@@ -11,9 +11,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements for parts 1-3:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 13 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 17 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :  ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : 34 µs
+ *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
  */
 
 #include <stdio.h>
@@ -32,7 +32,7 @@ static const char input[] = "1113222113";
 // Decay steps part 1 and 2, and one extra to show off
 #define N1 40
 #define N2 50
-#define N3 100
+#define N3 150
 
 // https://en.wikipedia.org/wiki/Look-and-say_sequence#Cosmological_decay
 #define ELEMENTS 92
@@ -70,7 +70,7 @@ static int name_asc(const void *p, const void *q)
 // 'restrict' = must be non-overlapping arrays
 static void onestep(const int64_t *restrict a, int64_t *restrict b)
 {
-    memset(b, 0, sizeof *b * ELEMENTS);
+    memset(b, 0, sizeof *b * ELEMENTS);  // reset b
     for (int i = 0; i < ELEMENTS; ++i)
         for (int j = 0; j < split[i]; ++j)
             b[decay[i][j]] += a[i];
@@ -131,9 +131,9 @@ int main(void)
     const int64_t p1 = sequence(N1);
     const int64_t p2 = sequence(N2 - N1);
     const int64_t p3 = sequence(N3 - N2);
-    printf("%3d: %"PRId64"\n", N1, p1);  // 252594
-    printf("%3d: %"PRId64"\n", N2, p2);  // 3579328
-    printf("%3d: %"PRId64"\n", N3, p3);  // 2044618355246
+    printf("%3d: %"PRId64"\n", N1, p1);  //  40: 252594
+    printf("%3d: %"PRId64"\n", N2, p2);  //  50: 3579328
+    printf("%3d: %"PRId64"\n", N3, p3);  // 150: 1168021999835586648
 
 #ifdef TIMER
     double us = stoptimer_us();
