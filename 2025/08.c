@@ -5,23 +5,24 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    cc -std=c17 -Wall -Wextra -pedantic 08.c
+ *    cc -std=c17 -Wall -Wextra -pedantic ../topn.c 08.c
  * Enable timer:
- *    cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 08.c
+ *    cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c ../topn.c 08.c
  * Get minimum runtime from timer output in bash:
  *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 32 ms
- *     Mac Mini 2020 (M1 3.2 GHz)    :  ? ms
- *     Raspberry Pi 5 (2.4 GHz)      : 92 ms
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 10.3 ms
+ *     Mac Mini 2020 (M1 3.2 GHz)    :    ? ms
+ *     Raspberry Pi 5 (2.4 GHz)      :    ? ms
  */
 
 #include <stdio.h>
-#include <stdlib.h>    // qsort, malloc, free
+#include <stdlib.h>    // malloc, free
 #include <string.h>    // memcpy
 #include <stdint.h>    // int64_t
 #include <inttypes.h>  // PRId64
 #include <stdbool.h>
+#include "../topn.h"   // topn
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
@@ -123,10 +124,12 @@ static bool grow(void **curptr, const size_t ptrsize, int *curcount)
 
 static int createcircuit(const int box0, const int box1)
 {
+#if DEBUG
     if (circuitcount == CIRCUITS) {
         fprintf(stderr, "Error: too many circuits in createcircuit(): %d\n", circuitcount);
         return 0;
     }
+#endif
     const int size = INITCOUNT;
     void *p = malloc(size * sizeof circuit->box[0]);
 #if DEBUG
@@ -219,6 +222,9 @@ static int64_t addpairs(int i, const int end)
         else if (id0 != id1)
             size = mergecircuit(id0, id1);
     }
+#ifdef DEBUG
+    printf("i=%d\n", i - 1);
+#endif
     return size == N ? (int64_t)junctionbox[pair[i - 1].index[0]].x * junctionbox[pair[i - 1].index[1]].x : 0;
 }
 
@@ -240,7 +246,7 @@ int main(void)
         for (int j = i + 1; j < N; ++j)
             pair[m++] = (Pair){sqrdist(i, j), {i, j}};
     // Sort connected pairs by distance ascending
-    qsort(pair, PAIRS, sizeof *pair, cmpdist);
+    topn(pair, 5500, PAIRS, sizeof *pair, cmpdist);  // needed for my input: 5491
     // Add first M connected pairs with shortest distance
     addpairs(0, M);
     {  // Find 3 largest circuit sizes
@@ -248,17 +254,17 @@ int main(void)
         for (int i = 0; i < circuitcount; ++i)
             if (circuit[i].len > 1)
                 circuitsize[k++] = circuit[i].len;
-        qsort(circuitsize, k, sizeof *circuitsize, desc);
+        topn(circuitsize, 3, k, sizeof *circuitsize, desc);
     }
     printf("Part 1: %d\n", circuitsize[0] * circuitsize[1] * circuitsize[2]);  // example: 40, input: 163548
     printf("Part 2: %"PRId64"\n", addpairs(M, PAIRS));  // example: 25272, input: 772452514
 
-    // Cleanup
-    for (int i = 0; i < circuitcount; ++i)
-        free(circuit[i].box);
-
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
 #endif
+
+    // Cleanup
+    for (int i = 0; i < circuitcount; ++i)
+        free(circuit[i].box);
     return 0;
 }
