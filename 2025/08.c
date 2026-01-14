@@ -38,6 +38,7 @@
     #define M 1000  // closest pairs to connect for part 1
 #endif
 #define PAIRS ((N - 1) * N >> 1)  // lower/upper triangle count of N by N matrix
+#define SORTPAIRS 5500  // max needed for my input: 5491
 #define CIRCUITS (N >> 1)  // max needed for my input: 298
 #define INITCOUNT 8
 
@@ -245,8 +246,8 @@ int main(void)
     for (int i = 0, m = 0; i < N - 1; ++i)
         for (int j = i + 1; j < N; ++j)
             pair[m++] = (Pair){sqrdist(i, j), {i, j}};
-    // Sort connected pairs by distance ascending
-    topn(pair, 5500, PAIRS, sizeof *pair, cmpdist);  // needed for my input: 5491
+    // Sort a limited number of connected pairs by distance ascending
+    topn(pair, SORTPAIRS, PAIRS, sizeof *pair, cmpdist);
     // Add first M connected pairs with shortest distance
     addpairs(0, M);
     {  // Find 3 largest circuit sizes
