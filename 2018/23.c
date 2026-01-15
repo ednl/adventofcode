@@ -11,7 +11,7 @@
  *    clang -DTIMER -O3 -march=native 23.c ../startstoptimer.c
  *    gcc   -DTIMER -O3 -march=native 23.c ../startstoptimer.c
  * Get minimum runtime from timer output:
- *     m=999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=9999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Mac Mini 2020 (M1 3.2 GHz)                       : 139 µs
  *     Raspberry Pi 5 (2.4 GHz)                         : 276 µs
