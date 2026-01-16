@@ -54,9 +54,9 @@ grad = np.array([
 print("Part 2:", hiscore(ingredients, [30,30,20,20], grad))  # 1766400
 
 t4 = monotonic_ns()
+print()
 print('Import     : {:5.1f} ms'.format((t1 - t0) / 1_000_000))
 print('Read+parse : {:5.1f} ms'.format((t2 - t1) / 1_000_000))
 print('Part 1     : {:5.1f} ms'.format((t3 - t2) / 1_000_000))
 print('Part 2     : {:5.1f} ms'.format((t4 - t3) / 1_000_000))
-print('Part 1+2   : {:5.1f} ms'.format((t4 - t2) / 1_000_000))
 print('No import  : {:5.1f} ms'.format((t4 - t1) / 1_000_000))
