@@ -1,8 +1,10 @@
+from time import monotonic_ns
 import re
 rule = re.compile(r'^(\w+) can fly (\d+) km/s for (\d+) seconds, but then must rest for (\d+) seconds\.$')
 finish = 2503
 reindeer = []
 
+t0 = monotonic_ns()
 with open('../aocinput/2015-14-input.txt') as f:
     for line in f:
         if m := rule.match(line.strip()):
@@ -33,3 +35,4 @@ for r in reindeer:
     if r['points'] > maxpoints:
         maxpoints = r['points']
 print(maxdist, maxpoints)
+print('Time: {:.1f} ms'.format((monotonic_ns() - t0) / 1000000))

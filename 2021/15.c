@@ -11,7 +11,7 @@
  *    clang -DTIMER -O3 -march=native 15.c ../startstoptimer.c
  *    gcc   -DTIMER -O3 -march=native 15.c ../startstoptimer.c
  * Get minimum runtime:
- *     m=999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=9999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime:
  *     Macbook Pro 2024 (M4 4.4 GHz)                    : 209 ms
  *     Mac Mini 2020 (M1 3.2 GHz)                       :   ? ms
