@@ -23,7 +23,7 @@ int main(void)
     // Part 1: find lowest house number where number of presents >= puzzle input
     for (house = 1; house < N; ++house) {
         if (presents[house] >= P) {
-            printf("Part 1: %u\n", house);
+            printf("Part 1: %u\n", house);  // 776160
             break;
         }
     }
@@ -43,7 +43,7 @@ int main(void)
     // Part 2: find lowest house number where number of presents >= puzzle input
     for (house = 1; house < N; ++house) {
         if (presents[house] >= P) {
-            printf("Part 2: %u\n", house);
+            printf("Part 2: %u\n", house);  // 786240
             break;
         }
     }
