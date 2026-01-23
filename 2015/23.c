@@ -17,6 +17,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>  // atoi
 #include <stdint.h>  // uint32_t, uint64_t
 #ifdef TIMER
     #include "../startstoptimer.h"
