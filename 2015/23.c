@@ -1,91 +1,100 @@
+/**
+ * Advent of Code 2015
+ * Day 23: Opening the Turing Lock
+ * https://adventofcode.com/2015/day/23
+ * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *     cc -std=c17 -Wall -Wextra -pedantic 23.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 23.c
+ * Get minimum runtime from timer output in bash:
+ *     m=9999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) : ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 6.42 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ */
+
 #include <stdio.h>     // fopen, getline, printf
 #include <stdlib.h>    // atoi, free
-#include <stdint.h>    // uint64_t
-#include <inttypes.h>  // PRIu64
-#include "../startstoptimer.h"
+#include <stdint.h>    // int64_t
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
 #define VALIDATE 0
 #define MEMSIZE 64
 
-typedef enum {
-    NOP, INC, HLF, TPL, JMP, JIE, JIO
-} opc_t;
+// JIO = jump if one, JIE = jump if even
+typedef enum opcode {
+    INCB, INC, HLF, TPL, JMP, JIO, JIE
+} OpCode;
 
-typedef enum {
-    A, B, REGSIZE
-} reg_t;
+// Instructions always operate on register A, except INCB
+typedef struct instr {
+    OpCode op;
+    int jmp;
+} Instr;
 
-typedef struct {
-    opc_t opc;
-    reg_t reg;
-    int   jmp;
-} ins_t;
-
-static ins_t mem[MEMSIZE];
+static Instr mem[MEMSIZE];
 static int progsize;
 
-static int parse(const char * const s)
+static int parse(const char *fname)
 {
+    FILE *f = fopen(fname, "r");
+    if (!f)
+        return 0;
     int n = 0;
     char *line = NULL;
     size_t size;
-    FILE *f = fopen(s, "r");
-    if (!f)
-        return 0;
     while (n < MEMSIZE && getline(&line, &size, f) > 1) {
-        opc_t o = NOP;
+        OpCode op;
         switch (line[2]) {
-            case 'c': o = INC; break;
-            case 'f': o = HLF; break;
-            case 'l': o = TPL; break;
-            case 'p': o = JMP; break;
-            case 'e': o = JIE; break;
-            case 'o': o = JIO; break;
+            case 'c': op = line[4] == 'a' ? INC : INCB; break;
+            case 'e': op = JIE; break;
+            case 'f': op = HLF; break;
+            case 'l': op = TPL; break;
+            case 'o': op = JIO; break;
+            case 'p': op = JMP; break;
+            default: return 0;
         }
-        reg_t r = line[4] == 'a' ? A : B;
-        int j = 0;
-        switch (o) {
-            case NOP:
-            case INC:
-            case HLF:
-            case TPL: j = 1; break;
-            case JMP: j = atoi(&line[4]); break;
-            case JIE:
-            case JIO: j = atoi(&line[7]); break;
+        int jmp;
+        // -1 to compensate for ip++
+        switch (op) {
+            case JMP: jmp = atoi(&line[4]) - 1; break;
+            case JIO: /* fallthrough */
+            case JIE: jmp = atoi(&line[7]) - 1; break;
+            default : jmp = 0;
         }
-        mem[n++] = (ins_t){o, r, j};
+        mem[n++] = (Instr){op, jmp};
     }
     fclose(f);
     free(line);
     return n;
 }
 
-static uint64_t run(const unsigned int a)
+static int run(uint64_t a)
 {
-    uint64_t reg[REGSIZE] = {a, 0};
-    int ip = 0;
-    while (ip < progsize) {
-        ins_t    *i = &mem[ip];
-        uint64_t *r = &reg[i->reg];
-        int       j = i->jmp;
-        switch (i->opc) {
-            case INC: *r += 1; break;
-            case HLF: *r /= 2; break;
-            case TPL: *r *= 3; break;
-            case JIE: if (*r  & 1) j = 1; break;
-            case JIO: if (*r != 1) j = 1; break;
-            case NOP:
-            case JMP: break;
+    int b = 0;
+    const Instr *const end = mem + progsize;
+    for (const Instr *ip = mem; ip != end; ++ip)
+        switch (ip->op) {
+            case INCB: b++;     break;
+            case INC : a++;     break;
+            case HLF : a >>= 1; break;
+            case TPL : a *= 3;  break;
+            case JMP : ip += ip->jmp; break;
+            case JIO : if (a == 1)   ip += ip->jmp; break;
+            case JIE : if (!(a & 1)) ip += ip->jmp; break;
         }
-        ip += j;
-    }
-    return reg[B];
+    return b;
 }
 
 #if VALIDATE
-static uint64_t collatz(uint64_t a)
+static int collatz(uint64_t a)
 {
-    uint64_t b = 0;
+    int b = 0;
     while (a > 1) {
         ++b;
         if (a & 1)
@@ -99,14 +108,21 @@ static uint64_t collatz(uint64_t a)
 
 int main(void)
 {
-    starttimer();
     progsize = parse("../aocinput/2015-23-input.txt");
-    printf("Part 1: %"PRIu64"\n", run(0));  // 255
-    printf("Part 2: %"PRIu64"\n", run(1));  // 334
-    printf("Time: %.0f µs\n", stoptimer_us());
-#if VALIDATE
-    printf("Validation: %"PRIu64, collatz((((((((0+1)*3*3*3+1)*3+1)*3+1+1)*3+1+1)*3+1+1)*3+1+1)*3));
-    printf(" %"PRIu64"\n", collatz((((((1*3*3*3*3+1+1)*3+1)*3+1+1)*3+1+1)*3+1)*3*3));
+
+#ifdef TIMER
+    starttimer();
 #endif
-    return 0;
+
+    printf("Part 1: %d\n", run(0));  // 255
+    printf("Part 2: %d\n", run(1));  // 334
+#if VALIDATE
+    printf("Validation: %d %d\n",
+        collatz((((((((0+1)*3*3*3+1)*3+1)*3+1+1)*3+1+1)*3+1+1)*3+1+1)*3),
+        collatz((((((1*3*3*3*3+1+1)*3+1)*3+1+1)*3+1+1)*3+1)*3*3));
+#endif
+
+#ifdef TIMER
+    printf("Time: %.0f ns\n", stoptimer_ns());
+#endif
 }
