@@ -11,7 +11,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=9999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime:
- *     Macbook Pro 2024 (M4 4.4 GHz)       :     ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz)       :  2.23 ms
  *     Mac Mini 2020 (M1 3.2 GHz)          :  3.75 ms
  *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :  5.39 ms
  *     ThinkPad Ubuntu (i5 8250U 1.8 GHz)  :  6.55 ms
