@@ -5,23 +5,28 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 17.c ../combperm.c ../startstoptimer.c
- *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 17.c ../combperm.c ../startstoptimer.c
- * Get minimum runtime:
- *     m=9999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
+ *     cc -std=c17 -Wall -Wextra -pedantic ../combperm.c 17.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c ../combperm.c 17.c
+ * Get minimum runtime from timer output in bash:
+ *     m=9999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime:
- *     Mac Mini 2020 (M1 3.2 GHz)          :  3.78 ms
+ *     Macbook Pro 2024 (M4 4.4 GHz)       :     ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)          :  3.75 ms
  *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :  5.39 ms
  *     ThinkPad Ubuntu (i5 8250U 1.8 GHz)  :  6.55 ms
  *     Raspberry Pi 5 (2.4 GHz)            :  9.41 ms
  *     Raspberry Pi 4 (1.8 GHz)            : 55.4  ms
  */
 
-#include <stdio.h>              // fopen, fclose, fscanf, printf
-#include <stdlib.h>             // qsort
-#include "../combperm.h"        // my own combinations function
-#include "../startstoptimer.h"  // my own timing function
+#include <stdio.h>   // fopen, fclose, fscanf, printf
+#include <stdlib.h>  // qsort
+#include "../combperm.h"  // my own combinations function
+#ifdef TIMER
+    #include "../startstoptimer.h"  // my own timing function
+#endif
 
+#define FNAME  "../aocinput/2015-17-input.txt"
 #define N       20  // number of lines in input file
 #define EGGNOG 150  // total amount of eggnog to put in containers, from puzzle description
 
@@ -31,26 +36,28 @@ static int container[N];
 // Qsort helper function: sort ints ascending
 static int cmp_int_asc(const void *p, const void *q)
 {
-    const int a = *(int *)p;
-    const int b = *(int *)q;
+    const int a = *(const int *)p;
+    const int b = *(const int *)q;
     if (a < b) return -1;
-    if (a > b) return 1;
+    if (a > b) return +1;
     return 0;
 }
 
 int main(void)
 {
-    starttimer();
     // Read input file
-    FILE *f = fopen("../aocinput/2015-17-input.txt", "r");
+    FILE *f = fopen(FNAME, "r");
     if (!f)
         return 1;
     int n = 0;
-    while (n < N && fscanf(f, "%d", &container[n]) == 1)
-        ++n;
+    for (; n < N && fscanf(f, "%d", &container[n]) == 1; ++n);
     fclose(f);
     if (n != N)
         return 2;
+
+#ifdef TIMER
+    starttimer();
+#endif
 
     // Sort containers by size (ascending)
     qsort(container, N, sizeof *container, cmp_int_asc);
@@ -68,10 +75,11 @@ int main(void)
     }
     if (mintake > maxtake)
         return 3;
+    // printf("%d %d\n", mintake, maxtake);  // 4 10
 
     int part1 = 0, part2 = 0, firstbatch = 0;
     for (int k = mintake; k <= maxtake; ++k) {
-        int *index = NULL;
+        const int *index = NULL;
         while ((index = combinations(N, k))) {
             int i = 0, sum = 0;
             while (i < k && sum < EGGNOG)
@@ -87,6 +95,8 @@ int main(void)
         }
     }
     printf("%d %d\n", part1, part2);  // 1304 18
+
+#ifdef TIMER
     printf("Time: %.0f µs\n", stoptimer_us());
-    return 0;
+#endif
 }
