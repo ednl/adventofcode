@@ -31,40 +31,42 @@ static char input[FSIZE];
 // Ref. https://adventofcode.com/2015/day/25
 #define VAL 20151125  // starting value at grid pos (1,1) = index 0
 #define MUL 252533    // multiplier (base of the modular exponentiation)
-#define MOD 33554393  // modulus of the mod. exp.
+#define MOD 33554393  // modulus of the modular exponentiation
 
-// Read unsigned int, advance char pointer
+// Skip to next digit, read unsigned int, advance char pointer
 static int readnum(const char **s)
 {
     int x = 0;
-    while (**s >= '0' && **s <= '9')
-        x = x * 10 + (*(*s)++ & 15);
+    for (; **s && (**s < '0' || **s > '9'); ++(*s));
+    for (; **s >= '0' && **s <= '9'; ++(*s))
+        x = x * 10 + (**s & 15);
     return x;
+}
+
+// In the puzzle, row/col are one-based
+static int getindex(const int row, const int col)
+{
+    const int tri = row + col - 2;  // triangle base is zero-based
+    return col - 1 + tri * (tri + 1) / 2;  // number of spots in de triangle
 }
 
 // Modular exponentiation: calculate remainder r = b^e mod m
 // Ref. https://en.wikipedia.org/wiki/Modular_exponentiation
+// Return u64 instead of u32 to avoid overflow in next calculation
 static uint64_t modpow(uint64_t base, uint64_t exponent, const uint64_t modulus)
 {
     if (modulus == 1)
         return 0;  // shortcut
     if (modulus == 0 || modulus > (UINT64_C(1) << 32))
         return -1;  // error (but also maximum unsigned value)
-    uint64_t r = 1;
+    uint64_t rem = 1;
     base %= modulus;  // now: base <= modulus-1
     for (; exponent; exponent >>= 1) {
         if (exponent & 1)  // current LSB set?
-            r = (r * base) % modulus;  // parentheses for clarity
+            rem = (rem * base) % modulus;  // parentheses for clarity
         base = (base * base) % modulus;  // overflow if base >= 1<<32
     }
-    return r;  // 0 <= r < 1<<32 because modulus <= 1<<32
-}
-
-// row/col are one-based
-static int getindex(const int row, const int col)
-{
-    const int tri = row + col - 2;  // triangle base is zero-based
-    return col - 1 + tri * (tri + 1) / 2;  // number of spots in de triangle
+    return rem;  // 0 <= r < 1<<32 because modulus <= 1<<32
 }
 
 int main(void)
@@ -81,9 +83,7 @@ int main(void)
 
     // Parse input
     const char *c = input;
-    for (; *c < '0' || *c > '9'; ++c);
     const int row = readnum(&c);
-    for (; *c < '0' || *c > '9'; ++c);
     const int col = readnum(&c);
 
     // Part 1
