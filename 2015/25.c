@@ -11,12 +11,12 @@
  * Get minimum runtime from timer output in bash:
  *     m=9999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 0.458 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 0.417 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : 2.96  µs
  */
 
-#include <stdio.h>     // fopen, fclose, FILE
+#include <stdio.h>     // fopen, fclose, fread, FILE
 #include <unistd.h>    // write, STDOUT_FILENO
 #include <stdlib.h>    // div, div_t
 #include <stdint.h>    // uint64_t, UINT64_C
@@ -27,8 +27,8 @@
 // Input file
 #define FNAME "../aocinput/2015-25-input.txt"
 #define FSIZE 100
-#define ROW 80
-#define COL 93
+#define ROW 80  // index of start of row number in input file
+#define COL 93  // index of start of col number in input file
 static char input[FSIZE];
 
 // From puzzle description
@@ -72,19 +72,23 @@ int main(void)
 #endif
 
     // Parse input
-    const uint64_t row = readnum(input + ROW);
-    const uint64_t col = readnum(input + COL);
+    const unsigned row = readnum(input + ROW);
+    const unsigned col = readnum(input + COL);
+
+    // Index of position on triangle grid
+    const unsigned tri = row + col;
+    uint64_t exp = col + (tri * (tri + 1) >> 1);
 
     // https://en.wikipedia.org/wiki/Modular_exponentiation
-    const uint64_t tri = row + col;
-    uint64_t exp = col + (tri * (tri + 1) >> 1);  // index into the triangle
     uint64_t rem = VAL, base = MUL;
     for (; exp; exp >>= 1) {
         if (exp & 1)
             rem = rem * base % MOD;
         base = base * base % MOD;
     }
-    printint(rem);  // 19980801
+
+    // Solution: 19980801
+    printint(rem);
 
 #ifdef TIMER
     printf("Time: %.0f ns\n", stoptimer_ns());
