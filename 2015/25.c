@@ -4,12 +4,16 @@
  * https://adventofcode.com/2015/day/25
  * By: E. Dronkert https://github.com/ednl
  *
- * Compile:
+ * Compile with warnings:
  *     cc -std=c17 -Wall -Wextra -pedantic 25.c
- * Enable timer:
+ * Enable timer with optimisations:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 25.c
+ * Run program:
+ *     ./a.out                  read input file from internal file name
+ *     ./a.out < input.txt      read input file using redirected input
+ *     cat input.txt | ./a.out  read input file using piped input
  * Get minimum runtime from timer output in bash:
- *     m=9999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 0.417 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
@@ -17,7 +21,7 @@
  */
 
 #include <stdio.h>     // fopen, fclose, fread, FILE
-#include <unistd.h>    // write, STDOUT_FILENO
+#include <unistd.h>    // isatty, fileno, write, STDOUT_FILENO
 #include <stdlib.h>    // div, div_t
 #include <stdint.h>    // uint64_t, UINT64_C
 #ifdef TIMER
@@ -26,16 +30,17 @@
 
 // Input file
 #define FNAME "../aocinput/2015-25-input.txt"
-#define FSIZE 100
-#define ROW 80  // index of start of row number in input file
-#define COL 93  // index of start of col number in input file
-static char input[FSIZE];
+#define FSIZE 100      // input file size in bytes, assumes 2x 4-digit numbers
+#define ROW   80       // index of start of row number in input file
+#define COL  (89 + 4)  // same for col, assumes row has 4 digits
 
 // From puzzle description
 // Ref. https://adventofcode.com/2015/day/25
 #define MUL UINT64_C(252533)    // multiplier (base of the modular exponentiation)
 #define VAL UINT64_C(20151125)  // starting value at triangle pos (1,1) = index 0
 #define MOD UINT64_C(33554393)  // modulus of the modular exponentiation
+
+static char input[FSIZE];
 
 // Read unsigned int, minus 1 because row/col are one-based
 static unsigned readnum(const char *s)
@@ -61,11 +66,15 @@ static void printint(unsigned x)
 
 int main(void)
 {
-    // Read input
-    FILE *f = fopen(FNAME, "rb");
-    if (!f) return 1;
-    fread(input, FSIZE, 1, f);
-    fclose(f);
+    if (isatty(fileno(stdin))) {
+        // Read input file from disk
+        FILE *f = fopen(FNAME, "rb");  // fread() requires binary mode
+        if (!f) { fputs("File not found", stderr); return 1; }
+        fread(input, sizeof input, 1, f);  // read whole file at once
+        fclose(f);
+    } else
+        // Read input or example file from pipe or redirected stdin
+        fread(input, sizeof input, 1, stdin);
 
 #ifdef TIMER
     starttimer();
