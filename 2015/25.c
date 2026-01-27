@@ -12,7 +12,7 @@
  *     ./a.out                  read input file from internal file name
  *     ./a.out < input.txt      read input file using redirected input
  *     cat input.txt | ./a.out  read input file using piped input
- * Get minimum runtime from timer output in bash:
+ * Get minimum runtime from timer output in Bash:
  *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 0.417 µs
@@ -20,10 +20,10 @@
  *     Raspberry Pi 5 (2.4 GHz)      : 2.96  µs
  */
 
-#include <stdio.h>     // fopen, fclose, fread, FILE
-#include <unistd.h>    // isatty, fileno, write, STDOUT_FILENO
-#include <stdlib.h>    // div, div_t
-#include <stdint.h>    // uint64_t, UINT64_C
+#include <stdio.h>   // fopen, fclose, fread, FILE
+#include <unistd.h>  // isatty, fileno, write, STDOUT_FILENO
+#include <stdlib.h>  // div, div_t
+#include <stdint.h>  // uint64_t, UINT64_C
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
@@ -51,6 +51,7 @@ static unsigned readnum(const char *s)
     return x - 1;
 }
 
+// Raw number output without printf
 static void printint(unsigned x)
 {
     char buf[sizeof x * 4], *end = buf + sizeof buf, *pc = end;
@@ -84,20 +85,18 @@ int main(void)
     const unsigned row = readnum(input + ROW);
     const unsigned col = readnum(input + COL);
 
-    // Index of position on triangle grid
+    // Index of row/col position on triangle grid
     const unsigned tri = row + col;
     uint64_t exp = col + (tri * (tri + 1) >> 1);
 
     // https://en.wikipedia.org/wiki/Modular_exponentiation
-    uint64_t rem = VAL, base = MUL;
-    for (; exp; exp >>= 1) {
+    uint64_t rem = VAL;
+    for (uint64_t base = MUL; exp; exp >>= 1) {
         if (exp & 1)
             rem = rem * base % MOD;
         base = base * base % MOD;
     }
-
-    // Solution: 19980801
-    printint(rem);
+    printint(rem);  // 19980801
 
 #ifdef TIMER
     printf("Time: %.0f ns\n", stoptimer_ns());
