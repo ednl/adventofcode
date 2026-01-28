@@ -7,29 +7,30 @@
  * Compile with warnings:
  *     cc -std=c17 -Wall -Wextra -pedantic 25.c
  * Compile for speed:
- *     cc -O3 -march=native -mtune=native 25.c
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 25.c
  * Run program:
  *     ./a.out                  read input file from internal file name
  *     ./a.out < input.txt      read input file using redirected input
  *     cat input.txt | ./a.out  read input file using piped input
  * Get minimum runtime from timer output in Bash:
- *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  *     (optionally replace './a.out' with 2nd or 3rd run command above)
- * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 0.417 µs
+ * Minimum runtime measurements including result output:
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 0.326 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : 2.96  µs
+ *     Raspberry Pi 5 (2.4 GHz)      :     ? µs
+ * Minimum runtime measurements NOT including result output:
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 0.037 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :     ? µs
  */
 
-#include <stdio.h>     // fopen, fclose, fread, FILE
+#include <stdio.h>     // fopen, fclose, fread, FILE, fputs, fprintf, stderr
 #include <unistd.h>    // isatty, fileno, write, STDOUT_FILENO
 #include <stdlib.h>    // div, div_t
-#include <stdint.h>    // uint64_t, UINT64_C, int64_t, INT64_C
-#include <inttypes.h>  // PRId64
-#include <time.h>      // clock_gettime, struct timespec, CLOCK_MONOTONIC/_RAW
-
-#ifndef CLOCK_MONOTONIC_RAW
-#define CLOCK_MONOTONIC_RAW CLOCK_MONOTONIC
+#include <stdint.h>    // uint64_t, UINT64_C
+#ifdef TIMER
+    #include "../startstoptimer.h"
 #endif
 
 // Input file
@@ -45,28 +46,6 @@
 #define MOD UINT64_C(33554393)  // modulus of the modular exponentiation
 
 static char input[FSIZE];
-static struct timespec t0, t1;
-
-static void starttimer(void)
-{
-    // Warn on Raspberry Pi if not running at max performance
-    FILE *f = fopen("/sys/devices/system/cpu/cpufreq/policy0/scaling_governor", "r");
-    if (f) {
-        if (fgetc(f) != 'p' || fgetc(f) != 'e')
-            fprintf(stderr,
-                "Warning: CPU not optimised for performance.\n"
-                "  Resolve: echo performance | sudo tee /sys/devices/system/cpu/cpufreq/policy0/scaling_governor\n"
-                "  Setting will be restored to default 'ondemand' at reboot.\n");
-        fclose(f);
-    }
-    clock_gettime(CLOCK_MONOTONIC_RAW, &t0);
-}
-
-static int64_t stoptimer_ns(void)
-{
-    clock_gettime(CLOCK_MONOTONIC_RAW, &t1);
-    return INT64_C(1000000000) * (t1.tv_sec - t0.tv_sec) + (t1.tv_nsec - t0.tv_nsec);
-}
 
 // Read unsigned int, minus 1 because row/col are one-based
 static unsigned readnum(const char *s)
@@ -78,15 +57,18 @@ static unsigned readnum(const char *s)
 }
 
 // Raw number output without printf
-static void printint(unsigned x)
+static void printint(int x)
 {
-    char buf[sizeof x * 4], *end = buf + sizeof buf, *pc = end;
-    *--pc = '\n';
+    char buf[sizeof x * 4];
+    char *end = buf + sizeof buf;
+    char *pc = end;
+    *--pc = '\n';  // terminate with newline
 	do {
         const div_t qr = div(x, 10);
-		*--pc = '0' + qr.rem;  // remainder of negative number is negative
+		*--pc = '0' + qr.rem;  // only works for non-negative x
 		x = qr.quot;
 	} while (x);
+    // write() doesn't guarantee writing everything at once
     for (ssize_t n; pc < end && (n = write(STDOUT_FILENO, pc, end - pc)) != -1; pc += n);
 }
 
@@ -102,7 +84,12 @@ int main(void)
         // Read input or example file from pipe or redirected stdin
         fread(input, sizeof input, 1, stdin);
 
-    starttimer();
+    // Declare result variable outside timing loop
+    volatile uint64_t rem;
+
+#ifdef TIMER
+    starttimer(); for (int i = 0; i < 1000; ++i) {
+#endif
 
     // Parse input
     const unsigned row = readnum(input + ROW);
@@ -113,12 +100,16 @@ int main(void)
     uint64_t exp = col + (tri * (tri + 1) >> 1);
 
     // https://en.wikipedia.org/wiki/Modular_exponentiation
-    uint64_t rem = VAL;
+    rem = VAL;
     for (uint64_t base = MUL; exp; exp >>= 1) {
         if (exp & 1)
             rem = rem * base % MOD;
         base = base * base % MOD;
     }
+
+#ifdef TIMER
+    } fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());
+#endif
+
     printint(rem);  // 19980801
-    printf("Time: %"PRId64" ns\n", stoptimer_ns());
 }
