@@ -15,14 +15,15 @@
  * Get minimum runtime from timer output in Bash:
  *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  *     (optionally replace './a.out' with 2nd or 3rd run command above)
+ *     output redirection is needed to only select the timing info which is printed to stderr
  * Minimum runtime measurements including result output:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 0.326 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
- *     Raspberry Pi 5 (2.4 GHz)      :     ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 326 ns
+ *     Mac Mini 2020 (M1 3.2 GHz)    :     ns
+ *     Raspberry Pi 5 (2.4 GHz)      : 487 ns
  * Minimum runtime measurements NOT including result output:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 0.037 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
- *     Raspberry Pi 5 (2.4 GHz)      :     ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  37 ns
+ *     Mac Mini 2020 (M1 3.2 GHz)    :   ? ns
+ *     Raspberry Pi 5 (2.4 GHz)      : 216 ns
  */
 
 #include <stdio.h>     // fopen, fclose, fread, FILE, fputs, fprintf, stderr
@@ -111,5 +112,6 @@ int main(void)
     } fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());
 #endif
 
+    // Result
     printint(rem);  // 19980801
 }
