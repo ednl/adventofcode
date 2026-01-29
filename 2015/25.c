@@ -26,10 +26,10 @@
  *     Raspberry Pi 5 (2.4 GHz)      : 216 ns
  */
 
-#include <stdio.h>     // fopen, fclose, fread, FILE, fputs, fprintf, stderr
-#include <unistd.h>    // isatty, fileno, write, STDOUT_FILENO
-#include <stdlib.h>    // div, div_t
-#include <stdint.h>    // uint64_t, UINT64_C
+#include <stdio.h>   // fopen, fclose, fread, FILE, fputs, fprintf, stderr
+#include <unistd.h>  // isatty, fileno, write, STDOUT_FILENO
+#include <stdlib.h>  // div, div_t
+#include <stdint.h>  // int64_t, INT64_C
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
@@ -42,22 +42,22 @@
 
 // From puzzle description
 // Ref. https://adventofcode.com/2015/day/25
-#define MUL UINT64_C(252533)    // multiplier (base of the modular exponentiation)
-#define VAL UINT64_C(20151125)  // starting value at triangle pos (1,1) = index 0
-#define MOD UINT64_C(33554393)  // modulus of the modular exponentiation
+#define MUL INT64_C(252533)    // multiplier (base of the modular exponentiation)
+#define VAL INT64_C(20151125)  // starting value at triangle pos (1,1) = index 0
+#define MOD INT64_C(33554393)  // modulus of the modular exponentiation
 
 static char input[FSIZE];
 
 // Read unsigned int, minus 1 because row/col are one-based
-static unsigned readnum(const char *s)
+static int readnum(const char *s)
 {
-    unsigned x = 0;
+    int x = 0;
     while (*s >= '0')
         x = x * 10 + (*s++ & 15);
     return x - 1;
 }
 
-// Raw number output without printf
+// Raw unsigned int output without printf
 static void printint(int x)
 {
     char buf[sizeof x * 4];
@@ -85,24 +85,26 @@ int main(void)
         // Read input or example file from pipe or redirected stdin
         fread(input, sizeof input, 1, stdin);
 
-    // Declare result variable outside timing loop
-    volatile uint64_t rem;
+    // Declare result variable outside timing loop because it's needed after.
+    // volatile not needed to avoid compiler removing code, but with it is faster??
+    volatile int64_t rem;
 
 #ifdef TIMER
     starttimer(); for (int i = 0; i < 1000; ++i) {
 #endif
 
     // Parse input
-    const unsigned row = readnum(input + ROW);
-    const unsigned col = readnum(input + COL);
+    const int row = readnum(input + ROW);
+    const int col = readnum(input + COL);
 
     // Index of row/col position on triangle grid
-    const unsigned tri = row + col;
-    uint64_t exp = col + (tri * (tri + 1) >> 1);
+    const int tri = row + col;
+    int64_t exp = col + (tri * (tri + 1) >> 1);
 
     // https://en.wikipedia.org/wiki/Modular_exponentiation
     rem = VAL;
-    for (uint64_t base = MUL; exp; exp >>= 1) {
+    int64_t base = MUL;
+    for (; exp; exp >>= 1) {
         if (exp & 1)
             rem = rem * base % MOD;
         base = base * base % MOD;
