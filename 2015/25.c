@@ -16,18 +16,14 @@
  *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  *     (optionally replace './a.out' with 2nd or 3rd run command above)
  *     output redirection is needed to only select the timing info which is printed to stderr
- * Minimum runtime measurements including result output:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 326 ns
- *     Mac Mini 2020 (M1 3.2 GHz)    :     ns
- *     Raspberry Pi 5 (2.4 GHz)      : 487 ns
- * Minimum runtime measurements NOT including result output:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  37 ns
+ * Minimum runtime measurements including result output but redirected to /dev/null in shell:
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  89 ns
  *     Mac Mini 2020 (M1 3.2 GHz)    :   ? ns
- *     Raspberry Pi 5 (2.4 GHz)      : 216 ns
+ *     Raspberry Pi 5 (2.4 GHz)      :   ? ns
  */
 
-#include <stdio.h>   // fopen, fclose, fread, FILE, fputs, fprintf, stderr
-#include <unistd.h>  // isatty, fileno, write, STDOUT_FILENO
+#include <stdio.h>   // fopen, fclose, fread, FILE, fputs, fprintf, stdin, stderr
+#include <unistd.h>  // isatty, fileno
 #include <stdlib.h>  // div, div_t
 #include <stdint.h>  // int64_t, INT64_C
 #ifdef TIMER
@@ -57,22 +53,6 @@ static int readnum(const char *s)
     return x - 1;
 }
 
-// Raw unsigned int output without printf
-static void printint(int x)
-{
-    char buf[sizeof x * 4];
-    char *end = buf + sizeof buf;
-    char *pc = end;
-    *--pc = '\n';  // terminate with newline
-	do {
-        const div_t qr = div(x, 10);
-		*--pc = '0' + qr.rem;  // only works for non-negative x
-		x = qr.quot;
-	} while (x);
-    // write() doesn't guarantee writing everything at once
-    for (ssize_t n; pc < end && (n = write(STDOUT_FILENO, pc, end - pc)) != -1; pc += n);
-}
-
 int main(void)
 {
     if (isatty(fileno(stdin))) {
@@ -84,10 +64,6 @@ int main(void)
     } else
         // Read input or example file from pipe or redirected stdin
         fread(input, sizeof input, 1, stdin);
-
-    // Declare result variable outside timing loop because it's needed after.
-    // volatile not needed to avoid compiler removing code, but with it is faster??
-    volatile int64_t rem;
 
 #ifdef TIMER
     starttimer(); for (int i = 0; i < 1000; ++i) {
@@ -102,18 +78,16 @@ int main(void)
     int64_t exp = col + (tri * (tri + 1) >> 1);
 
     // https://en.wikipedia.org/wiki/Modular_exponentiation
-    rem = VAL;
     int64_t base = MUL;
+    volatile int64_t rem = VAL;  // volatile not needed but is faster??
     for (; exp; exp >>= 1) {
         if (exp & 1)
             rem = rem * base % MOD;
         base = base * base % MOD;
     }
+    printf("%d\n", (int)rem);  // 19980801
 
 #ifdef TIMER
     } fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());
 #endif
-
-    // Result
-    printint(rem);  // 19980801
 }
