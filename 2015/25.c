@@ -13,13 +13,13 @@
  *     ./a.out < input.txt      read input file using redirected input
  *     cat input.txt | ./a.out  read input file using piped input
  * Get minimum runtime from timer output in Bash:
- *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  *     (optionally replace './a.out' with 2nd or 3rd run command above)
- *     output redirection is needed to only select the timing info which is printed to stderr
- * Minimum runtime measurements including result output but redirected to /dev/null in shell:
+ *     output redirection is needed to only select the timing info, which is printed to stderr
+ * Minimum runtime measurements including result output which is redirected to /dev/null in shell:
  *     Macbook Pro 2024 (M4 4.4 GHz) :  89 ns
  *     Mac Mini 2020 (M1 3.2 GHz)    :   ? ns
- *     Raspberry Pi 5 (2.4 GHz)      :   ? ns
+ *     Raspberry Pi 5 (2.4 GHz)      : 309 ns
  */
 
 #include <stdio.h>   // fopen, fclose, fread, FILE, fputs, fprintf, stdin, stderr
