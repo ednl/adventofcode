@@ -5,19 +5,15 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=c17 -Wall -Wextra -pedantic 04.c
- *    gcc   -std=c17 -Wall -Wextra -pedantic 04.c
+ *    cc -std=c17 -Wall -Wextra -pedantic 04.c
  * Enable timer:
- *    clang -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 04.c
- *    gcc   -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 04.c
+ *    cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 04.c
  * Get minimum runtime from timer output:
  *     n=1000;m=999999;for((i=0;i<n;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i/$n)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz)                    : 170 ms
- *     Mac Mini 2020 (M1 3.2 GHz)                       : 335 ms
- *     Raspberry Pi 5 (2.4 GHz)                         : 533 ms
- *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz)         :   ? ms
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :   ? ms
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 170 ms
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 335 ms
+ *     Raspberry Pi 5 (2.4 GHz)      : 533 ms
  */
 
 #if __APPLE__
@@ -207,11 +203,12 @@ int main(void)
 #ifdef TIMER
     starttimer();
 #endif
+
     const int threads = coresavail(1, MAXTHREADS);
     printf("Part 1: %u\n", run(1, threads));  // 346386
     printf("Part 2: %u\n", run(2, threads));  // 9958218
+
 #ifdef TIMER
     printf("Time: %.0f ms\n", stoptimer_ms());
 #endif
-    return 0;
 }
