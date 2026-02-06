@@ -17,14 +17,13 @@
  *     (optionally replace './a.out' with 2nd or 3rd run command above)
  *     output redirection is needed to only select the timing info, which is printed to stderr
  * Minimum runtime measurements including result output which is redirected to /dev/null in shell:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  89 ns
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  89 ns  (110 ns for 'rem' non-volatile)
  *     Mac Mini 2020 (M1 3.2 GHz)    :   ? ns
  *     Raspberry Pi 5 (2.4 GHz)      : 309 ns
  */
 
 #include <stdio.h>   // fopen, fclose, fread, FILE, fputs, fprintf, stdin, stderr
 #include <unistd.h>  // isatty, fileno
-#include <stdlib.h>  // div, div_t
 #include <stdint.h>  // int64_t, INT64_C
 #ifdef TIMER
     #include "../startstoptimer.h"
@@ -88,6 +87,6 @@ int main(void)
     printf("%d\n", (int)rem);  // 19980801
 
 #ifdef TIMER
-    } fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());
+    } fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // loop 1000x: us->ns
 #endif
 }
