@@ -17,9 +17,9 @@
  *     (optionally replace './a.out' with 2nd or 3rd run command above)
  *     output redirection is needed to only select the timing info, which is printed to stderr
  * Minimum runtime measurements including result output which is redirected to /dev/null in shell:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  89 ns  (110 ns for 'rem' non-volatile)
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  89 ns (110 ns for 'rem' non-volatile)
  *     Mac Mini 2020 (M1 3.2 GHz)    :   ? ns
- *     Raspberry Pi 5 (2.4 GHz)      : 309 ns
+ *     Raspberry Pi 5 (2.4 GHz)      : 309 ns (315 ns for 'rem' non-volatile)
  */
 
 #include <stdio.h>   // fopen, fclose, fread, FILE, fputs, fprintf, stdin, stderr
