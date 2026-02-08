@@ -17,7 +17,7 @@
  *     (optionally replace './a.out' with 2nd or 3rd run command above)
  *     output redirection is needed to only select the timing info, which is printed to stderr
  * Minimum runtime measurements including result output which is redirected to /dev/null in shell:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  93 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  92 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :   ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : 401 µs
  */
@@ -42,7 +42,7 @@
 #define NAMELEN  64  // needed for my input: 56
 #define CHKSUMLEN 5  // always 5
 
-// Assumes little-endian system
+// Assumes little-endian system for sorting first by .count then .bin
 typedef union hist {
     int16_t val;
     struct { int8_t bin, count; };
@@ -51,19 +51,23 @@ typedef union hist {
 static char input[LINES][LINELEN];
 static Hist hist[ALPHLEN];
 
-// Sort by count descending, letter ascending
+// Sort combined value descending
+// .count is MSB so is the main sort
+// .bin is LSB, has a-z reversed => ascending for equal .count
 static int int16_desc(const void *p, const void *q)
 {
     const int16_t a = *(const int16_t *)p;
     const int16_t b = *(const int16_t *)q;
-    if (a > b) return -1;
+    if (a > b) return -1;  // descending
     if (a < b) return +1;
     return 0;
 }
 
-static char caesar(const char encrypted, const int decyphershift)
+// Caesar cipher
+// https://en.wikipedia.org/wiki/Caesar_cipher
+static char caesar(const char encrypted, const int deciphershift)
 {
-    return 'a' + (encrypted - 'a' + decyphershift) % ALPHLEN;
+    return 'a' + (encrypted - 'a' + deciphershift) % ALPHLEN;
 }
 
 int main(void)
@@ -90,7 +94,7 @@ int main(void)
 
         // Reset histogram array
         for (int i = 0; i < ALPHLEN; ++i)
-            hist[i] = (Hist){(ALPHLEN - 1) - i};  // sorting value of bin i = 25-i, to turn desc into asc
+            hist[i] = (Hist){(ALPHLEN - 1) - i};  // reverse labels for .bin to sort asc
 
         // Letter frequencies
         for (; *s >= 'a' || *s == '-'; ++s)
@@ -104,23 +108,22 @@ int main(void)
         topn(hist, CHKSUMLEN, ALPHLEN, sizeof *hist, int16_desc);
 
         // Compare checksum to the 5 most frequent letters
+        // skip 3 digits + '['
+        // labels for .bin are reversed to sort asc
         int match = 0;
         for (s += 4; match < CHKSUMLEN && *s == 'z' - hist[match].bin; ++s, ++match);
 
-        // If valid checksum then sum Sector ID and decrypt name
+        // If valid checksum then sum Sector ID and look for "northpole" in decrypted name
         if (match == CHKSUMLEN) {
             // Part 1
             const int sectorid = (*id & 15) * 100 + (*(id + 1) & 15) * 10 + (*(id + 2) & 15);
             sectorsum += sectorid;
             // Part 2
             const char c = caesar(*name, sectorid);
-            if (c == 'n') {
+            if (c == 'n') {  // name we're looking for is the only one starting with 'n'
                 printf("Part 2: %d (%c", sectorid, c);  // 501 (northpole object storage)
                 for (++name; name < id - 1; ++name)
-                    if (*name != '-')
-                        putchar(caesar(*name, sectorid));
-                    else
-                        putchar(' ');
+                    putchar(*name != '-' ? caesar(*name, sectorid) : ' ');
                 puts(")");
             }
         }
