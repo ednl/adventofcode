@@ -1,87 +1,133 @@
+/**
+ * Advent of Code 2016
+ * Day 4: Security Through Obscurity
+ * https://adventofcode.com/2016/day/4
+ * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile with warnings:
+ *     cc -std=c17 -Wall -Wextra -pedantic ../topn.c 04.c
+ * Compile for speed, with timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c ../topn.c 04.c
+ * Run program:
+ *     ./a.out                  read input file from internal file name
+ *     ./a.out < input.txt      read input file using redirected input
+ *     cat input.txt | ./a.out  read input file using piped input
+ * Get minimum runtime from timer output in bash:
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     (optionally replace './a.out' with 2nd or 3rd run command above)
+ *     output redirection is needed to only select the timing info, which is printed to stderr
+ * Minimum runtime measurements including result output which is redirected to /dev/null in shell:
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  93 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :   ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
+ */
+
 #include <stdio.h>
-#include <stdlib.h>  // qsort
+#include <unistd.h>  // isatty, fileno
+#include <stdint.h>  // int16_t, int8_t
+#include "../topn.h"
+#ifdef TIMER
+    #include "../startstoptimer.h"
+    #define LOOP 1000
+#endif
 
-#define ALPH_LEN    26
-#define NAME_LEN    80
-#define NAME_FMT   "80"
-#define CHKSUM_LEN   5
-#define CHKSUM_FMT  "5"
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
 
-static char name[NAME_LEN + 1] = {0};
-static char checksum[CHKSUM_LEN + 1] = {0};
+#define FNAME "../aocinput/2016-04-input.txt"
+#define LINES 1024  // needed for my input: 935
+#define LINELEN 80  // needed for my input: 66+2=68
 
-typedef struct {
-    int count;
-    char letter;
-} AlphHist;
-static AlphHist hist[ALPH_LEN] = {0};
+#define ALPHLEN ('z' - 'a' + 1)
+#define NAMELEN  64  // needed for my input: 56
+#define CHKSUMLEN 5  // always 5
+
+// Assumes little-endian system
+typedef union hist {
+    int16_t val;
+    struct { int8_t bin, count; };
+} Hist;
+
+static char input[LINES][LINELEN];
+static Hist hist[ALPHLEN];
 
 // Sort by count descending, letter ascending
-static int cmphist(const void *a, const void *b)
+static int int16_desc(const void *p, const void *q)
 {
-    const AlphHist *h1 = (const AlphHist*)a;
-    const AlphHist *h2 = (const AlphHist*)b;
-    const int countdiff = h2->count - h1->count;  // safe because INT_MIN is not present
-    if (!countdiff)
-        return h1->letter - h2->letter;  // alphabetically if same frequency
-    return countdiff;
+    const int16_t a = *(const int16_t *)p;
+    const int16_t b = *(const int16_t *)q;
+    if (a > b) return -1;
+    if (a < b) return +1;
+    return 0;
+}
+
+static char caesar(const char encrypted, const int decyphershift)
+{
+    return 'a' + (encrypted - 'a' + decyphershift) % ALPHLEN;
 }
 
 int main(void)
 {
-    FILE *f = fopen("../aocinput/2016-04-input.txt", "r");
-    if (!f)
-        return 1;
+    int lines = 0;
+    if (isatty(fileno(stdin))) {
+        // Read lines of input file from disk
+        FILE *f = fopen(FNAME, "r");
+        if (!f) { fprintf(stderr, "File not found: "FNAME"\n"); return 1; }
+        for (; lines < LINES && fgets(&input[lines][0], LINELEN, f); ++lines);
+        fclose(f);
+    } else
+        // Read lines of input or example file from pipe or redirected stdin
+        for (; lines < LINES && fgets(&input[lines][0], LINELEN, stdin); ++lines);
 
-    int i, n, sectorid, sectorsum = 0;
-    while (fscanf(f, "%"NAME_FMT"[-a-z]%n%d[%"CHKSUM_FMT"s] ", name, &n, &sectorid, checksum) == 3)
-    {
+#ifdef TIMER
+    starttimer(); for (int loop = 0; loop < LOOP; ++loop) {
+#endif
+
+    int sectorsum = 0;
+    for (int line = 0; line < lines; ++line) {
+        const char *name = &input[line][0];
+        const char *s = name;
+
         // Reset histogram array
-        for (int j = 0; j < ALPH_LEN; ++j)
-            hist[j] = (AlphHist){0, 'a' + (char)j};
+        for (int i = 0; i < ALPHLEN; ++i)
+            hist[i] = (Hist){(ALPHLEN - 1) - i};  // sorting value of bin i = 25-i, to turn desc into asc
 
-        // Delete last char which is always a dash
-        if (n > 0)
-            name[--n] = '\0';
+        // Letter frequencies
+        for (; *s >= 'a' || *s == '-'; ++s)
+            if (*s != '-')
+                hist[*s - 'a'].count++;  // count the letters in bins from 0=a to 25=z
 
-        // Count letter occurences in the name
-        for (int j = 0; j < n; ++j)
-        {
-            int bin = name[j] - 'a';
-            if (bin >= 0 && bin < ALPH_LEN)
-                hist[bin].count++;  // count the letters
-        }
+        // Remember start of Sector ID
+        const char *const id = s;
 
         // Sort histogram
-        // Because qsort sorts in place, hist needs to be a struct
-        // to be able to track the letter as well as its frequency
-        qsort(hist, ALPH_LEN, sizeof(AlphHist), cmphist);
+        topn(hist, CHKSUMLEN, ALPHLEN, sizeof *hist, int16_desc);
 
         // Compare checksum to the 5 most frequent letters
-        i = 0;
-        while (i < CHKSUM_LEN && checksum[i] == hist[i].letter)
-            ++i;
+        int match = 0;
+        for (s += 4; match < CHKSUMLEN && *s == 'z' - hist[match].bin; ++s, ++match);
 
-        // If it's a valid checksum then sum the Sector ID and decrypt the name
-        if (i == CHKSUM_LEN) {
+        // If valid checksum then sum Sector ID and decrypt name
+        if (match == CHKSUMLEN) {
+            // Part 1
+            const int sectorid = (*id & 15) * 100 + (*(id + 1) & 15) * 10 + (*(id + 2) & 15);
             sectorsum += sectorid;
-            for (int j = 0; j < n; ++j) {
-                if (name[j] == '-')
-                    name[j] = ' ';
-                else
-                    name[j] = 'a' + (name[j] - 'a' + sectorid) % ALPH_LEN;
+            // Part 2
+            const char c = caesar(*name, sectorid);
+            if (c == 'n') {
+                printf("Part 2: %d (%c", sectorid, c);  // 501 (northpole object storage)
+                for (++name; name < id - 1; ++name)
+                    if (*name != '-')
+                        putchar(caesar(*name, sectorid));
+                    else
+                        putchar(' ');
+                puts(")");
             }
-            printf("%d : %s\n", sectorid, name);
         }
     }
-    fclose(f);
+    printf("Part 1: %d\n", sectorsum);  // 137896
 
-    // Solution (print to stderr to avoid grep for part 2)
-    fprintf(stderr, "Part 1: %d\n", sectorsum);  // 137896
-
-    // Part 2 is "the Sector ID of the room where North Pole objects are stored"
-    // so can probably be found by, e.g.: ./a.out | fgrep north
-    // => Part 2: 501
-
-    return 0;
+#ifdef TIMER
+    } fprintf(stderr, "Time: %.0f us\n", stoptimer_ms()); // loop 1000x: ms=µs
+#endif
 }
