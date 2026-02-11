@@ -4,25 +4,16 @@
  * https://adventofcode.com/2016/day/11
  * By: E. Dronkert https://github.com/ednl
  *
- * Benchmark on an iMac (Late 2013, 3.2 GHz quad-core Core i5 "Haswell"),
- * compiler Apple clang 12.0.0 with -O3 -march=native:
- *
- *     $ hyperfine -N -w 100 -r 500 ./a.out
- *     Benchmark 1: ./a.out
- *       Time (mean ± σ):      11.2 ms ±   0.4 ms    [User: 9.6 ms, System: 0.7 ms]
- *       Range (min … max):    10.4 ms …  13.1 ms    500 runs
- *
- * Benchmark on a Raspberry Pi 4, compiler Debian gcc 10.2.1-6 with -O3 -march=native
- * and the CPU in performance mode:
- *
- *     echo performance | sudo tee /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
- *     (to reset, replace performance with ondemand)
- *     /boot/config.txt: arm_boost=1, no overclock
- *
- *     $ hyperfine -N -w 50 -r 200 ./a.out
- *     Benchmark 1: ./a.out
- *       Time (mean ± σ):      36.4 ms ±   0.4 ms    [User: 34.9 ms, System: 1.2 ms]
- *       Range (min … max):    35.9 ms …  37.9 ms    200 runs
+ * Compile with warnings:
+ *     cc -std=c17 -Wall -Wextra -pedantic 11.c
+ * Compile for speed, with timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 11.c
+ * Get minimum runtime from timer output in bash:
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements including result output which is redirected to /dev/null in shell:
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  3.64 ms
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  ?    ms
+ *     Raspberry Pi 5 (2.4 GHz)      :  ?    ms
  */
 
 #include <stdio.h>
@@ -30,7 +21,9 @@
 #include <string.h>  // memmove
 #include <stdint.h>  // uint8_t, uint32_t
 #include <stdbool.h>
-
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 #define DEBUG 0
 
 #define FLOORS     4  // floors numbered [0..3] = 2 bits per number
@@ -151,7 +144,7 @@ static bool binsert(const uint32_t k, uint32_t *a, size_t *len, const size_t siz
 }
 
 // Dequeue = pop off the tail of the queue
-static bool deq(queue_t * const q, State * const val)
+static bool deq(queue_t *const q, State *const val)
 {
     if (!q || !q->len)
         return false;
@@ -162,7 +155,7 @@ static bool deq(queue_t * const q, State * const val)
 }
 
 // Enqueue = push onto the head of the queue
-static bool enq(queue_t * const q, const State val)
+static bool enq(queue_t *const q, const State val)
 {
     if (!q || q->len == QSIZE) {
         putchar('q');  // major error
@@ -336,7 +329,14 @@ static uint8_t solve(const int part)
 
 int main(void)
 {
-    for (int i = 0; i < 3; ++i)
+#ifdef TIMER
+    starttimer();
+#endif
+
+    for (int i = 1; i < 3; ++i)
         printf("Part %d: %hhu\n", i, solve(i));  // 11, 31, 55
-    return 0;
+
+#ifdef TIMER
+    printf("Time: %.0f us\n", stoptimer_us());
+#endif
 }
