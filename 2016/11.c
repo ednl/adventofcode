@@ -32,24 +32,24 @@
 #define QMASK (QSIZE - 1)  // QSIZE must be power of 2 => mask of all ones
 #define SSIZE   4096  // actually needed for my input: 50, 1150, 3869
 
-typedef struct {
+typedef struct pair {
     uint8_t generator, microchip;  // floor numbers
 } Pair;
 
 // lowest = lowest floor number with any device
 // pair[0..diff-1]: gen and mic are on different floors
 // pair[diff..elms-1]: gen and mic are on the same floor
-typedef struct {
+typedef struct state {
     Pair pair[MAXELMS];
     uint8_t elevator, step, lowest, diff;
 } State;
 
-typedef struct {
+typedef struct queue {
     size_t len, pop, ins;
     State q[QSIZE];
-} queue_t;
+} Queue;
 
-static queue_t queue;
+static Queue queue;
 #if DEBUG
 static size_t qlen;
 #endif
@@ -144,7 +144,7 @@ static bool binsert(const uint32_t k, uint32_t *a, size_t *len, const size_t siz
 }
 
 // Dequeue = pop off the tail of the queue
-static bool deq(queue_t *const q, State *const val)
+static bool deq(Queue *const q, State *const val)
 {
     if (!q || !q->len)
         return false;
@@ -155,7 +155,7 @@ static bool deq(queue_t *const q, State *const val)
 }
 
 // Enqueue = push onto the head of the queue
-static bool enq(queue_t *const q, const State val)
+static bool enq(Queue *const q, const State val)
 {
     if (!q || q->len == QSIZE) {
         putchar('q');  // major error
