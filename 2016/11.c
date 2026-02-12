@@ -333,8 +333,8 @@ int main(void)
     starttimer();
 #endif
 
-    for (int i = 1; i < 3; ++i)
-        printf("Part %d: %hhu\n", i, solve(i));  // 11, 31, 55
+    // printf("Example: %hhu\n", solve(0));  // example: 11
+    printf("%hhu %hhu\n", solve(1), solve(2));  // 31 55
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
