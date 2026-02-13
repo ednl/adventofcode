@@ -44,9 +44,21 @@ static Assembunny mem[MEMSIZE];
 static int64_t reg[REGCOUNT];
 static int memsize, ip;
 
+// n'th Fibonacci number from golden ratio approximation
 static int64_t fib(const int n)
 {
     return llround(pow(PHI, n) / SQRT5);
+}
+
+// n'th Fibonacci number from iteration
+static int64_t fib_it(int n)
+{
+    int64_t a = 0, b = 1;
+    for (; n > 1; n -= 2) {
+        a += b;
+        b += a;
+    }
+    return n ? b : a;
 }
 
 // reg d is countdown for consecutive Fibonacci numbers in reg a
