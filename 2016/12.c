@@ -5,22 +5,22 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile with warnings:
- *     cc -std=c17 -Wall -Wextra -pedantic 12.c -lm
+ *     cc -std=c17 -Wall -Wextra -pedantic 12.c
  * Compile for speed, with timer:
- *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 12.c -lm
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 12.c
  * Get minimum runtime from timer output in bash:
  *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements including result output:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  2.21 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :  ?    µs
- *     Raspberry Pi 5 (2.4 GHz)      :  ?    µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 2.21 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 3.17 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ?    µs
  */
 
 #include <stdio.h>
-#include <stdint.h>    // int64_t
-#include <inttypes.h>  // PRId64
-#include <string.h>    // memset
-#include <math.h>      // pow, llround
+#include <string.h>  // memset
+// #include <math.h>  // pow, round (not needed because iterative is faster)
+// #define PHI   1.618033988749894
+// #define SQRT5 2.23606797749979
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
@@ -28,8 +28,6 @@
 #define FNAME "../aocinput/2016-12-input.txt"
 #define MEMSIZE 32  // needed for my input: 23
 #define REGCOUNT 4
-#define PHI   1.618033988749894
-#define SQRT5 2.23606797749979
 
 typedef enum op {
     NOP, INC, DEC, STO, CPY, JMP, JNZ, FIB
@@ -41,19 +39,13 @@ typedef struct assembunny {
 } Assembunny;
 
 static Assembunny mem[MEMSIZE];
-static int64_t reg[REGCOUNT];
+static int reg[REGCOUNT];
 static int memsize, ip;
 
-// n'th Fibonacci number from golden ratio approximation
-static int64_t fib(const int n)
-{
-    return llround(pow(PHI, n) / SQRT5);
-}
-
 // n'th Fibonacci number from iteration
-static int64_t fib_it(int n)
+static int fib(int n)
 {
-    int64_t a = 0, b = 1;
+    int a = 0, b = 1;
     for (; n > 1; n -= 2) {
         a += b;
         b += a;
@@ -61,10 +53,13 @@ static int64_t fib_it(int n)
     return n ? b : a;
 }
 
-// reg d is countdown for consecutive Fibonacci numbers in reg a
-// reg a goes: 1,2,3,5,... so starts with Fib[2] (skips Fib[0]=0, Fib[1]=1)
-// which means reg d starts with n-2 for n'th Fib number ending up in reg a
-// => instructions in mem[9..15] can be replaced by: a=fib(d+2), jmp +6
+// n'th Fibonacci number from golden ratio approximation
+// not needed because iterative is faster
+// static int fib(const int n)
+// {
+//     return (int)round(pow(PHI, n) / SQRT5);
+// }
+
 static int parse(void)
 {
     FILE *f = fopen(FNAME, "r");
@@ -102,7 +97,11 @@ static int parse(void)
         }
     }
     fclose(f);
-    // Reverse engineered
+    // Reverse engineered from input file
+    // reg d is countdown for consecutive Fibonacci numbers in reg a
+    // reg a goes: 1,2,3,5,... so starts with Fib[2] (skips Fib[0]=0, Fib[1]=1)
+    // which means reg d starts with n-2 for n'th Fib number ending up in reg a
+    // => instructions in mem[9..15] can be replaced by: a=fib(d+2), jmp +6
     mem[ 9] = (Assembunny){FIB, 'd' - 'a', 2};  // a=fib(d+2) (a is implied)
     mem[10] = (Assembunny){JMP, 6, 0};  // jump over old Fib calculation
     return n;
@@ -130,7 +129,7 @@ static void list(void)
 }
 #endif
 
-static int64_t run(const int regc)
+static int run(const int regc)
 {
     memset(reg, 0, sizeof reg);
     reg[2] = regc;
@@ -156,14 +155,10 @@ int main(void)
 #if DEBUG
     list();
 #endif
-
 #ifdef TIMER
     starttimer();
 #endif
-
-    printf("%"PRId64"\n", run(0));  // 318009
-    printf("%"PRId64"\n", run(1));  // 9227663
-
+    printf("%d %d\n", run(0), run(1));  // 318009 9227663
 #ifdef TIMER
     printf("Time: %.0f ns\n", stoptimer_ns());
 #endif
