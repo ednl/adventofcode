@@ -5,9 +5,13 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile with warnings:
- *     cc -std=c17 -Wall -Wextra -pedantic 12.c
+ *     cc -std=c17 -Wall -Wextra -pedantic 12.c -lm
  * Compile for speed, with timer:
- *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 12.c
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 12.c -lm
+ * Compile with warnings, no floating point maths:
+ *     cc -std=c17 -Wall -Wextra -pedantic -DNOFPU 12.c
+ * Compile for speed, with timer, no floating point maths:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c -DNOFPU 12.c
  * Get minimum runtime from timer output in bash:
  *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements with result output but without reading/parsing input file:
@@ -18,9 +22,11 @@
 
 #include <stdio.h>
 #include <string.h>  // memset
-// #include <math.h>  // pow, round (not needed because iterative is faster)
-// #define PHI   1.618033988749894
-// #define SQRT5 2.23606797749979
+#ifndef NOFPU
+    #include <math.h>    // exp, round
+    #define LOGPHI   0.4812118250596029
+    #define LOGSQRT5 0.8047189562170503
+#endif
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
@@ -42,6 +48,7 @@ static Assembunny mem[MEMSIZE];
 static int reg[REGCOUNT];
 static int memsize, ip;
 
+#ifdef NOFPU
 // n'th Fibonacci number from iteration
 static int fib(int n)
 {
@@ -52,13 +59,13 @@ static int fib(int n)
     }
     return n ? b : a;
 }
-
+#else
 // n'th Fibonacci number from golden ratio approximation
-// not needed because iterative is faster
-// static int fib(const int n)
-// {
-//     return (int)round(pow(PHI, n) / SQRT5);
-// }
+static int fib(const int n)
+{
+    return (int)round(exp(LOGPHI * n - LOGSQRT5));
+}
+#endif
 
 static int parse(void)
 {
