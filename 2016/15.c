@@ -114,11 +114,19 @@ int main(void)
     // Part 1
     for (int i = 1; i < n; ++i)
         reduce(&disc[0].rem, &disc[0].size, disc[i].rem, disc[i].size);
-    printf("Part 1: t \u2261 %"PRId64" (mod %"PRId64")\n", disc[0].rem, disc[0].size);  // 400589
+#ifdef DEBUG
+    printf("Part 1: t \u2261 %"PRId64" (mod %"PRId64")\n", disc[0].rem, disc[0].size);  // 400589 (mod 440895)
+#else
+    printf("%"PRId64"\n", disc[0].rem);  // 400589
+#endif
 
     // Part 2: add 1 disc of size 11 at position 0
     reduce(&disc[0].rem, &disc[0].size, rem(n + 1, 0), 11);
-    printf("Part 2: t \u2261 %"PRId64" (mod %"PRId64")\n", disc[0].rem, disc[0].size);  // 3045959
+#ifdef DEBUG
+    printf("Part 2: t \u2261 %"PRId64" (mod %"PRId64")\n", disc[0].rem, disc[0].size);  // 3045959 (mod 4849845)
+#else
+    printf("%"PRId64"\n", disc[0].rem);  // 3045959
+#endif
 
 #ifdef TIMER
     printf("Time: %.0f ns\n", stoptimer_ns());
