@@ -9,7 +9,7 @@
  * Enable timer:
  *     cc -std=gnu17 -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 18.c
  * Get minimum runtime from timer output:
- *     m=9999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 255 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : 462 µs
@@ -23,15 +23,17 @@
     #include "../startstoptimer.h"
 #endif
 
+#define FNAME "../aocinput/2016-18-input.txt"
+#define MAXLEN 128
 #define ROWS1 40
 #define ROWS2 400000
 
-typedef struct u128 {
+typedef struct evenodd128 {
     uint64_t even, odd;
-} u128;
+} EvenOdd128;
 
-static char input[128];
-static u128 traps;
+static char input[MAXLEN + 1];
+static EvenOdd128 traps;
 static uint64_t mask;
 
 static int count(void)
@@ -39,9 +41,9 @@ static int count(void)
     return __builtin_popcountll(traps.even ^ mask) + __builtin_popcountll(traps.odd ^ mask);
 }
 
-static u128 next(void)
+static EvenOdd128 next(void)
 {
-    return (u128){traps.odd ^ (traps.odd >> 1), (traps.even ^ (traps.even << 1)) & mask};
+    return (EvenOdd128){traps.odd ^ (traps.odd >> 1), (traps.even ^ (traps.even << 1)) & mask};
 }
 
 // Fast manual conversion non-negative int->ascii, +newline
@@ -57,20 +59,21 @@ static void print_int(int x)
     fwrite(buf + i, sizeof buf - i, 1, stdout);
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
-    if (isatty(fileno(stdin))) {
-        FILE *f = fopen("../aocinput/2016-18-input.txt", "r");
-        if (!f)
-            return 1;
+    if (argc > 1) {
+        int n = 0;
+        for (; n < MAXLEN && (argv[1][n] == '.' || argv[1][n] == '^'); ++n)
+            input[n] = argv[1][n];
+        if (!n) { fprintf(stderr, "Invalid input: \"%s\"\n", argv[1]); return 1; }
+    } else if (!isatty(fileno(stdin))) {
+        fread(input, sizeof input, 1, stdin);
+    } else {
+        FILE *f = fopen(FNAME, "r");
+        if (!f) { fprintf(stderr, "File not found: "FNAME"\n"); return 1; }
         fread(input, sizeof input, 1, f);
         fclose(f);
-    } else
-        fread(input, sizeof input, 1, stdin);
-
-#ifdef TIMER
-    starttimer();
-#endif
+    }
 
     // '.' = 0x2e, '^' = 0x5e, '\n' = 0x0a
     for (const char *a = input, *b = input + 1; *a & 0x60; a += 2, b += 2) {
@@ -79,8 +82,12 @@ int main(void)
         mask = (mask << 1) | 1;
     }
 
+#ifdef TIMER
+    starttimer();
+#endif
+
     int safe = count();  // row 0
-    for (int i = 0; i < ROWS1 - 1; ++i) {
+    for (int i = 1; i < ROWS1; ++i) {
         traps = next();
         safe += count();
     }
