@@ -1,44 +1,67 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+/**
+ * Advent of Code 2016
+ * Day 21: Scrambled Letters and Hash
+ * https://adventofcode.com/2016/day/21
+ * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile with warnings:
+ *     cc -std=c17 -Wall -Wextra -pedantic 21.c
+ * Compile for speed, with timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 21.c
+ * Get minimum runtime from timer output in bash:
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements including result output:
+ *     Macbook Pro 2024 (M4 4.4 GHz) :    ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 4.08 µs
+ *     Raspberry Pi 5 (2.4 GHz)      :    ? µs
+ */
+
+#include <stdio.h>   // getline
+#include <stdlib.h>  // free
+#include <string.h>  // memcpy, strcpy
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
 #define EXAMPLE 0
 #if EXAMPLE == 1
-#define INPUT "../aocinput/2016-21-example.txt"
-#define N 8
-#define PWD "abcde"
+    #define FNAME "../aocinput/2016-21-example.txt"
+    #define LINES 8
+    #define PWD "abcde"
+    #define LEN 5
 #else
-#define INPUT "../aocinput/2016-21-input.txt"
-#define N 100
-#define PWD "abcdefgh"
-#define PW2 "fbgdceah"
+    #define FNAME "../aocinput/2016-21-input.txt"
+    #define LINES 100
+    #define PWD "abcdefgh"
+    #define PW2 "fbgdceah"
+    #define LEN 8
 #endif
 
-typedef enum {
+typedef enum opcode {
     NOP, MOVU, MOVD, SWAPI, SWAPC, REV, ROTC, ROTR
-} opcode_t;
+} Opcode;
 
-typedef struct {
-    opcode_t op;
+typedef struct cmd {
+    Opcode op;
     int x, y;
-} cmd_t;
+} Cmd;
 
-static cmd_t algo[N];
-
+static Cmd algo[LINES];
 static char pwd[] = PWD;
-static const int len = (int)(sizeof pwd) - 1;
 
 static int parse(void)
 {
-    FILE *f = fopen(INPUT, "r");
-    if (!f)
-        return 0;
+    FILE *f = fopen(FNAME, "r");
+    if (!f) {
+        fprintf(stderr, "FIle not found: "FNAME"\n");
+        return 0;  // zero lines read
+    }
     int n = 0;
     char *line = NULL;
     size_t size;
     ssize_t linelen;
-    while (n < N && (linelen = getline(&line, &size, f)) > 0) {
-        opcode_t op = NOP;
+    for (; n < LINES && (linelen = getline(&line, &size, f)) > 0; ++n) {
+        Opcode op = NOP;
         int x = 0, y = 0;
         if (line[0] == 'm') {         // move position X to position Y
             x = line[14] - '0';
@@ -61,11 +84,11 @@ static int parse(void)
         } else {                      // rotate ...
             switch (line[7]) {
                 case 'b': op = ROTC; x = line[35];               break;  // rotate based on position of letter X
-                case 'l': op = ROTR; y = len - (line[12] - '0'); break;  // rotate left  X steps
+                case 'l': op = ROTR; y = LEN - (line[12] - '0'); break;  // rotate left  X steps
                 case 'r': op = ROTR; y = line[13] - '0';         break;  // rotate right X steps
             }
         }
-        algo[n++] = (cmd_t){op, x, y};
+        algo[n] = (Cmd){op, x, y};
     }
     fclose(f);
     free(line);
@@ -74,40 +97,40 @@ static int parse(void)
 
 static void scramble(int n)
 {
-    char t, tmp[len];
+    char t, tmp[LEN];
     int x, y;
     for (int i = 0; i < n; ++i) {
-        cmd_t *c = &algo[i];
-        switch (c->op) {
+        Cmd *const cmd = &algo[i];
+        switch (cmd->op) {
             case NOP: break;
             case MOVU:
-                t = pwd[c->x];
-                for (int k = c->x; k < c->y; ++k)
+                t = pwd[cmd->x];
+                for (int k = cmd->x; k < cmd->y; ++k)
                     pwd[k] = pwd[k + 1];
-                pwd[c->y] = t;
+                pwd[cmd->y] = t;
                 break;
             case MOVD:
-                t = pwd[c->x];
-                for (int k = c->x; k > c->y; --k)
+                t = pwd[cmd->x];
+                for (int k = cmd->x; k > cmd->y; --k)
                     pwd[k] = pwd[k - 1];
-                pwd[c->y] = t;
+                pwd[cmd->y] = t;
                 break;
             case SWAPI:
-                t = pwd[c->x];
-                pwd[c->x] = pwd[c->y];
-                pwd[c->y] = t;
+                t = pwd[cmd->x];
+                pwd[cmd->x] = pwd[cmd->y];
+                pwd[cmd->y] = t;
                 break;
             case SWAPC:
                 x = 0;
                 y = 0;
-                while (pwd[x] != c->x) ++x;
-                while (pwd[y] != c->y) ++y;
-                pwd[x] = (char)c->y;
-                pwd[y] = (char)c->x;
+                while (pwd[x] != cmd->x) ++x;
+                while (pwd[y] != cmd->y) ++y;
+                pwd[x] = (char)cmd->y;
+                pwd[y] = (char)cmd->x;
                 break;
             case REV:
-                x = c->x;
-                y = c->y;
+                x = cmd->x;
+                y = cmd->y;
                 while (x < y) {
                     t = pwd[x];
                     pwd[x++] = pwd[y];
@@ -116,14 +139,14 @@ static void scramble(int n)
                 break;
             case ROTC:  // rotate based on position of letter X
                 x = 0;
-                while (pwd[x] != c->x) ++x;
-                c->y = (1 + x + (x >= 4)) % len;
+                while (pwd[x] != cmd->x) ++x;
+                cmd->y = (1 + x + (x >= 4)) % LEN;
                 // Fall through
             case ROTR:  // rotate right Y steps
-                if (c->y) {
-                    for (int k = 0; k < len; ++k)
-                        tmp[(k + c->y) % len] = pwd[k];
-                    memcpy(pwd, tmp, len);
+                if (cmd->y) {
+                    for (int k = 0; k < LEN; ++k)
+                        tmp[(k + cmd->y) % LEN] = pwd[k];
+                    memcpy(pwd, tmp, LEN);
                 }
                 break;
         }
@@ -133,40 +156,40 @@ static void scramble(int n)
 #if !EXAMPLE
 static void unscramble(int n)
 {
-    char t, tmp[len];
+    char t, tmp[LEN];
     int x, y;
     for (int i = n - 1; i >= 0; --i) {
-        cmd_t *c = &algo[i];
-        switch (c->op) {
+        Cmd *cmd = &algo[i];
+        switch (cmd->op) {
             case NOP: break;
             case MOVU:  // move position X to position Y (X < Y)
-                t = pwd[c->y];
-                for (int k = c->y; k > c->x; --k)
+                t = pwd[cmd->y];
+                for (int k = cmd->y; k > cmd->x; --k)
                     pwd[k] = pwd[k - 1];
-                pwd[c->x] = t;
+                pwd[cmd->x] = t;
                 break;
             case MOVD:  // move position X to position Y (X > Y)
-                t = pwd[c->y];
-                for (int k = c->y; k < c->x; ++k)
+                t = pwd[cmd->y];
+                for (int k = cmd->y; k < cmd->x; ++k)
                     pwd[k] = pwd[k + 1];
-                pwd[c->x] = t;
+                pwd[cmd->x] = t;
                 break;
             case SWAPI:  // swap position X with position Y
-                t = pwd[c->x];
-                pwd[c->x] = pwd[c->y];
-                pwd[c->y] = t;
+                t = pwd[cmd->x];
+                pwd[cmd->x] = pwd[cmd->y];
+                pwd[cmd->y] = t;
                 break;
             case SWAPC:  // swap letter X with letter Y
                 x = 0;
                 y = 0;
-                while (pwd[x] != c->x) ++x;
-                while (pwd[y] != c->y) ++y;
-                pwd[x] = (char)c->y;
-                pwd[y] = (char)c->x;
+                while (pwd[x] != cmd->x) ++x;
+                while (pwd[y] != cmd->y) ++y;
+                pwd[x] = (char)cmd->y;
+                pwd[y] = (char)cmd->x;
                 break;
             case REV:  // reverse positions X through Y
-                x = c->x;
-                y = c->y;
+                x = cmd->x;
+                y = cmd->y;
                 while (x < y) {
                     t = pwd[x];
                     pwd[x++] = pwd[y];
@@ -174,15 +197,14 @@ static void unscramble(int n)
                 }
                 break;
             case ROTC:  // rotate based on position of letter X
-                x = 0;
-                while (pwd[x] != c->x) ++x;
-                c->y = (!x || (x & 1) ? (x >> 1) + 1 : (x >> 1) + 5) % len;
-                // Fall through
+                for (x = 0; pwd[x] != cmd->x; ++x);
+                cmd->y = (!x || (x & 1) ? (x >> 1) + 1 : (x >> 1) + 5) % LEN;
+                /* Fall through */
             case ROTR:  // rotate right Y steps
-                if (c->y) {
-                    for (int k = 0; k < len; ++k)
-                        tmp[k] = pwd[(k + c->y) % len];
-                    memcpy(pwd, tmp, len);
+                if (cmd->y) {
+                    for (int k = 0; k < LEN; ++k)
+                        tmp[k] = pwd[(k + cmd->y) % LEN];
+                    memcpy(pwd, tmp, LEN);
                 }
                 break;
         }
@@ -193,6 +215,11 @@ static void unscramble(int n)
 int main(void)
 {
     int n = parse();
+
+#ifdef TIMER
+    starttimer();
+#endif
+
     scramble(n);
     printf("Part 1: %s\n", pwd);  // bfheacgd
 #if !EXAMPLE
@@ -200,5 +227,8 @@ int main(void)
     unscramble(n);
     printf("Part 2: %s\n", pwd);  // gcehdbfa
 #endif
-    return 0;
+
+#ifdef TIMER
+    printf("Time: %.0f ns\n", stoptimer_ns());
+#endif
 }
