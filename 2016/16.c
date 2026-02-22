@@ -2,6 +2,7 @@
 #include <stdlib.h>  // malloc, free
 #include <string.h>  // strlen
 #include <stdint.h>  // uint8_t
+#include "../startstoptimer.h"
 
 #define EXAMPLE 0
 #if EXAMPLE == 1
@@ -53,7 +54,8 @@ static void checksum(const char * const initstate, const size_t disksize)
 
 int main(void)
 {
+    starttimer();
     printf("Part 1: "); checksum(INPUT, DISK1);  // example=01100, input=00000100100001100
     printf("Part 2: "); checksum(INPUT, DISK2);  // example=    -, input=00011010100010010
-    return 0;
+    printf("Time: %.0f ms\n", stoptimer_ms());
 }

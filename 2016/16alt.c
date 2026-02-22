@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include "../startstoptimer.h"
 
 static uint64_t dragon_parity(uint64_t n);
 static uint64_t find_lowest_1(uint64_t n);
@@ -17,6 +18,7 @@ int main(int argc, char **argv)
         return 0;
     }
 
+    starttimer();
     size_t input_len = strlen(argv[1]);
     uint64_t input_parity = 0;
 
@@ -35,7 +37,7 @@ int main(int argc, char **argv)
     fputs("Part 1: ", stdout); solve(input_parity, input_len, 272);      putchar('\n');
     fputs("Part 2: ", stdout); solve(input_parity, input_len, 35651584); putchar('\n');
 
-    return 0;
+    printf("Time: %.0f ns\n", stoptimer_ns());
 }
 
 void solve(uint64_t input_parity, size_t input_len, uint64_t disk_size)
