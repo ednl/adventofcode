@@ -1,21 +1,44 @@
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdbool.h>
+/**
+ * Advent of Code 2016
+ * Day 23: Safe Cracking
+ * https://adventofcode.com/2016/day/23
+ * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile with warnings:
+ *     cc -std=c17 -Wall -Wextra -pedantic 23.c
+ * Compile for speed, with timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 23.c
+ * Get minimum runtime from timer output in bash:
+ *     m=9999999;for((i=0;i<10;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements including result output:
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 3.2 s
+ *     Mac Mini 2020 (M1 3.2 GHz)    :   ? s
+ *     Raspberry Pi 5 (2.4 GHz)      :   ? s
+ */
 
-#define MEMSIZE 64
+#include <stdio.h>
+#include <stdint.h>    // int64_t
+#include <inttypes.h>  // PRId64
+#include <string.h>    // memcpy, memset
+#include <stdbool.h>
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
+
+#define FNAME "../aocinput/2016-23-input.txt"
+#define MEMSIZE 32  // needed for my input: 26
 #define REGCOUNT 4
 
-typedef enum Op {
+typedef enum opcode {
     NOP, INC, DEC, CPY, JNZ, TGL
-} Op;
+} Opcode;
 
-typedef enum Mode {
+typedef enum mode {
     NONE, IMM, REG
 } Mode;
 
 typedef struct Assembunny {
-    Op op;
+    Opcode op;
     int p[2];
     Mode m[2];
 } Assembunny;
@@ -26,9 +49,11 @@ static int memsize, ip;
 
 static int parse(void)
 {
-    FILE *f = fopen("../aocinput/2016-23-input.txt", "r");
-    if (!f)
-        return 0;
+    FILE *f = fopen(FNAME, "r");
+    if (!f) {
+        fprintf(stderr, "File not found: "FNAME"\n");
+        return 0;  // zero lines read
+    }
     char buf[16];
     int n = 0, x, y;
     char c, d;
@@ -70,12 +95,13 @@ static int parse(void)
     return n;
 }
 
-static void list(const Assembunny * const bank, const int count)
+#ifdef DEBUG
+static void list(const Assembunny *const bank, const int count)
 {
-    static const char *ins[] = {"nop", "inc", "dec", "cpy", "jnz", "tgl"};
+    static const char *instr[] = {"nop", "inc", "dec", "cpy", "jnz", "tgl"};
     puts("----------------");
     for (int i = 0; i < count; ++i) {
-        printf("%s", ins[bank[i].op]);
+        printf("%2d: %s", i, instr[bank[i].op]);
         for (int j = 0; j < 2; ++j)
             switch (bank[i].m[j]) {
                 case NONE: break;
@@ -86,20 +112,20 @@ static void list(const Assembunny * const bank, const int count)
     }
     puts("----------------");
 }
+#endif
 
 static bool ix(const int i)
 {
     return i >= 0 && i < REGCOUNT;
 }
 
-static bool mode(const Assembunny * const a, const Mode mx, const Mode my)
+static bool mode(const Assembunny *const a, const Mode mx, const Mode my)
 {
     return a->m[0] == mx && a->m[1] == my && (mx != REG || ix(a->p[0])) && (my != REG || ix(a->p[1]));
 }
 
 static int64_t run(const int rega)
 {
-    int64_t t;
     memcpy(mem, bak, sizeof mem);
     memset(reg, 0, sizeof reg);
     reg[0] = rega;
@@ -138,19 +164,22 @@ static int64_t run(const int rega)
                     ip += a->p[0] ? a->p[1] : 1;
                 break;
             case TGL:
-                t = -1;
-                if (mode(a, REG, NONE))
-                    t = ip + reg[a->p[0]];
-                else if (mode(a, IMM, NONE))
-                    t = ip + a->p[0];
-                if (t >= 0 && t < memsize) {
-                    // putchar('.');  // part 1: 4x, part 2: 4x
-                    if (mem[t].m[1] == NONE)
-                        mem[t].op = mem[t].op == INC ? DEC : INC;
-                    else
-                        mem[t].op = mem[t].op == JNZ ? CPY : JNZ;
-                } // else
-                    // putchar('!');  // part 1: 1x, part 2: 6x
+            #ifdef DEBUG
+                printf("%lld %lld %lld %lld\n", reg[0], reg[1], reg[2], reg[3]);
+            #endif
+                {
+                    int64_t t = -1;
+                    if (mode(a, REG, NONE))
+                        t = ip + reg[a->p[0]];
+                    else if (mode(a, IMM, NONE))
+                        t = ip + a->p[0];
+                    if (t >= 0 && t < memsize) {
+                        if (mem[t].m[1] == NONE)
+                            mem[t].op = mem[t].op == INC ? DEC : INC;
+                        else
+                            mem[t].op = mem[t].op == JNZ ? CPY : JNZ;
+                    }
+                }
                 ++ip;
                 break;
         }
@@ -161,10 +190,24 @@ static int64_t run(const int rega)
 int main(void)
 {
     memsize = parse();
+
+#ifdef TIMER
+    starttimer();
+#endif
+
+#ifdef DEBUG
     list(bak, memsize);
-    printf("Part 1: %lld\n", run(7));  // 11424
+#endif
+    printf("Part 1: %"PRId64"\n", run(7));  // 11424
+#ifdef DEBUG
     list(mem, memsize);
-    printf("Part 2: %lld\n", run(12));  // 479007984
+#endif
+    printf("Part 2: %"PRId64"\n", run(12));  // 479007984
+#ifdef DEBUG
     list(mem, memsize);
-    return 0;
+#endif
+
+#ifdef TIMER
+    printf("Time: %.0f ms\n", stoptimer_ms());
+#endif
 }
