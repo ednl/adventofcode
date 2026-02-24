@@ -11,7 +11,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements including result output:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 1.12 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 1.08 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : 1.79 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 4.09 µs
  */
@@ -95,41 +95,35 @@ static int parse(void)
     }
     fclose(f);
     // Reverse engineer dec+jnz as add, twice as mul
-    // after executing, set loop registers to zero
-    for (int i = 0; i < n; ++i) {
-        if (src[i].op == JNZ && src[i].p[1] == -2) {
-            if (src[i + 2].p[1] == -5) {
+    for (int i = 0; i < n; ++i)
+        if (src[i].p[1] == -2) {          // "jnz x -2"
+            if (src[i + 2].p[1] == -5) {  // "jnz x -5"
                 // Multiply: A += C * D
-                src[i - 2] = (Assembunny){MUL, {0}, {0}};  // params always the same, handled in exec loop
-                src[i - 1] = (Assembunny){0};  // NOP
-                src[i    ] = (Assembunny){0};
-                src[i + 1] = (Assembunny){0};
-                src[i + 2] = (Assembunny){0};
+                // params always the same, handled in exec loop
+                src[i - 2] = (Assembunny){MUL, {0}, {0}};
             } else {
-                // Add: reg[accum] += reg[count]
+                // Add: reg[accu] += reg[counter]
+                // params are always registers
                 const int counter = src[i].p[0];
                 const int accu = src[i - 1].p[0] == counter ? src[i - 2].p[0] : src[i - 1].p[0];
                 src[i - 2] = (Assembunny){ADD, {accu, counter}, {REG, REG}};
-                src[i - 1] = (Assembunny){0};  // NOP
-                src[i    ] = (Assembunny){0};
             }
         }
-    }
     return n;
 }
 
 #ifdef DEBUG
-static void list(const Assembunny *const bank, const int count)
+static void list(const Assembunny *const prog, const int count)
 {
     static const char *instr[] = {"nop", "inc", "dec", "cpy", "add", "mul", "jnz", "tgl"};
     puts("-----------------");
     for (int i = 0; i < count; ++i) {
-        printf("%2d: %s", i, instr[bank[i].op]);
+        printf("%2d: %s", i, instr[prog[i].op]);
         for (int j = 0; j < 2; ++j)
-            switch (bank[i].m[j]) {
+            switch (prog[i].m[j]) {
                 case NONE: break;
-                case IMM: printf(" %d", bank[i].p[j]); break;
-                case REG: printf(" %c", 'a' + bank[i].p[j]); break;
+                case IMM: printf(" %d", prog[i].p[j]); break;
+                case REG: printf(" %c", 'a' + prog[i].p[j]); break;
             }
         putchar('\n');
     }
@@ -178,12 +172,10 @@ static int64_t run(const int rega)
                 break;
             case ADD:
                 reg[a->p[0]] += reg[a->p[1]];  // reg[p[0]] += reg[p[1]]
-                reg[a->p[1]] = 0;              // reg[p[1]] = 0
                 ip += 3;
                 break;
             case MUL:
                 reg[0] += reg[2] * reg[3];  // A += C * D
-                reg[2] = reg[3] = 0;        // C = D = 0
                 ip += 5;
                 break;
             case JNZ:
