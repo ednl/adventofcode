@@ -11,7 +11,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements including result output:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  284 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  278 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :  554 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 1001 µs
  */
@@ -143,16 +143,22 @@ static void showdist(void)
 
 static void mindist(const int part)
 {
-    int sum, min = W * H, ix = 0;
+    int min = W * H;
+#ifdef DEBUG
+    int ix = 0;
+#endif
     for (int i = 0; i < FAC7; ++i) {
-        sum = part == 2 ? dist[0][(int)perm[i][0]] : 0;  // part 2: return to '0'
+        int sum = part == 2 ? dist[0][(int)perm[i][0]] : 0;  // part 2: return to '0'
         for (int j = 0; j < N - 1; ++j)
             sum += dist[(int)perm[i][j]][(int)perm[i][j + 1]];  // perm[i][7] = '\0'
         if (sum < min) {
             min = sum;
+        #ifdef DEBUG
             ix = i;
+        #endif
         }
     }
+#ifdef DEBUG
     char s[8] = {0};
     strcpy(s, perm[ix]);
     for (int i = 0; i < 7; ++i)
@@ -160,7 +166,6 @@ static void mindist(const int part)
     int i = 0, j = N - 2;
     while (i < j)
         swap(s + i++, s + j--);
-#ifdef DEBUG
     printf("Part %d: \"0%s%s\" = %d\n", part, s, part == 2 ? "0" : "", min);  // 490, 744
 #else
     printf("%d\n", min);
@@ -194,7 +199,6 @@ int main(void)
 #ifdef DEBUG
     showdist();
 #endif
-
     char s[] = {1,2,3,4,5,6,7,0};
     permute(s, 0, N - 2);
 
