@@ -9,11 +9,11 @@
  * Compile for speed, with timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 23.c
  * Get minimum runtime from timer output in bash:
- *     m=9999999;for((i=0;i<10;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements including result output:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 3.2 s
- *     Mac Mini 2020 (M1 3.2 GHz)    :   ? s
- *     Raspberry Pi 5 (2.4 GHz)      :   ? s
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 1.12 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :    ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :    ? µs
  */
 
 #include <stdio.h>
@@ -27,25 +27,27 @@
 
 #define FNAME "../aocinput/2016-23-input.txt"
 #define MEMSIZE 32  // needed for my input: 26
-#define REGCOUNT 4
+#define REGCOUNT 4  // registers A..D
 
+// Expanded from spec: NOP, ADD, MUL
 typedef enum opcode {
-    NOP, INC, DEC, CPY, JNZ, TGL
+    NOP, INC, DEC, CPY, ADD, MUL, JNZ, TGL
 } Opcode;
 
+// Parameter mode: none, immediate (=number), register (=index 0..3)
 typedef enum mode {
     NONE, IMM, REG
 } Mode;
 
-typedef struct Assembunny {
+typedef struct assembunny {
     Opcode op;
-    int p[2];
-    Mode m[2];
+    int p[2];   // parameter
+    Mode m[2];  // mode
 } Assembunny;
 
-static Assembunny mem[MEMSIZE], bak[MEMSIZE];
+static Assembunny mem[MEMSIZE], src[MEMSIZE];
 static int64_t reg[REGCOUNT];
-static int memsize, ip;
+static int memsize, ip;  // program size, instruction pointer
 
 static int parse(void)
 {
@@ -59,47 +61,68 @@ static int parse(void)
     char c, d;
     while (n < MEMSIZE && fgets(buf, sizeof buf, f)) {
         switch (buf[0]) {
-            case 'i': bak[n++] = (Assembunny){INC, {buf[4] - 'a', 0}, {REG, NONE}}; break;
-            case 'd': bak[n++] = (Assembunny){DEC, {buf[4] - 'a', 0}, {REG, NONE}}; break;
+            case 'i': src[n++] = (Assembunny){INC, {buf[4] - 'a', 0}, {REG, NONE}}; break;
+            case 'd': src[n++] = (Assembunny){DEC, {buf[4] - 'a', 0}, {REG, NONE}}; break;
             case 't':  // tgl
                 if (buf[4] >= 'a')
-                    bak[n++] = (Assembunny){TGL, {buf[4] - 'a', 0}, {REG, NONE}};
+                    src[n++] = (Assembunny){TGL, {buf[4] - 'a', 0}, {REG, NONE}};
                 else if (sscanf(&buf[4], "%d", &x) == 1)
-                    bak[n++] = (Assembunny){TGL, {x, 0}, {IMM, NONE}};
+                    src[n++] = (Assembunny){TGL, {x, 0}, {IMM, NONE}};
                 else
-                    bak[n++] = (Assembunny){NOP, {0}, {0}};
+                    src[n++] = (Assembunny){NOP, {0}, {0}};
                 break;
             case 'c':  // cpy
                 if (buf[4] >= 'a')
-                    bak[n++] = (Assembunny){CPY, {buf[4] - 'a', buf[6] - 'a'}, {REG, REG}};
+                    src[n++] = (Assembunny){CPY, {buf[4] - 'a', buf[6] - 'a'}, {REG, REG}};
                 else if (sscanf(&buf[4], "%d %c", &x, &d) == 2)
-                    bak[n++] = (Assembunny){CPY, {x, d - 'a'}, {IMM, REG}};
+                    src[n++] = (Assembunny){CPY, {x, d - 'a'}, {IMM, REG}};
                 else
-                    bak[n++] = (Assembunny){NOP, {0}, {0}};
+                    src[n++] = (Assembunny){NOP, {0}, {0}};
                 break;
             case 'j':  // jnz
                 if (sscanf(&buf[4], "%d %d", &x, &y) == 2)
-                    bak[n++] = (Assembunny){JNZ, {x, y}, {IMM, IMM}};
+                    src[n++] = (Assembunny){JNZ, {x, y}, {IMM, IMM}};
                 else if (sscanf(&buf[4], "%d %c", &x, &d) == 2)
-                    bak[n++] = (Assembunny){JNZ, {x, d - 'a'}, {IMM, REG}};
+                    src[n++] = (Assembunny){JNZ, {x, d - 'a'}, {IMM, REG}};
                 else if (sscanf(&buf[4], "%c %d", &c, &y) == 2)
-                    bak[n++] = (Assembunny){JNZ, {c - 'a', y}, {REG, IMM}};
+                    src[n++] = (Assembunny){JNZ, {c - 'a', y}, {REG, IMM}};
                 else if (sscanf(&buf[4], "%c %c", &c, &d) == 2)
-                    bak[n++] = (Assembunny){JNZ, {c - 'a', d - 'a'}, {REG, REG}};
+                    src[n++] = (Assembunny){JNZ, {c - 'a', d - 'a'}, {REG, REG}};
                 else
-                    bak[n++] = (Assembunny){NOP, {0}, {0}};
+                    src[n++] = (Assembunny){NOP, {0}, {0}};
                 break;
         }
     }
     fclose(f);
+    // Reverse engineer dec+jnz as add, twice as mul
+    // after executing, set loop registers to zero
+    for (int i = 0; i < n; ++i) {
+        if (src[i].op == JNZ && src[i].p[1] == -2) {
+            if (src[i + 2].p[1] == -5) {
+                // Multiply: A += C * D
+                src[i - 2] = (Assembunny){MUL, {0}, {0}};  // params always the same, handled in exec loop
+                src[i - 1] = (Assembunny){0};  // NOP
+                src[i    ] = (Assembunny){0};
+                src[i + 1] = (Assembunny){0};
+                src[i + 2] = (Assembunny){0};
+            } else {
+                // Add: reg[accum] += reg[count]
+                const int counter = src[i].p[0];
+                const int accu = src[i - 1].p[0] == counter ? src[i - 2].p[0] : src[i - 1].p[0];
+                src[i - 2] = (Assembunny){ADD, {accu, counter}, {REG, REG}};
+                src[i - 1] = (Assembunny){0};  // NOP
+                src[i    ] = (Assembunny){0};
+            }
+        }
+    }
     return n;
 }
 
 #ifdef DEBUG
 static void list(const Assembunny *const bank, const int count)
 {
-    static const char *instr[] = {"nop", "inc", "dec", "cpy", "jnz", "tgl"};
-    puts("----------------");
+    static const char *instr[] = {"nop", "inc", "dec", "cpy", "add", "mul", "jnz", "tgl"};
+    puts("-----------------");
     for (int i = 0; i < count; ++i) {
         printf("%2d: %s", i, instr[bank[i].op]);
         for (int j = 0; j < 2; ++j)
@@ -110,7 +133,7 @@ static void list(const Assembunny *const bank, const int count)
             }
         putchar('\n');
     }
-    puts("----------------");
+    puts("-----------------");
 }
 #endif
 
@@ -126,7 +149,7 @@ static bool mode(const Assembunny *const a, const Mode mx, const Mode my)
 
 static int64_t run(const int rega)
 {
-    memcpy(mem, bak, sizeof mem);
+    memcpy(mem, src, sizeof mem);
     memset(reg, 0, sizeof reg);
     reg[0] = rega;
     ip = 0;
@@ -153,6 +176,16 @@ static int64_t run(const int rega)
                     reg[a->p[1]] = a->p[0];
                 ++ip;
                 break;
+            case ADD:
+                reg[a->p[0]] += reg[a->p[1]];  // reg[p[0]] += reg[p[1]]
+                reg[a->p[1]] = 0;              // reg[p[1]] = 0
+                ip += 3;
+                break;
+            case MUL:
+                reg[0] += reg[2] * reg[3];  // A += C * D
+                reg[2] = reg[3] = 0;        // C = D = 0
+                ip += 5;
+                break;
             case JNZ:
                 if (mode(a, REG, REG))
                     ip += reg[a->p[0]] ? reg[a->p[1]] : 1;
@@ -164,9 +197,6 @@ static int64_t run(const int rega)
                     ip += a->p[0] ? a->p[1] : 1;
                 break;
             case TGL:
-            #ifdef DEBUG
-                printf("%lld %lld %lld %lld\n", reg[0], reg[1], reg[2], reg[3]);
-            #endif
                 {
                     int64_t t = -1;
                     if (mode(a, REG, NONE))
@@ -196,18 +226,15 @@ int main(void)
 #endif
 
 #ifdef DEBUG
-    list(bak, memsize);
+    list(src, memsize);
 #endif
-    printf("Part 1: %"PRId64"\n", run(7));  // 11424
-#ifdef DEBUG
-    list(mem, memsize);
-#endif
+    printf("Part 1: %"PRId64"\n", run(7));   // 11424
     printf("Part 2: %"PRId64"\n", run(12));  // 479007984
 #ifdef DEBUG
     list(mem, memsize);
 #endif
 
 #ifdef TIMER
-    printf("Time: %.0f ms\n", stoptimer_ms());
+    printf("Time: %.0f ns\n", stoptimer_ns());
 #endif
 }
