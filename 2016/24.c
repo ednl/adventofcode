@@ -12,7 +12,7 @@
  *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements including result output:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 284 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :   ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 554 µs
  *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
  */
 
@@ -44,11 +44,11 @@ typedef struct queue {
     State q[QSIZE];
 } Queue;
 
-const static Vec2 dir[4] = {{-1,0},{1,0},{0,-1},{0,1}};
+static const Vec2 dir[4] = {{-1,0},{1,0},{0,-1},{0,1}};
 static Queue queue;
 static char grid[H][W];
 static bool seen[H][W];
-static Vec2 poi[N];       // position of POI 0..7
+static Vec2 poi[N];         // position of POI 0..7
 static int dist[N][N];      // distance between POI i and j
 static char perm[FAC7][N];  // all permutations of "1234567" (always start at 0)
 
@@ -195,9 +195,7 @@ int main(void)
     showdist();
 #endif
 
-    char s[] = "1234567";
-    for (int i = 0; i < N - 1; ++i)
-        s[i] -= '0';
+    char s[] = {1,2,3,4,5,6,7,0};
     permute(s, 0, N - 2);
 
     mindist(1);  // 490
