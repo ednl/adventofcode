@@ -11,7 +11,7 @@
  * Get minimum runtime from timer output:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  1.83 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  1.75 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : 10.1  µs
  */
@@ -29,7 +29,8 @@
 
 static uint16_t sheet[ROWS][COLS];
 
-static uint16_t chkdiff(const uint16_t *const row)
+// Part 1: sum differences of min/max per row
+static uint16_t chkrange(const uint16_t *const row)
 {
     uint16_t min = row[0];
     uint16_t max = row[0];
@@ -40,7 +41,8 @@ static uint16_t chkdiff(const uint16_t *const row)
     return max - min;
 }
 
-static uint16_t chkdiv(const uint16_t *const row)
+// Part 2: sum one division per row where remainder is zero
+static uint16_t chkdivmod(const uint16_t *const row)
 {
     for (int i = 0; i < COLS - 1; ++i)
         for (int j = i + 1; j < COLS; ++j) {
@@ -62,17 +64,13 @@ int main(void)
     starttimer();
 #endif
 
-    // Part 1: sum differences of min/max per row
-    unsigned checksum = 0;
-    for (int i = 0; i < ROWS; ++i)
-        checksum += chkdiff(&sheet[i][0]);
-    printf("%u\n", checksum);  // 34925
-
-    // Part 2: sum one division per row where remainder is zero
-    checksum = 0;
-    for (int i = 0; i < ROWS; ++i)
-        checksum += chkdiv(&sheet[i][0]);
-    printf("%u\n", checksum);  // 221
+    unsigned chksum1 = 0;
+    unsigned chksum2 = 0;
+    for (int i = 0; i < ROWS; ++i) {
+        chksum1 += chkrange (&sheet[i][0]);
+        chksum2 += chkdivmod(&sheet[i][0]);
+    }
+    printf("%u %u\n", chksum1, chksum2);  // 34925 221
 
 #ifdef TIMER
     printf("Time: %.0f ns\n", stoptimer_ns());
