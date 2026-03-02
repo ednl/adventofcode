@@ -46,15 +46,16 @@ static int nb(const int x, const int y)
 
 // https://oeis.org/A141481
 // but return when current value greater than input
-static int oeis_a141481(void)
+static int oeis_a141481(const int m)
 {
+    spiral[R][R] = 1;              // start of the spiral, all other values are zero
     for (int r = 1; r < R; ++r) {  // leave margin for neighbours at border
-        const int d = r * 2;   // "diameter" = side length - 1
-        int n, x = R + r, y = x;  // lower right corner (R = offset)
-        for (int i = 0; i < d; ++i) { n = nb(x, --y); spiral[y][x] = n; if (n > input) return n; }  // up
-        for (int i = 0; i < d; ++i) { n = nb(--x, y); spiral[y][x] = n; if (n > input) return n; }  // left
-        for (int i = 0; i < d; ++i) { n = nb(x, ++y); spiral[y][x] = n; if (n > input) return n; }  // down
-        for (int i = 0; i < d; ++i) { n = nb(++x, y); spiral[y][x] = n; if (n > input) return n; }  // right
+        const int d = r * 2;       // "diameter" = side length - 1
+        int n, x = R + r, y = x;   // lower right corner (R = offset)
+        for (int i = 0; i < d; ++i) { n = nb(x, --y); spiral[y][x] = n; if (n > m) return n; }  // up
+        for (int i = 0; i < d; ++i) { n = nb(--x, y); spiral[y][x] = n; if (n > m) return n; }  // left
+        for (int i = 0; i < d; ++i) { n = nb(x, ++y); spiral[y][x] = n; if (n > m) return n; }  // down
+        for (int i = 0; i < d; ++i) { n = nb(++x, y); spiral[y][x] = n; if (n > m) return n; }  // right
     }
     return 0;
 }
@@ -106,8 +107,7 @@ int main(int argc, char *argv[])
     printf("%d\n", r + step);  // 552
 
     // Part 2
-    spiral[R][R] = 1;
-    printf("%d\n", oeis_a141481());  // 330785
+    printf("%d\n", oeis_a141481(input));  // 330785
 
 #ifdef TIMER
     printf("Time: %.0f ns\n", stoptimer_ns());
