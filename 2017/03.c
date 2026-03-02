@@ -11,7 +11,7 @@
  * Get minimum runtime from timer output:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 0.79 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 0.75 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :    ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : 7.26 µs
  */
@@ -26,36 +26,37 @@
 
 #define FNAME "../aocinput/2017-03-input.txt"
 
-// Part 2 spiral array
-#define R 5        // max ring index (centre=0), also offset for spiral array coordinates
-#define D (R * 2)  // diameter of the R'th ring (= side length - 1)
-#define L (D + 1)  // side length of the R'th "ring" (square)
+// Part 2 spiral array fixed dimensions
+#define R 5            // max ring index (centre=0), also offset for spiral centre
+#define L (R * 2 + 1)  // side length of the R'th ring which is a square
 
-static int spiral[L][L];
-static int input = -1;
+static int input = -1;    // read personalised value from file or command line
+static int spiral[L][L];  // used in part 2
 
-// sum of 8 neighbours (+self which is 0)
-static int nb(const int x, const int y)
+// Sum of 3 horizontal neighbours up/down while going left/right
+static int nh(const int x, const int y)
 {
-    int sum = 0;
-    for (int i = y - 1; i <= y + 1; ++i)
-        for (int j = x - 1; j <= x + 1; ++j)
-            sum += spiral[i][j];
-    return sum;
+    return spiral[y][x - 1] + spiral[y][x] + spiral[y][x + 1];
+}
+
+// Sum of 3 vertical neighbours left/right while going up/down
+static int nv(const int x, const int y)
+{
+    return spiral[y - 1][x] + spiral[y][x] + spiral[y + 1][x];
 }
 
 // https://oeis.org/A141481
 // but return when current value greater than input
 static int oeis_a141481(const int m)
 {
-    spiral[R][R] = 1;              // start of the spiral, all other values are zero
+    spiral[R][R] = 1;              // start of the spiral, all other values are zero thru static init
     for (int r = 1; r < R; ++r) {  // leave margin for neighbours at border
         const int d = r * 2;       // "diameter" = side length - 1
-        int n, x = R + r, y = x;   // lower right corner (R = offset)
-        for (int i = 0; i < d; ++i) { n = nb(x, --y); spiral[y][x] = n; if (n > m) return n; }  // up
-        for (int i = 0; i < d; ++i) { n = nb(--x, y); spiral[y][x] = n; if (n > m) return n; }  // left
-        for (int i = 0; i < d; ++i) { n = nb(x, ++y); spiral[y][x] = n; if (n > m) return n; }  // down
-        for (int i = 0; i < d; ++i) { n = nb(++x, y); spiral[y][x] = n; if (n > m) return n; }  // right
+        int n, x = R + r, y = x;   // lower right corner = start of new square (R = offset to centre point)
+        for (int i = 0; i < d; ++i) { n = spiral[y][x]; n += nv(x-1, --y); if (n > m) return n; spiral[y][x] = n; }  // go up
+        for (int i = 0; i < d; ++i) { n = spiral[y][x]; n += nh(--x, y+1); if (n > m) return n; spiral[y][x] = n; }  // go left
+        for (int i = 0; i < d; ++i) { n = spiral[y][x]; n += nv(x+1, ++y); if (n > m) return n; spiral[y][x] = n; }  // go down
+        for (int i = 0; i < d; ++i) { n = spiral[y][x]; n += nh(++x, y-1); if (n > m) return n; spiral[y][x] = n; }  // go right
     }
     return 0;
 }
