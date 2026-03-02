@@ -16,11 +16,10 @@ while v < target:
     elif y == -r and x < r:
         x += 1
     v += 1
-print(abs(x) + abs(y))
+print(abs(x) + abs(y))  # 552
 
 # Part 2
 import numpy as np
-from numpy.core.numeric import convolve
 x = y = r = 0
 v = s = 1
 a = np.zeros((s, s), dtype=np.uint32)
@@ -45,4 +44,4 @@ while v <= target:
             for j in range(r + x - 1, r + x + 2):
                 if j >= 0 and j < s:
                     v += a[i, j]
-print(v)
+print(v)  # 330785
