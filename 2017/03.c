@@ -4,17 +4,16 @@
  * https://adventofcode.com/2017/day/3
  * By: E. Dronkert https://github.com/ednl
  *
- *
  * Compile:
- *     cc -std=c17 -Wall -Wextra -pedantic 03.c
+ *     cc -std=c17 -Wall -Wextra -pedantic 03.c -lm
  * Enable timer:
- *     cc -std=gnu17 -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 03.c
+ *     cc -std=gnu17 -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 03.c -lm
  * Get minimum runtime from timer output:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 0.79 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :    ? µs
- *     Raspberry Pi 5 (2.4 GHz)      :    ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 7.26 µs
  */
 
 #include <stdio.h>
