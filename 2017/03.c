@@ -58,16 +58,10 @@ static void parse(const int argc, char *const *const argv)
 static int locate(void)
 {
     const int r = (int)ceil((sqrt(inp) - 1)/2);  // radius = ring index
-    const int d = r * 2;                         // diameter = ring side length - 1
-    const int max = (d + 1) * (d + 1);           // value in bottom-right corner of this ring
-    int mid = max - r;                           // value at midpoint of last side
-    int dist, next = abs(mid - inp);             // distance from first midpoint
-    do {
-        dist = next;            // base value
-        mid -= d;               // next midpoint (counting back)
-        next = abs(mid - inp);  // next value
-    } while (next < dist);      // find minimum distance from 4 midpoints
-    return r + dist;            // manhattan distance from input value to centre
+    const int d = r * 2;                  // diameter = ring side length - 1 (perimeter = 4d)
+    const int min = (d - 1) * (d - 1);    // max value of previous ring = virtual corner of current ring
+    const int pos = r - (inp - min) % d;  // position along side, shifted to midpoint = zero
+    return r + abs(pos);                  // Manhattan distance from input value to spiral centre
 }
 
 // Sum of 3 horizontal neighbours up/down while going left/right
