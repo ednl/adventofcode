@@ -34,33 +34,36 @@ static int inp;
 static int spiral[L][L];
 
 // Read personalised input value from file or command line
-static void parse(const int argc, char *const *const argv)
+static int parse(const int argc, char *const *const argv)
 {
+    int val = 0;
     if (argc > 1) {
-        if (sscanf(argv[1], "%d", &inp) != 1)
+        if (sscanf(argv[1], "%d", &val) != 1)
             fprintf(stderr, "Argument must be a number\n");
     } else if (!isatty(fileno(stdin))) {
-        if (fscanf(stdin, "%d", &inp) != 1)
+        if (fscanf(stdin, "%d", &val) != 1)
             fprintf(stderr, "Piped or redirected input must be a number\n");
     } else {
         FILE *f = fopen(FNAME, "r");
         if (!f)
             fprintf(stderr, "File not found: "FNAME"\n");
-        if (fscanf(f, "%d", &inp) != 1)
+        if (fscanf(f, "%d", &val) != 1)
             fprintf(stderr, "File must contain a number: "FNAME"\n");
         fclose(f);
     }
-    if (inp < 1)
-        fprintf(stderr, "Invalid input: %d\n", inp);
+    if (val < 1)
+        fprintf(stderr, "Invalid input: %d\n", val);
+    return val;
 }
 
-// Part 1: locate value in spiral, return distance to centre
-static int locate(void)
+// Part 1: locate value in square grid spiral, return distance to centre
+// https://oeis.org/A214526
+static int locate(const int val)
 {
-    const int r = (int)ceil((sqrt(inp) - 1)/2);  // radius = ring index
+    const int r = (int)ceil((sqrt(val) - 1)/2);  // radius = ring index
     const int d = r * 2;                  // diameter = ring side length - 1 (perimeter = 4d)
     const int min = (d - 1) * (d - 1);    // max value of previous ring = virtual corner of current ring
-    const int pos = r - (inp - min) % d;  // position along side, shifted to midpoint = zero
+    const int pos = r - (val - min) % d;  // position along side, shifted to midpoint = zero
     return r + abs(pos);                  // Manhattan distance from input value to spiral centre
 }
 
@@ -78,23 +81,23 @@ static int nv(const int i, const int j)
 
 // Part 2: https://oeis.org/A141481
 // but return when current value greater than input
-static int oeis_a141481(void)
+static int oeis_a141481(const int n)
 {
     spiral[R][R] = 1;              // start of the spiral, all other values are zero thru static init
     for (int r = 1; r < R; ++r) {  // leave margin for neighbours at border
         const int d = r * 2;       // "diameter" = side length - 1
         int v, i = R + r, j = i;   // lower right corner = start of new square (R = offset to centre point)
-        for (int k = 0; k < d; ++k) { v = spiral[i][j]; v += nv(--i, j-1); if (v > inp) return v; spiral[i][j] = v; }  // go up
-        for (int k = 0; k < d; ++k) { v = spiral[i][j]; v += nh(i+1, --j); if (v > inp) return v; spiral[i][j] = v; }  // go left
-        for (int k = 0; k < d; ++k) { v = spiral[i][j]; v += nv(++i, j+1); if (v > inp) return v; spiral[i][j] = v; }  // go down
-        for (int k = 0; k < d; ++k) { v = spiral[i][j]; v += nh(i-1, ++j); if (v > inp) return v; spiral[i][j] = v; }  // go right
+        for (int k = 0; k < d; ++k) { v = spiral[i][j]; v += nv(--i, j-1); if (v > n) return v; spiral[i][j] = v; }  // go up
+        for (int k = 0; k < d; ++k) { v = spiral[i][j]; v += nh(i+1, --j); if (v > n) return v; spiral[i][j] = v; }  // go left
+        for (int k = 0; k < d; ++k) { v = spiral[i][j]; v += nv(++i, j+1); if (v > n) return v; spiral[i][j] = v; }  // go down
+        for (int k = 0; k < d; ++k) { v = spiral[i][j]; v += nh(i-1, ++j); if (v > n) return v; spiral[i][j] = v; }  // go right
     }
     return 0;
 }
 
 int main(int argc, char *argv[])
 {
-    parse(argc, argv);
+    inp = parse(argc, argv);
     if (inp < 1)
         return 1;
 
@@ -102,8 +105,8 @@ int main(int argc, char *argv[])
     starttimer();
 #endif
 
-    printf("%d\n", locate());  // 552
-    printf("%d\n", oeis_a141481());  // 330785
+    printf("%d\n", locate(inp));  // 552
+    printf("%d\n", oeis_a141481(inp));  // 330785
 
 #ifdef TIMER
     printf("Time: %.0f ns\n", stoptimer_ns());
