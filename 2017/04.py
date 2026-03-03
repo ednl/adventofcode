@@ -5,4 +5,4 @@ with open("../aocinput/2017-04-input.txt") as f:
         valid1 += len(set(a)) == len(a)
         b = ["".join(sorted(word)) for word in a]
         valid2 += len(set(b)) == len(b)
-print(valid1, valid2)
+print(valid1, valid2)  # 455 186
