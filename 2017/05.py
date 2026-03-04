@@ -9,7 +9,7 @@ while (ip >= 0 and ip < size):
     vm[ip] += 1
     ip += jr
     tick += 1
-print(tick)
+print(tick)  # 388611
 
 # Part 2
 vm = data
@@ -19,4 +19,4 @@ while (ip >= 0 and ip < size):
     vm[ip] += 1 if jr < 3 else -1
     ip += jr
     tick += 1
-print(tick)
+print(tick)  # 27763113
