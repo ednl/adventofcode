@@ -29,7 +29,7 @@ while hash not in seen:
     hash = state(a)
 
 # Part 1
-print(count)
+print(count)  # 14029
 
 # Part 2
-print(count - hist.index(hash))
+print(count - hist.index(hash))  # 2765
