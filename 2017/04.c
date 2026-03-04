@@ -13,7 +13,7 @@
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 226 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :   ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : 980 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 835 µs
  */
 
 #include <stdio.h>
@@ -30,7 +30,7 @@
 #define WORDS 16  // needed for my input: 11
 
 static char input[FSIZE];
-static uint64_t word[WORDS];  // words have max 7 characters, MSByte = string terminator
+static uint64_t word[WORDS];  // words have max 7 characters so MSByte = string terminator
 
 // Sort characters descending (so '\0' stays at end)
 static int chardesc(const void *p, const void *q)
