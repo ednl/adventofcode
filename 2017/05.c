@@ -23,14 +23,14 @@
 #endif
 
 #define N 1090
-static int vm1[N];
+static int vm[N];
 static int vm2[N];
 
 int main(void)
 {
     FILE *f = fopen("../aocinput/2017-05-input.txt", "r");
     if (!f) return 1;
-    for (int i = 0; i < N && fscanf(f, "%d", &vm1[i]) == 1; ++i);
+    for (int i = 0; i < N && fscanf(f, "%d", &vm[i]) == 1; ++i);
     fclose(f);
 
 #ifdef TIMER
@@ -38,12 +38,12 @@ int main(void)
 #endif
 
     // Second copy to start fresh in part 2
-    memcpy(vm2, vm1, N * sizeof *vm1);
+    memcpy(vm2, vm, N * sizeof *vm);
 
     // Part 1
     unsigned tick = 0;
     for (unsigned ip = 0; ip < N; ++tick)
-        ip += vm1[ip]++;
+        ip += vm[ip]++;
     printf("%u\n", tick);  // 388611
 
     // Part 2

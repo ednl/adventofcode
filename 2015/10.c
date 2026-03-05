@@ -136,7 +136,7 @@ int main(void)
     printf("%3d: %"PRId64"\n", N3, p3);  // 150: 1168021999835586648
 
 #ifdef TIMER
-    double us = stoptimer_us();
+    const double us = stoptimer_us();
 #endif
 
     // True in the limit: p2 = p1 * pow(CONWAY, N2 - N1)
