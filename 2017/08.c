@@ -5,85 +5,122 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *     cc -std=c17 -Wall -Wextra -pedantic 08.c
+ *     cc -std=c17 -Wall -Wextra -pedantic -Wno-multichar 08.c
  * Enable timer:
- *     cc -std=gnu17 -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 08.c
- * Get minimum runtime from timer output:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     cc -std=gnu17 -Wno-multichar -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 08.c
+ * Test with timer enabled, without a thousand lines of identical output:
+ *     ./a.out | head -n1
+ * Get minimum runtime from timer output on stderr:
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 107 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :   ? µs
- *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 10.7 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :    ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :    ? µs
  */
 
 #include <stdio.h>
+#include <unistd.h>  // isatty, fileno
+#include <stdint.h>  // int16_t
 #include <stdbool.h>
 #ifdef TIMER
-    #include "../startstoptimer.h"
+#include "../startstoptimer.h"
+#define LOOPS 1000  // 1000 timer loops (measuring ms means µs per loop)
 #endif
 
 #define FNAME "../aocinput/2017-08-input.txt"
-#define REGS 512
+#define FSIZE 32768 // needed for my input: 25146
+#define REGS  512   // needed for my input and this hash function: 508
 
-static int reg[REGS];
-static bool used[REGS];
-static int set[32];  // needed: 28
-static int setlen;
+// Parameter index: register 0, operator (inc/dec), adjustment,
+// literal "if", register 1, comparator, reference value
+typedef enum par {
+    R0, OP, ADJ, IF, R1, CMP, REF
+} Par;
+
+static char input[FSIZE];
 
 // Hash of 1-3 characters (max = 508)
+// Tried different init and shifts until no collisions for my input
 static unsigned hash(const char *s)
 {
     unsigned h = 83 ^ *s++;
-    for (unsigned m = 2; *s; m >>= 1) {
+    for (unsigned m = 2; *s & 64; m >>= 1) {  // until space which doesn't have the 64 bit
         h <<= m;
         h ^= *s++;
-    }
-    if (!used[h]) {
-        used[h] = true;
-        set[setlen++] = h;
     }
     return h;
 }
 
+// Fast atoi(), specifically for known-good space/newline-separated input
+static int getnum(const char *s)
+{
+    const int sign = *s == '-' ? (s++, -1) : 1;
+    int x = *s++ & 15;  // assumes ASCII
+    while (*s & 16)  // until space or newline which don't have the 16 bit
+        x = x * 10 + (*s++ & 15);
+    return x * sign;
+}
+
 int main(void)
 {
-    FILE *f = fopen(FNAME, "r");
-    if (!f) return 1;
+    if (isatty(fileno(stdin))) {
+        // Read input file from disk
+        FILE *f = fopen(FNAME, "rb");
+        if (!f) {
+            fprintf(stderr, "File not found: "FNAME"\n");
+            return 1;
+        }
+        fread(input, 1, FSIZE, f);
+        fclose(f);
+    } else
+        // Read input file from stdin pipe/redirection
+        fread(input, 1, FSIZE, stdin);
 
 #ifdef TIMER
-    starttimer();
+starttimer(); for (int loop = 0; loop < LOOPS; ++loop) {
 #endif
 
-    int max2 = 0;
-    char r0[4], r1[4], op[4], cmp[3];
-    int adj, ref;
-    while (fscanf(f, "%3s %3s %d if %3s %2s %d", r0, op, &adj, r1, cmp, &ref) == 6) {
-        const int val = reg[hash(r1)];
+    int16_t reg[REGS] = {0};  // reset at start of each timer loop for correct result
+    int16_t max2 = 0;
+    for (const char *c = input; *c; ++c) {  // skip newline, until zero byte
+        // Tokenize line into space-separated parameters 0..6
+        const char *p[7] = {c};
+        for (int i = 1; i < 7; ++i) {
+            for (; *c != ' '; ++c);  // skip to space
+            p[i] = ++c;  // pointer to first letter
+        }
+        for (; *c != '\n'; ++c);  // skip to newline
+
+        const int16_t val = reg[hash(p[R1])];
+        const int16_t ref = getnum(p[REF]);
         bool ok = false;
-        switch (cmp[0] ^ cmp[1]) {
-            case '=' ^ '=': ok = val == ref; break;
-            case '<' ^ '=': ok = val <= ref; break;
-            case '>' ^ '=': ok = val >= ref; break;
-            case '!' ^ '=': ok = val != ref; break;
-            case '<'      : ok = val <  ref; break;
-            case '>'      : ok = val >  ref; break;
+        // Multi-byte constants reversed: assumes little-endian system
+        switch (*(const int16_t *)p[CMP]) {
+            case ' <': ok = val <  ref; break;
+            case ' >': ok = val >  ref; break;
+            case '=!': ok = val != ref; break;
+            case '=<': ok = val <= ref; break;
+            case '==': ok = val == ref; break;
+            case '=>': ok = val >= ref; break;
         }
         if (ok) {
-            const int k = hash(r0);
-            reg[k] += ((op[0] & 1) * 2 - 1) * adj;
-            if (reg[k] > max2)
-                max2 = reg[k];
+            const int r0 = hash(p[R0]);
+            const int16_t adj = getnum(p[ADJ]);
+            reg[r0] += ((p[OP][0] & 1) * 2 - 1) * adj;  // 'i'=1, 'd'=-1
+            if (reg[r0] > max2)
+                max2 = reg[r0];
         }
     }
-    int max1 = 0;
-    for (int i = 0; i < setlen; ++i)
-        if (reg[set[i]] > max1)
-            max1 = reg[set[i]];
+    // For REGS=512, simply checking all buckets is faster
+    // than smart solution with separate set of hashes used
+    int16_t max1 = 0;
+    for (int i = 0; i < REGS; ++i)
+        if (reg[i] > max1)
+            max1 = reg[i];
     printf("%d %d\n", max1, max2);  // 3089 5391
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+// 1000 loops means µs measurement is ns per loop
+} fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());
 #endif
-
-    fclose(f);
 }
