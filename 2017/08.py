@@ -1,3 +1,6 @@
+from time import monotonic_ns
+t0 = monotonic_ns()
+
 reg = {}
 rmax = 0
 with open("../aocinput/2017-08-input.txt") as f:
@@ -15,4 +18,7 @@ m = 0
 for v in reg.values():
     if v > m:
         m = v
-print(m, rmax)
+print(m, rmax)  # 3089 5391
+
+t1 = monotonic_ns()
+print('Time: {:.1f} ms'.format((t1 - t0) / 1000000))
