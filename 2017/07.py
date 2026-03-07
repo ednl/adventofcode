@@ -1,5 +1,5 @@
 import re
-r0 = re.compile('^([a-z]+) \((\d+)\)(?: -> ([a-z, ]+))?')
+r0 = re.compile('^([a-z]+) \\((\\d+)\\)(?: -> ([a-z, ]+))?')
 
 # Part 1
 allprogs = set()
@@ -13,7 +13,7 @@ with open("../aocinput/2017-07-input.txt") as f:
                 allprogs |= a
                 hasparent |= a
 root = (allprogs - hasparent).pop()
-print(root)
+print(root)  # veboyvy
 
 # Part 2
 prog = {}
@@ -21,7 +21,7 @@ with open("../aocinput/2017-07-input.txt") as f:
     for line in f:
         if m := r0.match(line):
             parent = m[1]
-            weight = int(m[2])
+            parseweight = int(m[2])
             if m[3] is None:
                 children = []
             else:
@@ -33,10 +33,10 @@ with open("../aocinput/2017-07-input.txt") as f:
                         prog[child] = { 'parent': parent }
 
             if parent in prog:
-                prog[parent]['weight'] = weight
+                prog[parent]['weight'] = parseweight
                 prog[parent]['children'] = children
             else:
-                prog[parent] = { 'weight': weight, 'children': children }
+                prog[parent] = { 'weight': parseweight, 'children': children }
 
 def weight(name):
     global prog
@@ -79,4 +79,4 @@ def findbalanced(name, target):
     w = target - weight(name) + prog[name]['weight']
     return name + " = " + str(prog[name]['weight']) + " => " + str(w)
 
-print(findbalanced(root, 0))
+print(findbalanced(root, 0))  # 749
