@@ -12,7 +12,6 @@ hash = state(a)
 count = 0
 
 while hash not in seen:
-    count += 1
     seen.add(hash)
     hist.append(hash)
 
@@ -27,6 +26,7 @@ while hash not in seen:
         a[i] += 1
 
     hash = state(a)
+    count += 1
 
 # Part 1
 print(count)  # 14029

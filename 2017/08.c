@@ -94,7 +94,7 @@ starttimer(); for (int loop = 0; loop < LOOPS; ++loop) {
         const int16_t val = reg[hash(p[R1])];
         const int16_t ref = getnum(p[REF]);
         bool ok = false;
-        // Multi-byte constants reversed: assumes little-endian system
+        // Multi-character constants reversed: assumes little-endian system
         switch (*(const int16_t *)p[CMP]) {
             case ' <': ok = val <  ref; break;
             case ' >': ok = val >  ref; break;

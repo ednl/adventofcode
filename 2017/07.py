@@ -21,7 +21,7 @@ with open("../aocinput/2017-07-input.txt") as f:
     for line in f:
         if m := r0.match(line):
             parent = m[1]
-            parseweight = int(m[2])
+            inputweight = int(m[2])
             if m[3] is None:
                 children = []
             else:
@@ -33,10 +33,10 @@ with open("../aocinput/2017-07-input.txt") as f:
                         prog[child] = { 'parent': parent }
 
             if parent in prog:
-                prog[parent]['weight'] = parseweight
+                prog[parent]['weight'] = inputweight
                 prog[parent]['children'] = children
             else:
-                prog[parent] = { 'weight': parseweight, 'children': children }
+                prog[parent] = { 'weight': inputweight, 'children': children }
 
 def weight(name):
     global prog
