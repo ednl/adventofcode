@@ -29,7 +29,7 @@
 
 #define FNAME "../aocinput/2017-08-input.txt"
 #define FSIZE 32768 // needed for my input: 25146
-#define REGS  512   // needed for my input and this hash function: 508
+#define REGS  256   // needed for my input and this hash function: 246
 
 // Parameter index: register 0, operator (inc/dec), adjustment,
 // literal "if", register 1, comparator, reference value
@@ -39,11 +39,11 @@ typedef enum par {
 
 static char input[FSIZE];
 
-// Hash of 1-3 characters (max = 508)
+// Hash of 1-3 characters (max = 246)
 // Tried different init and shifts until no collisions for my input
 static unsigned hash(const char *s)
 {
-    unsigned h = 83 ^ *s++;
+    unsigned h = 31u & *s++;
     for (unsigned m = 2; *s & 64; m >>= 1) {  // until space which doesn't have the 64 bit
         h <<= m;
         h ^= *s++;
@@ -111,7 +111,7 @@ starttimer(); for (int loop = 0; loop < LOOPS; ++loop) {
                 max2 = reg[r0];
         }
     }
-    // For REGS=512, simply checking all buckets is faster
+    // For REGS=256, simply checking all buckets is faster
     // than smart solution with separate set of hashes used
     int16_t max1 = 0;
     for (int i = 0; i < REGS; ++i)
