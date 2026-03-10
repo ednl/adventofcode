@@ -8,12 +8,12 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 09.c
  * Enable timer:
  *     cc -std=gnu17 -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 09.c
- * Test with timer enabled, without a thousand lines of identical output:
+ * Test with timer enabled, without a million lines of identical output:
  *     ./a.out | tail -n1
  * Get minimum runtime from timer output on stderr:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     ./a.out 2>&1 1>/dev/null
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 13.9 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 13.4 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :    ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : 78.2 µs
  */
@@ -22,7 +22,8 @@
 #include <unistd.h>  // isatty, fileno
 #ifdef TIMER
     #include "../startstoptimer.h"
-    #define LOOPS 1000
+    // With inner loop of ~14 µs, timing run with 1e5 loops takes about 1.5 seconds
+    #define LOOPS 100000
 #endif
 
 #define FNAME "../aocinput/2017-09-input.txt"
@@ -45,8 +46,10 @@ int main(void)
         fread(input, 1, FSIZE, stdin);
 
 #ifdef TIMER
-    starttimer(); for (int loop = 0; loop < LOOPS; ++loop) {
-    score = count = 0;
+    double mintime = 1e9;
+    for (int loop = 0; loop < LOOPS; ++loop) {
+        score = count = 0;  // re-init before every timing loop
+        starttimer();
 #endif
 
     const char *c = input;
@@ -69,6 +72,10 @@ done:
     printf("%d %d\n", score, count);  // 20530 9978
 
 #ifdef TIMER
-    } fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());
+        const double us = stoptimer_us();
+        if (us < mintime)
+            mintime = us;
+    }
+    fprintf(stderr, "Time: %.1f us\n", mintime);
 #endif
 }
