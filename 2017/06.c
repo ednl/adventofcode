@@ -13,7 +13,7 @@
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 140 µs (brent: 142)
  *     Mac Mini 2020 (M1 3.2 GHz)    :   ? µs
- *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 429 µs
  */
 
 #include <stdio.h>
@@ -22,7 +22,7 @@
     #include "../startstoptimer.h"
 #endif
 
-// Use Floyd's algorithm for cycle detection, otherwise Brent's
+// Use Floyd's algorithm for cycle detection, if not defined: Brent's
 #define FLOYD
 
 #define FNAME "../aocinput/2017-06-input.txt"
@@ -140,7 +140,7 @@ int main(void)
     for (u32 i = 0; i < PRE0; ++i)
         settle();
 
-    // Long run-in with no repeat patters yet
+    // Long run-in with no repeated patterns yet
     u64 x = state();
     for (u32 i = PRE0; i < PRE1; ++i)
         x = next(x);
