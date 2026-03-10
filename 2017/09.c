@@ -22,7 +22,7 @@
 #include <unistd.h>  // isatty, fileno
 #ifdef TIMER
     #include "../startstoptimer.h"
-    // With inner loop of ~14 µs, timing run with 1e5 loops takes about 1.5 seconds
+    // With inner loop of ~14 µs, one timing run with 1e5 loops takes about 1.5 seconds
     #define LOOPS 100000
 #endif
 
@@ -64,9 +64,9 @@ clean:
     }
 garbage:
     switch (*c++) {
-        case '!': c++;      goto garbage;
-        case '>':           goto clean;
-        default : count++;  goto garbage;
+        case '!': c++;     goto garbage;
+        case '>':          goto clean;
+        default : count++; goto garbage;
     }
 done:
     printf("%d %d\n", score, count);  // 20530 9978
