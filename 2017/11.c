@@ -1,19 +1,19 @@
 /**
  * Advent of Code 2017
- * Day 6: Memory Reallocation
- * https://adventofcode.com/2017/day/6
+ * Day 11: Hex Ed
+ * https://adventofcode.com/2017/day/11
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *     cc -std=c17 -Wall -Wextra -pedantic 06.c
+ *     cc -std=c17 -Wall -Wextra -pedantic -Wno-multichar 11.c
  * Enable timer:
- *     cc -std=gnu17 -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 06.c
+ *     cc -std=gnu17 -O3 -march=native -mtune=native -Wno-multichar -DTIMER ../startstoptimer.c 11.c
  * Get minimum runtime from timer output:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 26 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :  ? µs
- *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 59 µs
  */
 
 #include <stdio.h>
