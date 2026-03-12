@@ -23,9 +23,9 @@ def connect(i):
     return post
 
 # Part 1
-print(connect(0))
+print(connect(0))  # 145
 
 # Part 2
 for i in range(1, 2000):
     connect(i)
-print(np.unique(pipe, axis=0).shape[0])
+print(np.unique(pipe, axis=0).shape[0])  # 207

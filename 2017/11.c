@@ -38,11 +38,9 @@ int main(void)
     FILE *f = fopen(FNAME, "rb");
     if (!f) { fprintf(stderr, "File not found: "FNAME"\n"); return 1; }
     int n = fread(input, 1, FSIZE, f);
-    for (; n > 0 && input[n - 1] < 'a'; n--);
-    if (n > 0 && (input[n - 1] == 'n' || input[n - 1] == 's')) {
-        input[n] = ',';  // add comma if input ends in single n or s
-        input[n + 1] = '\0';
-    }
+    for (; n > 0 && input[n] < 'a'; n--);  // skip zero and newline
+    input[++n] = ',';  // add comma in case input ends in single n or s
+    input[++n] = '\0'; // should already be zero because prev was newline
     fclose(f);
 
 #ifdef TIMER
