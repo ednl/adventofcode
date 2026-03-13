@@ -9,10 +9,12 @@
  * Enable timer:
  *     cc -std=gnu17 -O3 -march=native -mtune=native -DTIMER 12.c
  * Test with timer enabled, without a million lines of identical output:
- *     ./a.out | tail -n1
+ *     ./a.out | tail -n1                 built-in file name
+ *     ./a.out myinput.txt | tail -n1     custom file name
+ *     ./a.out < myinput.txt | tail -n1   redirected input
  * Get minimum runtime from timer output on stderr:
  *     ./a.out 2>&1 1>/dev/null
- * Minimum runtime measurements, includes parsing:
+ * Minimum runtime measurements, includes parsing and output:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 13.6 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :    ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : 50.9 µs
@@ -62,14 +64,15 @@ static int connect(int id, int group)
     return count;
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
     size_t fsize = 0;
     if (isatty(fileno(stdin))) {
         // Read input file from disk
-        FILE *f = fopen(FNAME, "rb");
+        const char *fname = argc > 1 ? argv[1] : FNAME;  // file name as argument, or built-in
+        FILE *f = fopen(fname, "rb");
         if (!f) {
-            fprintf(stderr, "File not found: "FNAME"\n");
+            fprintf(stderr, "File not found: %s\n", fname);
             return 1;
         }
         fsize = fread(input, 1, FSIZE, f);
