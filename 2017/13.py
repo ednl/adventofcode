@@ -9,7 +9,7 @@ severity = 0
 for d, r in layer.items():
     if d % (2 * (r - 1)) == 0:
         severity += d * r
-print(severity)
+print(severity)  # 2604
 
 # Part 2
 delay = 0
@@ -19,4 +19,4 @@ while caught:
     for d, r in layer.items():
         if caught := (((d + delay) % (2 * (r - 1))) == 0):
             break
-print(delay)
+print(delay)  # 3941460

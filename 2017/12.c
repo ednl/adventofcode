@@ -7,21 +7,27 @@
  * Compile:
  *     cc -std=c17 -Wall -Wextra -pedantic 12.c
  * Enable timer:
- *     cc -std=gnu17 -O3 -march=native -mtune=native -Wno-multichar -DTIMER 12.c
- * Get minimum runtime from timer output:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
- * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 14 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :  ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : 33 µs
+ *     cc -std=gnu17 -O3 -march=native -mtune=native -DTIMER 12.c
+ * Test with timer enabled, without a million lines of identical output:
+ *     ./a.out | tail -n1
+ * Get minimum runtime from timer output on stderr:
+ *     ./a.out 2>&1 1>/dev/null
+ * Minimum runtime measurements, includes parsing:
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 13.6 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :    ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :    ? µs
  */
 
 #include <stdio.h>
+#include <unistd.h>  // fileno, isatty
+#include <string.h>  // memset
 #ifdef TIMER
     #include "../startstoptimer.h"
+    #define LOOPS 100000  // takes ~1.5 seconds for 14 µs loop
 #endif
 
 #define FNAME "../aocinput/2017-12-input.txt"
+#define FSIZE (36 * 1024)  // needed for my input: 35543
 #define N 2000  // 2000 "programs" (nodes)
 #define M 6     // max 6 "pipes" (edges) from any program
 
@@ -30,49 +36,85 @@ typedef struct program {
     int pipe[M];
 } Program;
 
+static char input[FSIZE];
 static Program program[N];
 
+// Fast atoi() for known-good space/comma/newline-separated ASCII input
+// Parse unsigned int, advance char pointer
+static int readnum(const char **s)
+{
+    int x = 0;
+    while (**s & 16)  // until space, comma or newline where the 16 bit is not set
+        x = x * 10 + (*(*s)++ & 15);
+    return x;
+}
+
+// Recursively count and connect nodes in the same graph
 static int connect(int id, int group)
 {
     Program *const p = &program[id];  // convenience pointer
-    if (p->group)
-        return 0;
+    if (p->group)  // already in this (or any) group?
+        return 0;  // don't count again
     p->group = group;
-    int count = 1 + connect(p->pipe[0], group);
-    for (int j = 1; j < M && p->pipe[j]; ++j)
+    int count = 1 + connect(p->pipe[0], group);  // always at least one pipe
+    for (int j = 1; j < M && p->pipe[j]; ++j)    // until no more pipe
         count += connect(p->pipe[j], group);
     return count;
 }
 
 int main(void)
 {
-    FILE *f = fopen(FNAME, "r");
-    if (!f) {
-        fprintf(stderr, "File not found: "FNAME"\n");
-        return 1;
-    }
-    for (int n = 0, id, pipe; n < N && fscanf(f, "%d <-> %d", &id, &pipe) == 2; ++n) {
-        program[id].pipe[0] = pipe;
-        for (int j = 1; j < M && fscanf(f, ", %d", &pipe) == 1; ++j)
-            program[id].pipe[j] = pipe;
-    }
-    fclose(f);
+    size_t fsize = 0;
+    if (isatty(fileno(stdin))) {
+        // Read input file from disk
+        FILE *f = fopen(FNAME, "rb");
+        if (!f) {
+            fprintf(stderr, "File not found: "FNAME"\n");
+            return 1;
+        }
+        fsize = fread(input, 1, FSIZE, f);
+        fclose(f);
+    } else
+        // Read from pipe or redirected input
+        fsize = fread(input, 1, FSIZE, stdin);
+    // End of input file
+    const char *const end = input + fsize;
 
 #ifdef TIMER
-    starttimer();
+    double mintime = 1e9;
+    for (int loop = 0; loop < LOOPS; ++loop) {
+        memset(program, 0, sizeof program);  // reset before every timing loop
+        starttimer();
 #endif
 
-    // Program ID 0, group 1
-    printf("%d\n", connect(0, 1));  // 145
+    // Parse known-good input file
+    for (const char *c = input; c != end; ++c) {  // skip newline
+        const int id = readnum(&c);
+        c += 5;  // skip " <-> "
+        program[id].pipe[0] = readnum(&c);
+        for (int i = 1; *c == ','; ++i) {  // while current char is comma
+            c += 2;  // skip ", "
+            program[id].pipe[i] = readnum(&c);
+        }
+    }
 
-    // All other programs not in a group yet
+    // Size of first group with program ID 0
+    const int count = connect(0, 1);
+
+    // Count groups for all other programs not in a group yet
     int group = 1;
     for (int n = 1; n < N; ++n)
         if (!program[n].group)
             connect(n, ++group);
-    printf("%d\n", group);  // 207
+
+    // Solution
+    printf("%d %d\n", count, group);  // 145 207
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+        const double looptime = stoptimer_us();
+        if (looptime < mintime)
+            mintime = looptime;
+    }
+    fprintf(stderr, "Time: %.1f us\n", mintime);
 #endif
 }
