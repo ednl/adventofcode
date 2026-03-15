@@ -3,6 +3,8 @@
 
 import numpy as np
 import sys
+from time import monotonic_ns
+t0 = monotonic_ns()
 
 start_a = 783
 start_b = 325
@@ -61,3 +63,6 @@ while (workrounds < 50) or (len(new_a_out) < five_million) or (len(new_b_out) < 
 
 print(count1)
 print(np.sum(new_a_out[0:five_million] == new_b_out[0:five_million]))
+
+t1 = monotonic_ns()
+print('Time: {:0.1f} ms'.format((t1 - t0) / 1_000_000))
