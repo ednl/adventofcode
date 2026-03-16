@@ -7,7 +7,7 @@
  * Compile:
  *     cc -std=c17 -Wall -Wextra -pedantic 12.c
  * Enable timer:
- *     cc -std=gnu17 -O3 -march=native -mtune=native -DTIMER 12.c
+ *     cc -std=gnu17 -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 12.c
  * Test with timer enabled, without a million lines of identical output:
  *     ./a.out | tail -n1                 built-in file name
  *     ./a.out myinput.txt | tail -n1     custom file name
