@@ -32,7 +32,7 @@
 #define FSIZE (48 * 1024)  // needed for my input: 48522
 #define MOVES (10 * 1000)  // comma-separated fields in my input
 #define CYCLE 127          // needed for my input: 60
-#define BILLION (1000 * 1000 * 1000)  // part 2
+#define DANCE (1000 * 1000 * 1000)  // part 2
 
 typedef uint64_t (*movefun)(const uint64_t, const int, const int);
 
@@ -82,7 +82,7 @@ static const uint64_t clr[16] = {
 static char input[FSIZE];
 static Move move[MOVES];
 static const Move *endmove = move;
-static uint64_t state[CYCLE + 1];
+static uint64_t line[CYCLE + 1];
 
 // Move bits from back to front (shl: 4..60, shr: 64-shr)
 static uint64_t spin(const uint64_t x, const int shl, const int shr)
@@ -130,7 +130,7 @@ static int readnum(const char **s)
     return x;
 }
 
-static void showline(uint64_t x)
+static void show(uint64_t x)
 {
     for (int i = 0; i < 16; i++, x >>= 4)
         putchar('a' + (x & sel[0]));
@@ -196,15 +196,15 @@ int main(int argc, char *argv[])
     endmove = move + moves;
 
     // Part 1
-    state[0] = 0xfedcba9876543210ULL;
-    state[1] = dance(state[0]);
-    showline(state[1]);  // cgpfhdnambekjiol
+    line[0] = 0xfedcba9876543210ULL;  // abcdefghijklmnop
+    line[1] = dance(line[0]);
+    show(line[1]);  // cgpfhdnambekjiol
 
     // Part 2
     int cycle = 1;
-    for (; cycle < CYCLE && state[cycle] != state[0]; ++cycle)
-        state[cycle + 1] = dance(state[cycle]);
-    showline(state[BILLION % cycle]);  // gjmiofcnaehpdlbk
+    for (; cycle < CYCLE && line[cycle] != line[0]; ++cycle)
+        line[cycle + 1] = dance(line[cycle]);
+    show(line[DANCE % cycle]);  // gjmiofcnaehpdlbk
 
 #ifdef TIMER
         const double looptime = stoptimer_us();
