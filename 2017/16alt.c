@@ -5,9 +5,9 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *     cc -std=c17 -Wall -Wextra -pedantic 16.c
+ *     cc -std=c17 -Wall -Wextra -pedantic 16alt.c
  * Enable timer:
- *     cc -std=gnu17 -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 16.c
+ *     cc -std=gnu17 -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 16alt.c
  * Test with timer enabled, without many lines of identical output:
  *     ./a.out | tail -n2                 built-in file name
  *     ./a.out myinput.txt | tail -n2     custom file name
@@ -17,7 +17,7 @@
  * Minimum runtime measurements, includes parsing and output:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 2.54 ms
  *     Mac Mini 2020 (M1 3.2 GHz)    :    ? ms
- *     Raspberry Pi 5 (2.4 GHz)      :    ? ms
+ *     Raspberry Pi 5 (2.4 GHz)      : 6.20 ms
  */
 
 #include <stdio.h>
@@ -104,7 +104,7 @@ static uint64_t exchange(const uint64_t x, const int pos1, const int pos2)
 static int nibpos(uint64_t x, const int val)
 {
     int nib = 0;
-    for (; (x & sel[0]) != val; x >>= 4, nib++);
+    for (; (int)(x & sel[0]) != val; x >>= 4, nib++);
     return nib;
 }
 
