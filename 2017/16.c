@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include "../startstoptimer.h"
 
 #define A ('a')
 #define N (16U)
@@ -82,6 +83,8 @@ int main(void)
     }
     strcpy((char *)cache[loop++], (char *)line);
 
+    starttimer();
+
     // Part 1
     //   0: abcdefghijklmnop
     //   1: cgpfhdnambekjiol
@@ -114,5 +117,5 @@ int main(void)
         return 2;
     }
     printf("%s\n", cache[DANCE % loop]);
-    return 0;
+    printf("Time: %.1f ms\n", stoptimer_ms());  // about 50 ms on M4
 }
