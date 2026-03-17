@@ -175,8 +175,7 @@ static uint64_t nibpos(uint64_t x, const uint64_t val)
     return nib;
 }
 
-// Make complete dance from "spin+exchange" sequence (perm)
-// and "partner" sequence (swap)
+// Make complete dance from "spin+exchange" state (perm) and "partner" state (swap)
 static uint64_t dance(uint64_t perm, const uint64_t swap)
 {
     uint64_t x = 0;
