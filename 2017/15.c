@@ -5,7 +5,7 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *     cc -std=gnu17 -O3 -march=native -mtune=native ../startstoptimer.c 11.c
+ *     cc -std=gnu17 -O3 -march=native -mtune=native ../startstoptimer.c 15.c
  * Get minimum runtime from timer output:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
