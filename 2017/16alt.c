@@ -8,16 +8,16 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 16alt.c
  * Enable timer:
  *     cc -std=gnu17 -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 16alt.c
- * Test with timer enabled, without many lines of identical output:
+ * Test with timer enabled, avoid many lines of identical output:
  *     ./a.out | tail -n2                 built-in file name
  *     ./a.out myinput.txt | tail -n2     custom file name
  *     ./a.out < myinput.txt | tail -n2   redirected input
  * Get minimum runtime from timer output on stderr:
  *     ./a.out 2>&1 1>/dev/null
  * Minimum runtime measurements, includes parsing and output:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 2.54 ms
- *     Mac Mini 2020 (M1 3.2 GHz)    :    ? ms
- *     Raspberry Pi 5 (2.4 GHz)      : 6.20 ms
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 253 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :   ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
  */
 
 #include <stdio.h>
@@ -25,15 +25,18 @@
 #include <stdint.h>  // uint64_t
 #ifdef TIMER
     #include "../startstoptimer.h"
-    #define LOOPS 5000
+    #define LOOPS 10000  // loop time of ~250 µs => program runtime of ~2.5 s
 #endif
 
 #define FNAME "../aocinput/2017-16-input.txt"
 #define FSIZE (48 * 1024)  // needed for my input: 48522
-#define MOVES (10 * 1000)  // comma-separated fields in my input
-#define CYCLE 127          // needed for my input: 60
-#define DANCE (1000 * 1000 * 1000)  // part 2
+#define PERMMOVE 8192      // s+x moves, needed for my input: 7810
+#define SWAPMOVE 2560      // p moves, needed for my input: 2190
+#define CYCLE 127          // state array size-1, needed for my input: 15
+#define DANCE (1000 * 1000 * 1000)  // multiplier for part 2
+#define START 0xfedcba9876543210ULL  // programs lined up to start dancing
 
+// Move function, applies to current state with 2 params, returns next state
 typedef uint64_t (*movefun)(const uint64_t, const int, const int);
 
 typedef struct move {
@@ -80,45 +83,40 @@ static const uint64_t clr[16] = {
 };
 
 static char input[FSIZE];
-static Move move[MOVES];
-static const Move *endmove = move;
-static uint64_t line[CYCLE + 1];
+static Move permmove[PERMMOVE];
+static Move swapmove[SWAPMOVE];
+static const Move *endpermmove = permmove;
+static const Move *endswapmove = swapmove;
+static uint64_t perm[CYCLE + 1] = {START, 0};
+static uint64_t swap[CYCLE + 1] = {START, 0};
 
-// Move bits from back to front (shl: 4..60, shr: 64-shr)
-static uint64_t spin(const uint64_t x, const int shl, const int shr)
+// Greatest Common Divisor
+// https://en.wikipedia.org/wiki/Euclidean_algorithm
+static int gcd(int a, int b)
 {
-    return (x << shl) | (x >> shr);
-}
-
-// Swap nibbles at 2 different positions (0..15) where pos1 < pos2
-static uint64_t exchange(const uint64_t x, const int pos1, const int pos2)
-{
-    const int shift = (pos2 - pos1) << 2;  // x4: from nibbles to bits
-    const uint64_t base = x & clr[pos1] & clr[pos2];
-    const uint64_t val1 = (x & sel[pos1]) << shift;
-    const uint64_t val2 = (x & sel[pos2]) >> shift;
-    return base | val1 | val2;
-}
-
-// Nibble index (0..15) of nibble value (0..15)
-static int nibpos(uint64_t x, const int val)
-{
-    int nib = 0;
-    for (; (int)(x & sel[0]) != val; x >>= 4, nib++);
-    return nib;
-}
-
-// Swap nibbles with 2 different values (0..15)
-static uint64_t partner(const uint64_t x, const int val1, const int val2)
-{
-    int pos1 = nibpos(x, val1);
-    int pos2 = nibpos(x, val2);
-    if (pos1 > pos2) {
-        const int tmp = pos1;
-        pos1 = pos2;
-        pos2 = tmp;
+    while (b) {
+        const int tmp = b;
+        b = a % b;
+        a = tmp;
     }
-    return exchange(x, pos1, pos2);
+    return a;
+}
+
+// Least Common Multiple
+// https://en.wikipedia.org/wiki/Least_common_multiple#Using_the_greatest_common_divisor
+static int lcm(const int a, const int b)
+{
+    return a / gcd(a, b) * b;
+}
+
+// Swap if a > b
+static void orderint(int *const a, int *const b)
+{
+    if (*a > *b) {
+        const int tmp = *a;
+        *a = *b;
+        *b = tmp;
+    }
 }
 
 static int readnum(const char **s)
@@ -137,10 +135,53 @@ static void show(uint64_t x)
     putchar('\n');
 }
 
-static uint64_t dance(uint64_t x)
+// Move bits from back to front (shl: 4..60, shr: 64-shr)
+static uint64_t spin(const uint64_t x, const int shl, const int shr)
 {
-    for (const Move *m = move; m != endmove; ++m)
+    return (x << shl) | (x >> shr);
+}
+
+// Swap nibbles at 2 different positions (0..15) where pos1 < pos2
+static uint64_t xchg(const uint64_t x, const int pos1, const int pos2)
+{
+    const int shift = (pos2 - pos1) << 2;  // x4: from nibbles to bits
+    const uint64_t val1 = (x & sel[pos1]) << shift;
+    const uint64_t val2 = (x & sel[pos2]) >> shift;
+    const uint64_t base = x & clr[pos1] & clr[pos2];
+    return base | val1 | val2;
+}
+
+// Apply all "spin" and "exchange" moves to permutate program values
+static uint64_t permdance(uint64_t x)
+{
+    for (const Move *m = permmove; m != endpermmove; ++m)
         x = m->fun(x, m->a, m->b);
+    return x;
+}
+
+// Apply all "partner" moves to swap program labels
+static uint64_t swapdance(uint64_t x)
+{
+    for (const Move *m = swapmove; m != endswapmove; ++m)
+        x = m->fun(x, m->a, m->b);
+    return x;
+}
+
+// Nibble index (0..15) of nibble value (0..15)
+static uint64_t nibpos(uint64_t x, const uint64_t val)
+{
+    uint64_t nib = 0;
+    for (; (x & sel[0]) != val; x >>= 4, nib++);
+    return nib;
+}
+
+// Make complete dance from "spin+exchange" sequence (perm)
+// and "partner" sequence (swap)
+static uint64_t dance(uint64_t perm, const uint64_t swap)
+{
+    uint64_t x = 0;
+    for (int i = 0; i < 16; i++, perm >>= 4)
+        x |= nibpos(swap, perm & sel[0]) << (i << 2);
     return x;
 }
 
@@ -170,41 +211,48 @@ int main(int argc, char *argv[])
 #endif
 
     // Parse input
-    int moves = 0;
-    for (const char *c = input; c != endinput && moves < MOVES; ) {
-        switch (*c++) {  // skip p/s/x
-        case 'p':
-            move[moves++] = (Move){partner, *c - 'a', *(c + 2) - 'a'};
-            c += 4;  // skip char, slash, char, comma/newline
-            break;
+    int perms = 0, swaps = 0;
+    for (const char *c = input; c != endinput; ) {
+        switch (*c++) {  // skip s/x/p
         case 's': {
                 const int bits = readnum(&c) << 2;  // x4: from nibbles to bits
-                move[moves++] = (Move){spin, bits, 64 - bits};
+                permmove[perms++] = (Move){spin, bits, 64 - bits};
             } break;
         case 'x': {
                 int pos1 = readnum(&c);
                 int pos2 = readnum(&c);
-                if (pos1 > pos2) {
-                    const int tmp = pos1;
-                    pos1 = pos2;
-                    pos2 = tmp;
-                }
-                move[moves++] = (Move){exchange, pos1, pos2};
+                orderint(&pos1, &pos2);
+                permmove[perms++] = (Move){xchg, pos1, pos2};
+            } break;
+        case 'p': {
+                int label1 = *c - 'a';
+                int label2 = *(c + 2) - 'a';
+                orderint(&label1, &label2);
+                swapmove[swaps++] = (Move){xchg, label1, label2};
+                c += 4;  // skip char, slash, char, comma/newline
             } break;
         }
     }
-    endmove = move + moves;
+    endpermmove = permmove + perms;
+    endswapmove = swapmove + swaps;
 
     // Part 1
-    line[0] = 0xfedcba9876543210ULL;  // abcdefghijklmnop
-    line[1] = dance(line[0]);
-    show(line[1]);  // cgpfhdnambekjiol
+    perm[1] = permdance(perm[0]);
+    swap[1] = swapdance(swap[0]);
+    show(dance(perm[1], swap[1]));  // cgpfhdnambekjiol
 
     // Part 2
-    int cycle = 1;
-    for (; cycle < CYCLE && line[cycle] != line[0]; ++cycle)
-        line[cycle + 1] = dance(line[cycle]);
-    show(line[DANCE % cycle]);  // gjmiofcnaehpdlbk
+    int permcycle = 1;
+    for (; perm[permcycle] != START && permcycle < CYCLE; permcycle++)
+        perm[permcycle + 1] = permdance(perm[permcycle]);
+    int swapcycle = 1;
+    for (; swap[swapcycle] != START && swapcycle < CYCLE; swapcycle++)
+        swap[swapcycle + 1] = swapdance(swap[swapcycle]);
+    const int dancecycle = lcm(permcycle, swapcycle);  // LCM(15,12) = 60
+    const int danceindex = DANCE % dancecycle;         // 1B mod 60 = 40
+    const int permindex = danceindex % permcycle;      // 40 mod 15 = 10
+    const int swapindex = danceindex % swapcycle;      // 40 mod 12 = 4
+    show(dance(perm[permindex], swap[swapindex]));  // gjmiofcnaehpdlbk
 
 #ifdef TIMER
         const double looptime = stoptimer_us();
