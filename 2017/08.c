@@ -7,14 +7,14 @@
  * Compile:
  *     cc -std=c17 -Wall -Wextra -pedantic -Wno-multichar 08.c
  * Enable timer:
- *     cc -std=gnu17 -Wno-multichar -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 08.c
+ *     cc -std=gnu17 -O3 -march=native -mtune=native -Wno-multichar -DTIMER ../startstoptimer.c 08.c
  * Test with timer enabled, without a thousand lines of identical output:
  *     ./a.out | head -n1
  * Get minimum runtime from timer output on stderr:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 10.7 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :    ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 16.8 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 48.0 µs
  */
 

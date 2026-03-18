@@ -16,7 +16,7 @@
  *     ./a.out 2>&1 1>/dev/null
  * Minimum runtime measurements, includes parsing and output:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 253 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :   ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 390 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 696 µs
  */
 
