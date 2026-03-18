@@ -11,8 +11,8 @@
  * Get minimum runtime from timer output in bash:
  *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements including result output:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  52 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :   ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :   ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  42 µs
  *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
  */
 
@@ -113,6 +113,7 @@ int main(void)
     }
     printf("Part 1: %d\n\n", viable);  // 892
 
+#ifndef TIMER
     // Header
     printf("  ");
     for (int x = 0; x < X; ++x)
@@ -136,14 +137,15 @@ int main(void)
     for (int x = 0; x < X; ++x)
         printf("%2d", x % 10);
     printf("\n\n");
+#endif
 
     int moves = 0;
     printf("E  : (%2d,%2d)\n", empty->x, empty->y);
     printf("E  : (%2d,%2d) = %3d\n",  4, 7, (moves += manh(empty->x, empty->y, 4, 7)));
     printf("E  : (%2d,%2d) = %3d\n", 35, 0, (moves += manh(4, 7, 35, 0)));
     printf("EG : (%2d,%2d) = %3d\n",  0, 0, (moves += 5 * manh(35, 0, 0, 0)));
-    printf("GE : (%2d,%2d) = %3d\n",  0, 0, ++moves);
-    printf("\nPart 2: %d\n", moves);  // 227
+    printf("GE : (%2d,%2d) = %3d\n\n",  0, 0, ++moves);
+    printf("Part 2: %d\n", moves);  // 227
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());

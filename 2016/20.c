@@ -13,7 +13,7 @@
  * Minimum runtime measurements including result output:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 28 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : 47 µs
- *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 83 µs
  */
 
 #include <stdio.h>   // fopen, fclose, fscanf, printf, fprintf

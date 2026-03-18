@@ -18,7 +18,7 @@
  *     output redirection is needed to only select the timing info, which is printed to stderr
  * Minimum runtime measurements including result output which is redirected to /dev/null in shell:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 153 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :   ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 297 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 522 µs
  */
 

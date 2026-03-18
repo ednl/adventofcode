@@ -10,9 +10,9 @@
  * Get minimum runtime (input is 8-char string as command line argument):
  *     m=9999999;for((i=0;i<1000;++i));do t=$(./a.out udskfozm|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 29.9 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 44.3 µs
- *     Raspberry Pi 5 (2.4 GHz)      :    ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 29.9 ms
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 44.3 ms
+ *     Raspberry Pi 5 (2.4 GHz)      : 46.7 ms
  */
 
 #include <stdio.h>   // printf
