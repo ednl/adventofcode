@@ -9,9 +9,9 @@
  * Get minimum runtime from timer output:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 23 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 41 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 66 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 14 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
  */
 
 #include <stdio.h>
@@ -29,60 +29,46 @@ typedef struct vec2 {
     int x, y;
 } Vec2;
 
-static const Vec2 step[] = {
-    [U]={ 0,-1},
-    [D]={ 0, 1},
-    [L]={-1, 0},
-    [R]={ 1, 0},
-};
-
-static char grid[DIM][DIM + 2];  // +\n\0
-static char seen[LET];
-static int letters;
+static const Vec2 step[] = {[U]={0,-1}, [D]={0,1}, [L]={-1,0}, [R]={1,0}};
+static char grid[DIM][DIM + 1];  // +\n
+static char code[LET];  // letters collected along the way
+static int codelen;
 static int steps;
 
-static Vec2 next(const Vec2 pos, const int dir)
+static char probe(const Vec2 pos, const int dir)
 {
-    return (Vec2){pos.x + step[dir].x, pos.y + step[dir].y};
-}
-
-static char probe(const Vec2 pos)
-{
-    return grid[pos.y][pos.x];
+    return grid[pos.y + step[dir].y][pos.x + step[dir].x];
 }
 
 static char go(Vec2 *const pos, const int dir)
 {
-    *pos = next(*pos, dir);
     steps++;
-    return probe(*pos);
+    return grid[(pos->y += step[dir].y)][(pos->x += step[dir].x)];
 }
 
 int main(void)
 {
-    FILE *f = fopen(FNAME, "r");
-    for (int i = 0; i < DIM && fgets(grid[i], sizeof grid[0], f); ++i);
+    FILE *f = fopen(FNAME, "rb");
+    fread(grid, sizeof grid, 1, f);
     fclose(f);
 
     starttimer();
 
     Vec2 pos = {0};
     Dir dir = D;
-    for (; probe(pos) == ' '; pos = next(pos, R));
+    for (; grid[0][pos.x] == ' '; pos.x++);
 
     for (;;)
         switch (go(&pos, dir)) {
             case ' ': goto done;
-            case '+':
-                dir = dir & 2 ?
-                    (probe(next(pos, U)) == ' ' ? D : U):  // was L/R, now U/D
-                    (probe(next(pos, L)) == ' ' ? R : L);  // was U/D, now L/R
+            case '+': dir = dir & 2 ?            // currently U/D or L/R?
+                (probe(pos, U) == ' ' ? D : U):  // was L/R, now U/D
+                (probe(pos, L) == ' ' ? R : L);  // was U/D, now L/R
             case '-':
             case '|': break;
-            default:
-                seen[letters++] = probe(pos);
+            default: code[codelen++] = grid[pos.y][pos.x];
         }
 done:
-    printf("%s %d\n", seen, steps);  // DWNBGECOMY 17228
+    printf("%s %d\n", code, steps);  // DWNBGECOMY 17228
     printf("Time: %.0f us\n", stoptimer_us());
 }
