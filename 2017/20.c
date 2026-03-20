@@ -1,6 +1,7 @@
 #include <stdio.h>   // printf, scanf
 #include <stdlib.h>  // abs, exit
 #include <math.h>    // round, fabs, sqrt
+#include "../startstoptimer.h"
 
 #define DIM        (3)     // x,y,z
 #define PARTICLESZ (1000)  // exact number of lines in my input
@@ -226,6 +227,8 @@ int main(void)
     // Reset order => particles[i].n == i
     qsort(particles, (size_t)particlecount, sizeof(Particle), cmp2);
 
+    starttimer();
+
     // Part 2
     int colcount = 0;
     for (int i = 0; i < particlecount - 1; ++i) {
@@ -265,5 +268,5 @@ int main(void)
         alive += (particles[i].col < 0);
     }
     printf("Part 2: %d\n", alive);  // right answer = 438 for my input
-    return 0;
+    printf("Time: %.0f us\n", stoptimer_us());
 }
