@@ -1,4 +1,6 @@
 from math import sqrt
+from time import monotonic_ns
+t0 = monotonic_ns()
 
 magic = 65
 
@@ -14,4 +16,7 @@ for x in range(start, stop + 1, 17):
             composite += 1
             break
 
-print(composite)
+print(composite)  # 917
+
+t1 = monotonic_ns()
+print('Time: {:0.3f} ms'.format((t1 - t0) / 1_000_000))

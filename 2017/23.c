@@ -4,6 +4,7 @@
 #include <inttypes.h>  // PRIi64
 #include <string.h>    // strtok, memcpy
 #include <stdbool.h>
+#include <math.h>      // round, sqrt
 
 #define MEMSIZE (32)   // number of lines in input
 #define REGBASE ('a')
@@ -164,16 +165,10 @@ static void print(pProg p, bool listing)
 }
 
 // Run program p, use program q as message queue
-static int64_t run(pProg p, bool ispart1)
+static int64_t run(pProg p)
 {
     int64_t mulcount = 0;
     while (p->ip >= 0 && p->ip < MEMSIZE) {
-        if (!ispart1) {
-            for (int i = 'a'; i <= 'h'; ++i) {
-                printf(" %8"PRId64, p->reg[i - REGBASE]);
-            }
-            printf("\n");
-        }
         pInstr i = &(p->mem[p->ip]);
         if (i->r0 != -1) {
             i->v0 = p->reg[i->r0];
@@ -209,7 +204,7 @@ static int64_t run(pProg p, bool ispart1)
         p->ip++;
         p->tick++;
     }
-    return ispart1 ? mulcount : p->reg['h' - REGBASE];
+    return mulcount;
 }
 
 int main(void)
@@ -218,17 +213,26 @@ int main(void)
 
     // Part 1
     load(&p);
-    printf("Part 1: %"PRId64"\n", run(&p, true));
+    printf("%"PRId64"\n", run(&p));  // 3969
 
     // Part 2
-    p.ip = 0;
-    p.tick = 0;
-    p.reg[0] = 1;
-    for (size_t i = 1; i < REGSIZE; ++i) {
-        p.reg[i] = 0;
+    const int magic = 65;
+    const int start = magic * 100 + 100000;
+    const int stop = start + 17000;
+    int composite = 0;
+    for (int n = start; n <= stop; n += 17) {
+        if (!(n & 1)) {
+            composite++;
+            continue;
+        }
+        const int r = round(sqrt(n));
+        for (int d = 3; d <= r; d += 2)
+            if (!(n % d)) {
+                composite++;
+                break;
+            }
     }
-    print(&p, false);
-    printf("Part 2: %"PRId64"\n", run(&p, false));
+    printf("%d\n", composite);  // 917
 
     return 0;
 }
