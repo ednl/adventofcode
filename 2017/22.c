@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include "../startstoptimer.h"
 
 #define INITSIZE  (25U)
 #define PAD       (50U)
@@ -162,6 +163,8 @@ static unsigned int evolve(char **g, unsigned int *r, unsigned int *c, const cha
 
 int main(void)
 {
+    starttimer();
+
     char *grid = NULL;
     unsigned int rows, cols;
 
@@ -177,5 +180,5 @@ int main(void)
     // printf("%u %u\n", rows, cols);  // 415 385 for PAD=10
 
     free(grid);
-    return 0;
+    printf("Time: %.0f ms\n", stoptimer_ms());
 }
