@@ -1,5 +1,7 @@
-#include <stdio.h>
 #define SQRT
+#define DIFF
+
+#include <stdio.h>
 #ifdef SQRT
 #include <math.h>
 #endif
@@ -22,13 +24,18 @@ int main(void)
                 composite++;
                 goto next;
             }
-    #ifdef SQRT
-        const int r = floor(sqrt(n));
-        for (int d = prime[P - 1] + 2; d <= r; d += 2)
+    #if defined(SQRT)
+        const int root = floor(sqrt(n));
+        for (int factor = prime[P - 1] + 2; factor <= root; factor += 2)
+    #elif defined(DIFF)
+        const int f0 = prime[P - 1] + 2;
+        int sq = f0 * f0;
+        int df = (f0 + 1) << 2;
+        for (int factor = f0; sq <= n; factor += 2, sq += df, df += 8)
     #else
-        for (int d = prime[P - 1] + 2; d * d <= n; d += 2)
+        for (int factor = prime[P - 1] + 2; factor * factor <= n; factor += 2)
     #endif
-            if (n % d == 0) {
+            if (n % factor == 0) {
                 composite++;
                 break;
             }
