@@ -26,24 +26,24 @@ int main(void)
 
     // Read rules
     char c;
-    if (fscanf(f, " Begin in state %c. ", &c) == 1)
+    if (fscanf(f, "Begin in state %c. ", &c) == 1)
         state = (uint8_t)(c - 'A');
     int n;
-    if (fscanf(f, " Perform a diagnostic checksum after %d steps. ", &n) == 1)
+    if (fscanf(f, "Perform a diagnostic checksum after %d steps. ", &n) == 1)
         loop = n;
     for (int i = 0; i < RULES; ++i) {
         uint8_t k = (uint8_t)i;
-        if (fscanf(f, " In state %c: ", &c) == 1)
+        if (fscanf(f, "In state %c: ", &c) == 1)
             k = (uint8_t)(c - 'A');
         char b[2] = {0};
         for (int j = 0; j < 2; ++j) {
             int m;
-            if (fscanf(f, " If the current value is %d: - Write the value %d. ", &n, &m) == 2)
+            if (fscanf(f, "If the current value is %d: - Write the value %d. ", &n, &m) == 2)
                 b[n] = (char)m;
             char s[8];
-            if (fscanf(f, " - Move one slot to the %7[a-z]. ", s) == 1)
+            if (fscanf(f, "- Move one slot to the %7[a-z]. ", s) == 1)
                 rule[k].dir[j] = s[0] == 'l' ? -1 : 1;
-            if (fscanf(f, " - Continue with state %c. ", &c) == 1)
+            if (fscanf(f, "- Continue with state %c. ", &c) == 1)
                 rule[k].nxt[j] = (uint8_t)(c - 'A');
         }
         if (b[0] == 1 && b[1] == 0)
