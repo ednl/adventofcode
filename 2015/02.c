@@ -5,11 +5,21 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 02.c
- *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 02.c
+ *     cc -std=c17 -Wall -Wextra -pedantic 02.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 02.c
+ * Get minimum runtime from timer output in bash:
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements, includes reading from disk:
+ *     Macbook Pro 2024 (M4 4.4 GHz) :   ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  93 µs
+ *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
  */
 
 #include <stdio.h>
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
 static void swap(unsigned *restrict const a, unsigned *restrict const b)
 {
@@ -22,6 +32,11 @@ int main(void)
 {
     FILE *f = fopen("../aocinput/2015-02-input.txt", "r");
     if (!f) return 1;
+
+#ifdef TIMER
+    starttimer();
+#endif
+
     unsigned l, w, h, paper = 0, ribbon = 0;
     while (fscanf(f, "%ux%ux%u", &l, &w, &h) == 3) {
         // Bubble sort l,w,h ascending
@@ -34,5 +49,8 @@ int main(void)
     }
     fclose(f);
     printf("%u %u\n", paper, ribbon);  // 1598415 3812909
-    return 0;
+
+#ifdef TIMER
+    printf("Time: %.0f us\n", stoptimer_us());
+#endif
 }

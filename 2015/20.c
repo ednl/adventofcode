@@ -1,3 +1,21 @@
+/**
+ * Advent of Code 2015
+ * Day 20: Infinite Elves and Infinite Houses
+ * https://adventofcode.com/2015/day/20
+ * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *     cc -std=c17 -Wall -Wextra -pedantic 20.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 20.c
+ * Get minimum runtime from timer output in bash:
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) :    ? ms
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 12.7 ms
+ *     Raspberry Pi 5 (2.4 GHz)      :    ? ms
+ */
+
 #include <stdio.h>
 #ifdef TIMER
     #include "../startstoptimer.h"
@@ -16,7 +34,8 @@ int main(void)
     if (!f) return 1;
     int P;  // puzzle input, presents threshold
     if (fscanf(f, "%d", &P) != 1) return 2;
-    if (P < 1 || P > (1u << 31) - 1) return 3;
+    if (P < 1) return 3;  // also catches 32-bit signed overflow
+    fclose(f);
 
 #ifdef TIMER
     starttimer();
@@ -34,7 +53,11 @@ int main(void)
     // Part 1: find lowest house number where number of presents >= puzzle input
     for (int house = 1; house < N; ++house)
         if (presents[house] >= P) {
-            printf("Part 1: %d (%d >= %d)\n", house, presents[house], P);  // 776160
+        #ifdef TIMER
+            printf("%d\n", house);  // 776160
+        #else
+            printf("Part 1: %d (%d >= %d)\n", house, presents[house], P);  // 776160 (33611760 >= P)
+        #endif
             break;
         }
 
@@ -50,7 +73,11 @@ int main(void)
     // Part 2: find lowest house number where number of presents >= puzzle input
     for (int house = 1; house < N; ++house)
         if (presents[house] >= P) {
-            printf("Part 2: %d (%d >= %d)\n", house, presents[house], P);  // 786240
+        #ifdef TIMER
+            printf("%d\n", house);  // 786240
+        #else
+            printf("Part 2: %d (%d >= %d)\n", house, presents[house], P);  // 786240 (33161601 >= P)
+        #endif
             break;
         }
 

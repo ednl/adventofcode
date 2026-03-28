@@ -5,16 +5,15 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 11.c ../startstoptimer.c
- *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 11.c ../startstoptimer.c
- * Get minimum runtime:
- *     m=9999999;for((i=0;i<1000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
- * Minimum runtime:
- *     Mac Mini 2020 (M1 3.2 GHz)                       :    ? ms
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :    ? ms
- *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz)         : 11.4 ms
- *     Raspberry Pi 5 (2.4 GHz)                         :    ? ms
- *     Raspberry Pi 4 (1.8 GHz)                         :    ? ms
+ *     cc -std=c17 -Wall -Wextra -pedantic 11.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 11.c
+ * Get minimum runtime from timer output in bash:
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) :    ? ms
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 5.04 ms
+ *     Raspberry Pi 5 (2.4 GHz)      :    ? ms
  */
 
 #include <stdio.h>
