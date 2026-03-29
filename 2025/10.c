@@ -12,7 +12,7 @@
  *     m=9999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) :  82 µs (part 1)
- *     Mac Mini 2020 (M1 3.2 GHz)    :   ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 129 µs (part 1)
  *     Raspberry Pi 5 (2.4 GHz)      : 234 µs (part 1)
  */
 
@@ -22,7 +22,7 @@
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 1
+#define EXAMPLE 0
 #if EXAMPLE == 1
     #define FNAME "../aocinput/2025-10-example.txt"
     #define FSIZE 175

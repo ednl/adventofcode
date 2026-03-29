@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include "../startstoptimer.h"
 
+#define FNAME "../aocinput/2017-25-input.txt"
 #define LEN   (10 * 1000)      // good value found by trial & error
 #define RULES ('F' - 'A' + 1)  // puzzle input has states A-F
 
@@ -19,50 +21,44 @@ static int cursor = (LEN >> 2) * 3;  // balance of moves in my input is to the l
 
 int main(void)
 {
+    FILE *f = fopen(FNAME, "r");
+    if (!f) { fprintf(stderr, "File not found: "FNAME"\n"); return 1; }
+
     // Read rules
-    FILE *f = fopen("../aocinput/2017-25-input.txt", "r");
-    if (f != NULL) {
-        char c;
-        if (fscanf(f, " Begin in state %c. ", &c) == 1) {
-            state = (uint8_t)(c - 'A');
+    char c;
+    if (fscanf(f, "Begin in state %c. ", &c) == 1)
+        state = (uint8_t)(c - 'A');
+    int n;
+    if (fscanf(f, "Perform a diagnostic checksum after %d steps. ", &n) == 1)
+        loop = n;
+    for (int i = 0; i < RULES; ++i) {
+        uint8_t k = (uint8_t)i;
+        if (fscanf(f, "In state %c: ", &c) == 1)
+            k = (uint8_t)(c - 'A');
+        char b[2] = {0};
+        for (int j = 0; j < 2; ++j) {
+            int m;
+            if (fscanf(f, "If the current value is %d: - Write the value %d. ", &n, &m) == 2)
+                b[n] = (char)m;
+            char s[8];
+            if (fscanf(f, "- Move one slot to the %7[a-z]. ", s) == 1)
+                rule[k].dir[j] = s[0] == 'l' ? -1 : 1;
+            if (fscanf(f, "- Continue with state %c. ", &c) == 1)
+                rule[k].nxt[j] = (uint8_t)(c - 'A');
         }
-        int n;
-        if (fscanf(f, " Perform a diagnostic checksum after %d steps. ", &n) == 1) {
-            loop = n;
-        }
-        for (int i = 0; i < RULES; ++i) {
-            uint8_t k = (uint8_t)i;
-            if (fscanf(f, " In state %c: ", &c) == 1) {
-                k = (uint8_t)(c - 'A');
-            }
-            char b[2] = {0};
-            for (int j = 0; j < 2; ++j) {
-                int m;
-                if (fscanf(f, " If the current value is %d: - Write the value %d. ", &n, &m) == 2) {
-                    b[n] = (char)m;
-                }
-                char s[8];
-                if (fscanf(f, " - Move one slot to the %7[a-z]. ", s) == 1) {
-                    rule[k].dir[j] = s[0] == 'l' ? -1 : 1;
-                }
-                if (fscanf(f, " - Continue with state %c. ", &c) == 1) {
-                    rule[k].nxt[j] = (uint8_t)(c - 'A');
-                }
-            }
-            if (b[0] == 1 && b[1] == 0) {
-                rule[k].act = 2;  // flip
-            } else if (b[0] == 1 && b[1] == 1) {
-                rule[k].act = 1;  // set
-            } else if (b[0] == 0 && b[1] == 0) {
-                rule[k].act = 0;  // clear
-            } else {
-                rule[k].act = 3;  // leave as is
-            }
-        }
-        fclose(f);
+        if (b[0] == 1 && b[1] == 0)
+            rule[k].act = 2;  // flip
+        else if (b[0] == 1 && b[1] == 1)
+            rule[k].act = 1;  // set
+        else if (b[0] == 0 && b[1] == 0)
+            rule[k].act = 0;  // clear
+        else
+            rule[k].act = 3;  // leave as is
     }
+    fclose(f);
 
     // Print rules
+#ifdef DEBUG
     for (int i = 0; i < RULES; ++i) {
         printf("%c = ", 'A' + i);
         switch (rule[i].act) {
@@ -77,8 +73,10 @@ int main(void)
             'A' + rule[i].nxt[0],
             'A' + rule[i].nxt[1]);
     }
+#endif
 
     // Do the Turing thing
+    starttimer();
     for (int i = 0; i < loop; ++i) {
         uint8_t val = tape[cursor];
         switch (rule[state].act) {  // 0=clear, 1=set, 2=flip, 3=no action
@@ -96,10 +94,8 @@ int main(void)
 
     // Checksum
     int sum = 0;
-    for (int i = 0; i < LEN; ++i) {
+    for (int i = 0; i < LEN; ++i)
         sum += tape[i];
-    }
-    printf("Checksum: %d\n", sum);
-
-    return 0;
+    printf("%d\n", sum);  // 4387
+    printf("Time: %.0f ms\n", stoptimer_ms());
 }
