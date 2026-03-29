@@ -25,14 +25,19 @@
     #include "../startstoptimer.h"
 #endif
 
+#define DEBUG
 #define FNAME "../aocinput/2017-24-input.txt"
 #define N 57  // number of lines in input file
 
+// Components with two ports, sum of ports, used flag
 typedef struct comp {
-    int a, b, c;
+    int port1, port2, strength;
     bool used;
 } Comp;
 
+#ifdef DEBUG
+static int exist[51][51];
+#endif
 static Comp comp[N] = {0};
 static int maxsum = 0;
 static int maxlen = 0;
@@ -46,27 +51,58 @@ static int load(void)
         return 0;  // zero lines read
     }
     int n = 0;
-    for (int a, b; n < N && fscanf(f, "%d/%d ", &a, &b) == 2; ++n)
+    for (int a, b; n < N && fscanf(f, "%d/%d ", &a, &b) == 2; ++n) {
         comp[n] = (Comp){a, b, a + b, false};
+    #ifdef DEBUG
+        exist[a][b]++;
+        if (a != b)
+            exist[b][a]++;
+    #endif
+    }
     fclose(f);
+#ifdef DEBUG
+    printf("      ");
+    for (int j = 0; j < 51; ++j)
+        printf(" %d", j % 10);
+    putchar('\n');
+    for (int i = 0; i < 51; ++i) {
+        printf("    %2d ", i);
+        for (int j = 0; j < 51; ++j)
+            printf("%c ", exist[i][j] ? (i == j ? 'X' : 'O') : '.');
+        printf("%-4d", i);
+        for (int j = 0; j < 51; ++j)
+            if (exist[i][j])
+                printf("%3d", j);
+        printf("\n");
+    }
+    printf("      ");
+    for (int j = 0; j < 51; ++j)
+        printf(" %d", j % 10);
+    putchar('\n');
+#endif
     return n;
 }
 
 static void bridge(int port, int len, int sum)
 {
-    if (sum > maxsum) {
+    // Part 1
+    if (sum > maxsum)
         maxsum = sum;
-    }
+
+    // Part 2
     if (len > maxlen) {
         maxlen = len;
         maxsum2 = sum;
-    } else if (len == maxlen && sum > maxsum2) {
+    } else if (len == maxlen && sum > maxsum2)
         maxsum2 = sum;
-    }
+
     for (int i = 0; i < N; ++i)
-        if (!comp[i].used && (port == comp[i].a || port == comp[i].b)) {
+        if (!comp[i].used && (port == comp[i].port1 || port == comp[i].port2)) {
             comp[i].used = true;
-            bridge(port == comp[i].a ? comp[i].b : comp[i].a, len + 1, sum + comp[i].c);
+            bridge(
+                port == comp[i].port1 ? comp[i].port2 : comp[i].port1,
+                len + 1,
+                sum + comp[i].strength);
             comp[i].used = false;
         }
 }
