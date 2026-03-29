@@ -5,11 +5,12 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 12.c ../startstoptimer.c
- *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 12.c ../startstoptimer.c
- * Get minimum runtime:
- *     m=9999999;for((i=0;i<1000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
- * Minimum runtime:
+ *     cc -std=c17 -Wall -Wextra -pedantic 12.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 12.c
+ * Get minimum runtime from timer output in bash:
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz)       :  5.87 ms
  *     Mac Mini 2020 (M1 3.2 GHz)          :  8.42 ms
  *     iMac 2013 (i5 Haswell 4570 3.2 GHz) : 10.2  ms
@@ -271,8 +272,6 @@ int main(void)
         togocount(row);  // new cumulative sum
     }
     printf("Part 2: %"PRId64"\n", sumarr(rows));  // example: 525152, input: 50338344809230
-    free(hashtable);
-
     printf("Time: %.0f us\n", stoptimer_us());
-    return 0;
+    free(hashtable);
 }

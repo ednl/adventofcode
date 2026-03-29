@@ -5,16 +5,15 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -O3 -march=native -Wall -Wno-multichar 16.c ../startstoptimer.c
- *    gcc   -std=gnu17 -O3 -march=native -Wall -Wno-multichar 16.c ../startstoptimer.c
- * Get minimum runtime:
- *     m=9999999;for((i=0;i<500;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
- * Minimum runtime:
- *     Macbook Pro 2024 (M4 4.4 GHz)                  :  12 ms
- *     Apple M1 Mac Mini 2020 (3.2 GHz)               :  24 ms
- *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) :  27 ms
- *     Raspberry Pi 5 (2.4 GHz)                       :  33 ms
- *     Raspberry Pi 4 (1.8 GHz)                       :  70 ms
+ *     cc -std=c17 -Wall -Wextra -pedantic -Wno-multichar 16.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -Wno-multichar -DTIMER ../startstoptimer.c 16.c
+ * Get minimum runtime from timer output in bash:
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  ? ms
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 20 ms
+ *     Raspberry Pi 5 (2.4 GHz)      :  ? ms
  */
 
 #include <stdio.h>    // fopen, fclose, fgets, printf
@@ -175,13 +174,13 @@ static int energize(Beam beam)
 
 int main(void)
 {
-    starttimer();
     FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
-
     for (int i = 0; i < N; ++i)
         fgets(mirror[i], sizeof *mirror, f);
     fclose(f);
+
+    starttimer();
 
     const int part1 = energize((Beam){{-1, 0}, 'E'});
     show();
@@ -202,5 +201,4 @@ int main(void)
     }
     printf("Part 2: %d\n", part2);  // example: 51, input: 8437
     printf("Time: %.0f ms\n", stoptimer_ms());
-    return 0;
 }

@@ -13,13 +13,11 @@
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 18.c
  * Get minimum runtime from timer output in bash:
- *     m=9999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz)                  :  62 µs
- *     Apple M1 Mac Mini 2020 (3.2 GHz)               : 111 µs
- *     Apple iMac 2013 (Core i5 Haswell 4570 3.2 GHz) : 219 µs
- *     Raspberry Pi 5 (2.4 GHz)                       : 229 µs
- *     Raspberry Pi 4 (1.8 GHz)                       : 481 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz)    :    ? µs
+ *     Apple M1 Mac Mini 2020 (3.2 GHz) : 4.08 µs
+ *     Raspberry Pi 5 (2.4 GHz)         :    ? µs
  */
 
 #include <stdio.h>     // fopen, fclose, fscanf, printf
@@ -63,10 +61,6 @@ static Dir char2dir(const int c)
 
 int main(void)
 {
-#ifdef TIMER
-    starttimer();
-#endif
-
     FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
     for (int i = 0, dir, len, hex; i < N && fscanf(f, "%c %2d (#%6x)\n", &dir, &len, &hex) == 3; ++i) {
@@ -83,6 +77,10 @@ int main(void)
         printf("%c %d | %c %6d\n", dir2char[t0->dir], t0->len, dir2char[t1->dir], t1->len);
     }
     printf("\n");
+#endif
+
+#ifdef TIMER
+    starttimer();
 #endif
 
     const Dig *t = &trench[0][0];  // start at first trench dig instruction from part 1
@@ -111,6 +109,6 @@ int main(void)
     }
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+    printf("Time: %.0f ns\n", stoptimer_ns());
 #endif
 }

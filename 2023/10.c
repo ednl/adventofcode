@@ -9,16 +9,15 @@
  *     https://en.wikipedia.org/wiki/Pick%27s_theorem
  *
  * Compile:
- *    clang -std=gnu17 -O3 -march=native -Wall -Wextra -Wno-multichar 10.c ../startstoptimer.c
- *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra -Wno-multichar 10.c ../startstoptimer.c
- * Get minimum runtime:
- *     m=9999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
- * Minimum runtime:
- *     Macbook Pro 2024 (M4 4.4 GHz)       :  52 µs
- *     Mac Mini 2020 (M1 3.2 GHz)          :  90 µs
- *     iMac 2013 (i5 Haswell 4570 3.2 GHz) : 148 µs
- *     Raspberry Pi 5 (2.4 GHz)            : 150 µs
- *     Raspberry Pi 4 (1.8 GHz)            : 361 µs
+ *     cc -std=c17 -Wall -Wextra -pedantic -Wno-multichar 09.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -Wno-multichar -DTIMER ../startstoptimer.c 09.c
+ * Get minimum runtime from timer output in bash:
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) :   ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  75 µs
+ *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
  */
 
 #include <stdio.h>    // fopen, fclose, fgets, printf
@@ -102,14 +101,13 @@ static State start(void)
 
 int main(void)
 {
-    starttimer();
     FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
-
     for (int i = 0; i < H; ++i)
         fgets(pipe[i], sizeof *pipe, f);
     fclose(f);
 
+    starttimer();
     State s = start();
     const char *p = &pipe[s.pos.y][s.pos.x];
     int area = 0, border = 0;
@@ -138,8 +136,6 @@ int main(void)
     // Pick's theorem: i = A - b/2 + 1
     const int inside = absi(area) / 2 - border + 1;
 
-    printf("Part 1: %d\n", border);  // 7005
-    printf("Part 2: %d\n", inside);  // 417
+    printf("%d %d\n", border, inside);  // 7005 417
     printf("Time: %.0f us\n", stoptimer_us());
-    return 0;
 }

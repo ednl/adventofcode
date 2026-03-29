@@ -5,16 +5,15 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 06.c ../startstoptimer.c
- *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 06.c ../startstoptimer.c
- * Get minimum runtime:
- *     m=9999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
- * Minimum runtime:
- *     Macbook Pro 2024 (M4 4.4 GHz)            :  8 µs
- *     Mac Mini 2020 (M1 3.2 GHz)               : 12 µs
- *     Raspberry Pi 5 (2.4 GHz)                 : 23 µs
- *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz) : 39 µs
- *     Raspberry Pi 4 (1.8 GHz)                 : 53 µs
+ *     cc -std=c17 -Wall -Wextra -pedantic 06.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 06.c
+ * Get minimum runtime from timer output in bash:
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) :    ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 1.12 µs
+ *     Raspberry Pi 5 (2.4 GHz)      :    ? µs
  */
 
 #include <stdio.h>     // fopen, fclose, fscanf, printf
@@ -66,7 +65,6 @@ static int64_t ways2win(int raceid)
 
 int main(void)
 {
-    starttimer();
     FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
 
@@ -76,6 +74,8 @@ int main(void)
             fscanf(f, "%"PRId64, &race[j][i]);  // transpose
     }
     fclose(f);
+
+    starttimer();
 
     // Part 1
     int64_t prod = 1;
@@ -93,6 +93,6 @@ int main(void)
 
     printf("Part 1: %"PRId64"\n", prod);         // example:   288, input:  2449062
     printf("Part 2: %"PRId64"\n", ways2win(0));  // example: 71503, input: 33149631
-    printf("Time: %.0f us\n", stoptimer_us());
-    return 0;
+
+    printf("Time: %.0f ns\n", stoptimer_ns());
 }

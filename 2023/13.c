@@ -5,16 +5,15 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 13.c ../startstoptimer.c
- *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 13.c ../startstoptimer.c
- * Get minimum runtime:
- *     m=9999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
- * Minimum runtime:
- *     Macbook Pro 2024 (M4 4.4 GHz)       :  67 µs
- *     Mac Mini 2020 (M1 3.2 GHz)          : 100 µs
- *     Raspberry Pi 5 (2.4 GHz)            : 153 µs
- *     iMac 2013 (i5 Haswell 4570 3.2 GHz) : 175 µs
- *     Raspberry Pi 4 (1.8 GHz)            : 376 µs
+ *     cc -std=c17 -Wall -Wextra -pedantic 13.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 13.c
+ * Get minimum runtime from timer output in bash:
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) :   ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  95 µs
+ *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
 */
 
 #include <stdio.h>     // fopen, fclose, getline, printf, fputc, stdout
@@ -116,9 +115,10 @@ static int summarize(const int rows, const int cols, const int imperf)
 
 int main(void)
 {
-    starttimer();
     FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
+
+    starttimer();
 
     int len;
     char *buf = NULL;
@@ -144,5 +144,4 @@ int main(void)
     printf("Part 1: %d\n", part1);  // example: 405, input: 31739
     printf("Part 2: %d\n", part2);  // example: 400, input: 31539
     printf("Time: %.0f us\n", stoptimer_us());
-    return 0;
 }

@@ -5,11 +5,12 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 05.c ../startstoptimer.c
- *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 05.c ../startstoptimer.c
- * Get minimum runtime:
- *     m=9999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
- * Minimum runtime:
+ *     cc -std=c17 -Wall -Wextra -pedantic 05.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 05.c
+ * Get minimum runtime from timer output in bash:
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz)       :  44 µs
  *     Mac Mini 2020 (M1 3.2 GHz)          :  88 µs
  *     Raspberry Pi 5 (2.4 GHz)            : 141 µs
@@ -150,10 +151,10 @@ static int64_t convert2(Range range)
 
 int main(void)
 {
-    starttimer();
     FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
 
+    starttimer();
     while (fgetc(f) != ':');  // skip to first seed number
     for (int i = 0; i < SEEDS; ++i)  // read seed numbers
         fscanf(f, "%"PRId64, &seed[i]);

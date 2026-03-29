@@ -5,13 +5,23 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 01simple.c
- *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 01simple.c
+ *     cc -std=c17 -Wall -Wextra -pedantic 01simple.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 01simple.c
+ * Get minimum runtime from timer output in bash:
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) :   ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 370 µs
+ *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
  */
 
 #include <stdio.h>
 #include <string.h>  // strlen
 #include <ctype.h>   // isdigit
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
 // Digit count from 0 to 9
 #define DIGITS 10
@@ -35,6 +45,10 @@ int main(void)
     FILE *f = fopen("../aocinput/2023-01-input.txt", "r");
     if (!f)
         return 1;
+
+#ifdef TIMER
+    starttimer();
+#endif
 
     int sum1 = 0, sum2 = 0;
     char buf[LINELEN];
@@ -89,5 +103,8 @@ int main(void)
 
     // Result
     printf("%d %d\n", sum1, sum2);  // 54630 54770 for my input
-    return 0;
+
+#ifdef TIMER
+    printf("Time: %.0f us\n", stoptimer_us());
+#endif
 }

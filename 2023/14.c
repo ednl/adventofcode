@@ -5,11 +5,12 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 14.c ../startstoptimer.c
- *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 14.c ../startstoptimer.c
- * Get minimum runtime:
- *     m=9999999;for((i=0;i<200;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
- * Minimum runtime:
+ *     cc -std=c17 -Wall -Wextra -pedantic 14.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 14.c
+ * Get minimum runtime from timer output in bash:
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz)       : 10 ms
  *     Mac Mini 2020 (M1 3.2 GHz)          : 22 ms
  *     iMac 2013 (i5 Haswell 4570 3.2 GHz) : 37 ms
@@ -108,13 +109,15 @@ static void cycle(void)
 
 int main(void)
 {
-    starttimer();
     FILE *f = fopen(NAME, "r");
     if (!f)
         return 1;
     for (int i = 1; i < LIM; ++i)
         fgets(&map[i][1], DIM, f);  // leave room for border
     fclose(f);
+
+    starttimer();
+
     memset(&map[0][1], '#', N);  // top and bottom border not used
     memset(&map[DIM - 1][1], '#', N);
     for (int i = 0; i < DIM; ++i) {
@@ -167,5 +170,4 @@ int main(void)
     #endif
     printf("Part 2: %d\n", load());  // example: 64, input: 101292
     printf("Time: %.0f ms\n", stoptimer_ms());
-    return 0;
 }

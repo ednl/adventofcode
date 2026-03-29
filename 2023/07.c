@@ -5,19 +5,15 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=c17 -Wall -Wextra -pedantic 07.c
- *    gcc   -std=c17 -Wall -Wextra -pedantic 07.c
+ *     cc -std=c17 -Wall -Wextra -pedantic 07.c
  * Enable timer:
- *    clang -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 07.c
- *    gcc   -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 07.c
- * Get minimum runtime from timer output:
- *     m=9999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
- * Minimum runtime:
- *     Macbook Pro 2024 (M4 4.4 GHz)       :  202 µs
- *     Mac Mini 2020 (M1 3.2 GHz)          :  308 µs
- *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :  474 µs
- *     Raspberry Pi 5 (2.4 GHz)            :  510 µs
- *     Raspberry Pi 4 (1.8 GHz)            : 1093 µs
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 07.c
+ * Get minimum runtime from timer output in bash:
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) :   ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 230 µs
+ *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
  */
 
 #include <stdio.h>    // fopen, fclose, fscanf, printf
@@ -156,20 +152,20 @@ static int winnings(const bool ispart2)
 
 int main(void)
 {
-#ifdef TIMER
-    starttimer();
-#endif
     FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
-
     for (int i = 0; i < HANDS; ++i)
         fscanf(f, "%"STR(HANDSIZE)"s %d", game[i].card, &game[i].bid);
     fclose(f);
 
+#ifdef TIMER
+    starttimer();
+#endif
+
     printf("Part 1: %d\n", winnings(1 == 2));  // example: 6440, input: 250957639
     printf("Part 2: %d\n", winnings(2 == 2));  // example: 5905, input: 251515496
+
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
 #endif
-    return 0;
 }

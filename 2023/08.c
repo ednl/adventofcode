@@ -5,18 +5,15 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=c17 -Wall -Wextra -pedantic 08.c
- *    gcc   -std=c17 -Wall -Wextra -pedantic 08.c
+ *     cc -std=c17 -Wall -Wextra -pedantic 08.c
  * Enable timer:
- *    clang -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 08.c
- *    gcc   -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 08.c
- * Get minimum runtime from timer output:
- *     n=10000;m=999999;for((i=0;i<n;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i/$n)";done
- * Minimum runtime:
- *     Macbook Pro 2024 (M4 4.4 GHz)       : 120 µs
- *     Mac Mini 2020 (M1 3.2 GHz)          : 164 µs
- *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :   ? µs
- *     Raspberry Pi 5 (2.4 GHz)            : 296 µs
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 08.c
+ * Get minimum runtime from timer output in bash:
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) :   ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 151 µs
+ *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
  */
 
 #include <stdio.h>     // getline (should probably check for availability)
@@ -104,10 +101,6 @@ static void *navigate(void *start)
 
 int main(void)
 {
-#ifdef TIMER
-    starttimer();
-#endif
-
     // Read and convert one line of 'L' and 'R' instructions to index 0 or 1
     FILE *f = fopen(NAME, "r");
     if (!f)
@@ -121,6 +114,10 @@ int main(void)
 
     // Skip empty line
     fgetc(f);
+
+#ifdef TIMER
+    starttimer();
+#endif
 
     // Read and convert named nodes to "hashed" index values
     // Save nodes ending in A

@@ -3,12 +3,26 @@
  * Day 3: Gear Ratios
  * https://adventofcode.com/2023/day/3
  * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *     cc -std=c17 -Wall -Wextra -pedantic 03.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 03.c
+ * Get minimum runtime from timer output in bash:
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 64 µs
+ *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
  */
 
 #include <stdio.h>    // fopen, fclose, fgets, printf
 #include <ctype.h>    // isdigit
 #include <string.h>   // memset
 #include <stdbool.h>  // bool
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
 #define EXAMPLE 0
 #if EXAMPLE == 1
@@ -127,6 +141,10 @@ int main(void)
     }
     fclose(f);
 
+#ifdef TIMER
+    starttimer();
+#endif
+
     int sum1 = 0;
     for (int i = 1; i <= N; ++i)
         for (int j = 1; j <= N; ++j)
@@ -140,5 +158,8 @@ int main(void)
             if (schematic[i][j] == '*')  // possible gear
                 sum2 += gearratio(i, j);
     printf("%u\n", sum2);  // example: 467835, input: 78272573
-    return 0;
+
+#ifdef TIMER
+    printf("Time: %.0f us\n", stoptimer_us());
+#endif
 }

@@ -5,16 +5,15 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -O3 -march=native -Wall 15alt.c ../startstoptimer.c
- *    gcc   -std=gnu17 -O3 -march=native -Wall 15alt.c ../startstoptimer.c
- * Get minimum runtime:
- *     m=9999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
- * Minimum runtime:
- *     Macbook Pro 2024 (M4 4.4 GHz)       :  237 µs
- *     Mac Mini 2020 (M1 3.2 GHz)          :  346 µs
- *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :  523 µs
- *     Raspberry Pi 5 (2.4 GHz)            :  556 µs
- *     Raspberry Pi 4 (1.8 GHz)            : 1174 µs
+ *     cc -std=c17 -Wall -Wextra -pedantic 15alt.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 15alt.c
+ * Get minimum runtime from timer output in bash:
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) :   ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 333 µs
+ *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
  */
 
 #include <stdio.h>    // fopen, fclose, getline, printf
@@ -91,10 +90,8 @@ static int cmp_box_ord(const void *p, const void *q)
 
 int main(void)
 {
-    starttimer();
     FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
-
     char *line = NULL;
     size_t bufsz;
     ssize_t len;
@@ -103,6 +100,7 @@ int main(void)
     fclose(f);
     line[--len] = '\0';  // remove newline, now 2x '\0' in a row
 
+    starttimer();
     int part1 = 0;
     int16_t count = 0;
     const char *s = line;
@@ -158,8 +156,6 @@ int main(void)
             part2 += (box + 1) * (slot + 1) * step[i].focal;
     }
     printf("Part 2: %d\n", part2);  // example: 145, input: 236358
-
-    free(line);
     printf("Time: %.0f us\n", stoptimer_us());
-    return 0;
+    free(line);
 }

@@ -5,16 +5,15 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -O3 -march=native -Wall 11alt.c ../startstoptimer.c
- *    gcc   -std=gnu17 -O3 -march=native -Wall 11alt.c ../startstoptimer.c
- * Get minimum runtime:
- *     m=9999999;for((i=0;i<10000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
- * Minimum runtime:
- *     Macbook Pro 2024 (M4 4.4 GHz)       :  24 µs
- *     Mac Mini 2020 (M1 3.2 GHz)          :  35 µs
- *     Raspberry Pi 5 (2.4 GHz)            :  70 µs
- *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :  82 µs
- *     Raspberry Pi 4 (1.8 GHz)            : 205 µs
+ *     cc -std=c17 -Wall -Wextra -pedantic 11.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 11.c
+ * Get minimum runtime from timer output in bash:
+ *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 17 µs
+ *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
  */
 
 #include <stdio.h>     // fopen, fclose, fgets, printf
@@ -52,14 +51,13 @@ static int64_t dist(int *pos, int *shift, int n, int64_t f)
 
 int main(void)
 {
-    starttimer();
     FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
-
     for (int i = 0; i < N; ++i)
         fgets(image[i], sizeof *image, f);
     fclose(f);
 
+    starttimer();
     int galaxies = 0;
     for (int i = 0; i < N; ++i)
         for (int j = 0; j < N; ++j)
@@ -89,9 +87,8 @@ int main(void)
     // input: 9608724, 904633799472
     printf("Part 1: %"PRId64"\n", dist(xpos, xshift, galaxies, 2) + dist(ypos, yshift, galaxies, 2));
     printf("Part 2: %"PRId64"\n", dist(xpos, xshift, galaxies, M) + dist(ypos, yshift, galaxies, M));
+    printf("Time: %.0f us\n", stoptimer_us());
 
     free(xpos);
     free(ypos);
-    printf("Time: %.0f us\n", stoptimer_us());
-    return 0;
 }
