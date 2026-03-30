@@ -5,13 +5,13 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *     cc -std=c17 -Wall -Wextra -pedantic 09.c
+ *     cc -std=c17 -Wall -Wextra -pedantic 18.c
  * Enable timer:
- *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 09.c
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 18.c
  * Get minimum runtime from timer output in bash:
  *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :    ? ms
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 3.71 ms
  *     Mac Mini 2020 (M1 3.2 GHz)    : 5.93 ms
  *     Raspberry Pi 5 (2.4 GHz)      :    ? ms
  */

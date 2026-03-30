@@ -11,7 +11,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :    ? ms
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 3.22 ms
  *     Mac Mini 2020 (M1 3.2 GHz)    : 5.04 ms
  *     Raspberry Pi 5 (2.4 GHz)      :    ? ms
  */
@@ -19,7 +19,9 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "../startstoptimer.h"
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
 #define INPUT "hxbxwxba"
 #define LEN 8
@@ -76,7 +78,10 @@ triplet:
 
 int main(void)
 {
+#ifdef TIMER
     starttimer();
+#endif
+
     char pwd[] = INPUT;
     int64_t n = toval(pwd);
     for (int i = 1; i <= 2; ++i) {
@@ -85,6 +90,8 @@ int main(void)
         } while (!isvalid(pwd));
         printf("Part %d: %s\n", i, pwd);  // hxbxxyzz, hxcaabcc
     }
+
+#ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
-    return 0;
+#endif
 }

@@ -11,7 +11,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :   ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  62 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :  95 µs
  *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
 */
@@ -19,7 +19,9 @@
 #include <stdio.h>     // fopen, fclose, getline, printf, fputc, stdout
 #include <stdlib.h>    // free
 #include <stdbool.h>   // bool
-#include "../startstoptimer.h"
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
 #define EXAMPLE 0
 #if EXAMPLE
@@ -118,7 +120,9 @@ int main(void)
     FILE *f = fopen(NAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
 
+#ifdef TIMER
     starttimer();
+#endif
 
     int len;
     char *buf = NULL;
@@ -143,5 +147,8 @@ int main(void)
 
     printf("Part 1: %d\n", part1);  // example: 405, input: 31739
     printf("Part 2: %d\n", part2);  // example: 400, input: 31539
+
+#ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
+#endif
 }

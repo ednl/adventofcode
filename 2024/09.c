@@ -75,5 +75,4 @@ int main(void)
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
 #endif
-    return 0;
 }
