@@ -11,16 +11,18 @@
  * Get minimum runtime from timer output in bash:
  *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  ? µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 17 µs
- *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 11.5 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 17   µs
+ *     Raspberry Pi 5 (2.4 GHz)      :  ?   µs
  */
 
 #include <stdio.h>     // fopen, fclose, fgets, printf
 #include <stdlib.h>    // malloc, free
 #include <stdint.h>    // int64_t
 #include <inttypes.h>  // PRId64
-#include "../startstoptimer.h"  // timer
+#ifdef TIMER
+    #include "../startstoptimer.h"  // timer
+#endif
 
 #define EXAMPLE 0
 #if EXAMPLE
@@ -57,7 +59,10 @@ int main(void)
         fgets(image[i], sizeof *image, f);
     fclose(f);
 
+#ifdef TIMER
     starttimer();
+#endif
+
     int galaxies = 0;
     for (int i = 0; i < N; ++i)
         for (int j = 0; j < N; ++j)
@@ -87,7 +92,10 @@ int main(void)
     // input: 9608724, 904633799472
     printf("Part 1: %"PRId64"\n", dist(xpos, xshift, galaxies, 2) + dist(ypos, yshift, galaxies, 2));
     printf("Part 2: %"PRId64"\n", dist(xpos, xshift, galaxies, M) + dist(ypos, yshift, galaxies, M));
-    printf("Time: %.0f us\n", stoptimer_us());
+
+#ifdef TIMER
+    printf("Time: %.0f ns\n", stoptimer_ns());
+#endif
 
     free(xpos);
     free(ypos);

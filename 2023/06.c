@@ -11,7 +11,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :    ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 0.67 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : 1.12 µs
  *     Raspberry Pi 5 (2.4 GHz)      :    ? µs
  */
@@ -20,7 +20,9 @@
 #include <math.h>      // sqrt, floor, ceil
 #include <stdint.h>    // int64_t
 #include <inttypes.h>  // PRId64
-#include "../startstoptimer.h"
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
 #define EXAMPLE 0
 #if EXAMPLE == 1
@@ -75,12 +77,15 @@ int main(void)
     }
     fclose(f);
 
+#ifdef TIMER
     starttimer();
+#endif
 
     // Part 1
     int64_t prod = 1;
     for (int i = 0 ; i < RACES; ++i)
         prod *= ways2win(i);
+    printf("%"PRId64"\n", prod);         // example:   288, input:  2449062
 
     // Part 2
     for (int i = 0; i < L; ++i)
@@ -90,9 +95,9 @@ int main(void)
                 mult *= 10;
             race[0][i] = race[0][i] * mult + race[j][i];
         }
+    printf("%"PRId64"\n", ways2win(0));  // example: 71503, input: 33149631
 
-    printf("Part 1: %"PRId64"\n", prod);         // example:   288, input:  2449062
-    printf("Part 2: %"PRId64"\n", ways2win(0));  // example: 71503, input: 33149631
-
+#ifdef TIMER
     printf("Time: %.0f ns\n", stoptimer_ns());
+#endif
 }

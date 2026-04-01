@@ -5,13 +5,13 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *     cc -std=c17 -Wall -Wextra -pedantic 09.c
+ *     cc -std=c17 -Wall -Wextra -pedantic ../combperm.c 09.c
  * Enable timer:
- *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 09.c
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c ../combperm.c 09.c
  * Get minimum runtime from timer output in bash:
  *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :   ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 110 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : 217 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 474 µs
  */
@@ -19,14 +19,15 @@
 #include <stdio.h>
 #include <stdlib.h>             // atoi
 #include "../combperm.h"        // my own permutations function
-#include "../startstoptimer.h"  // my own timing function
+#ifdef TIMER
+    #include "../startstoptimer.h"  // my own timing function
+#endif
 
 #define N 8
 static int dist[N][N];
 
 int main(void)
 {
-    starttimer();
     FILE *f = fopen("../aocinput/2015-09-input.txt", "r");
     if (!f)
         return 1;
@@ -41,6 +42,10 @@ int main(void)
         }
     fclose(f);
 
+#ifdef TIMER
+    starttimer();
+#endif
+
     int *p, min = 1000, max = 0;
     while ((p = permutations(N))) {
         int sum = 0;
@@ -50,6 +55,8 @@ int main(void)
         max = sum > max ? sum : max;
     }
     printf("%d %d\n", min, max);  // 251 898
+
+#ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
-    return 0;
+#endif
 }

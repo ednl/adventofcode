@@ -11,16 +11,18 @@
  * Get minimum runtime from timer output in bash:
  *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  ? ms
- *     Mac Mini 2020 (M1 3.2 GHz)    : 20 ms
- *     Raspberry Pi 5 (2.4 GHz)      :  ? ms
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 11.8 ms
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 20   ms
+ *     Raspberry Pi 5 (2.4 GHz)      :  ?   ms
  */
 
 #include <stdio.h>    // fopen, fclose, fgets, printf
 #include <string.h>   // memset
 #include <stdint.h>   // int32_t
 #include <stdbool.h>  // bool
-#include "../startstoptimer.h"
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
 #define EXAMPLE 0
 #if EXAMPLE
@@ -180,7 +182,9 @@ int main(void)
         fgets(mirror[i], sizeof *mirror, f);
     fclose(f);
 
+#ifdef TIMER
     starttimer();
+#endif
 
     const int part1 = energize((Beam){{-1, 0}, 'E'});
     show();
@@ -200,5 +204,8 @@ int main(void)
         if (e > part2) part2 = e;
     }
     printf("Part 2: %d\n", part2);  // example: 51, input: 8437
-    printf("Time: %.0f ms\n", stoptimer_ms());
+
+#ifdef TIMER
+    printf("Time: %.0f us\n", stoptimer_us());
+#endif
 }
