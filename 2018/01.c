@@ -1,64 +1,79 @@
-#include <stdio.h>
-#include <stdlib.h>
+/**
+ * Advent of Code 2018
+ * Day 1: Chronal Calibration
+ * https://adventofcode.com/2018/day/1
+ * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *     cc -std=c17 -Wall -Wextra -pedantic 01.c
+ * Enable timer:
+ *     cc -std=gnu17 -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 01.c
+ * Get minimum runtime from timer output:
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) :   ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 178 µs
+ *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
+ */
 
-static const char *fname = "../aocinput/2018-01-input.txt";
+#include <stdio.h>
+#include <limits.h>  // INT_MAX
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
+
+#define FNAME "../aocinput/2018-01-input.txt"
+#define FSIZE 4096  // needed for my input: 3567
+#define N 989  // lines in input file
+
+static char input[FSIZE];
+static int freq[N + 1];  // start with 0
+static int modf[N];  // part 1: steps, part 2: freq mod shift
 
 int main(void)
 {
-    // Part 1
-    int *freq = NULL, *modfreq = NULL, shift = 0, dup = 0;
-    char *str = NULL;
-    size_t N = 0, len = 0, i, j, min = -1;
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) { fprintf(stderr, "File not found: "FNAME"\n"); return 1; }
+    fread(input, 1, FSIZE, f);
+    fclose(f);
 
-    FILE *fp = fopen(fname, "r");
-    if (fp) {
-        // Count lines in input file
-        while (getline(&str, &len, fp) > 0) {
-            ++N;
-        }
-        if (N) {
-            // Allocate table for cumulative fequencies
-            freq = (int *)malloc(N * sizeof *freq);
-            modfreq = (int *)malloc(N * sizeof *modfreq);
-            if (freq != NULL && modfreq != NULL) {
-                // Start with frequency = 0, then calculate from index = 1
-                freq[0] = 0;
-                i = 1;
-                rewind(fp);
-                while (getline(&str, &len, fp) > 0 && i < N) {
-                    freq[i] = freq[i - 1] + atoi(str);
-                    ++i;
-                }
-                shift = freq[N - 1] + atoi(str);  // value shift at start of new loop
-                printf("Part 1: %d\n", shift);
+#ifdef TIMER
+    starttimer();
+#endif
 
-                // Pre-calc of the moduli of the cumulative frequencies
-                for (i = 0; i < N; ++i) {
-                    modfreq[i] = freq[i] % shift;
-                }
-                // Check every pair
-                // (disregards possibility of duplicate frequency on the very first loop)
-                // (also disregards possibility of shift <= 0)
-                for (i = 0; i < N - 1; ++i) {
-                    for (j = i + 1; j < N; ++j) {
-                        if (modfreq[i] == modfreq[j]) {
-                            // Number of steps to reach the duplicate frequency
-                            // (disregards possibility of f[i] >= f[j], but this never happens for my input)
-                            len = (unsigned long)((freq[j] - freq[i]) / shift) * N + i;
-                            if (len < min) {
-                                min = len;      // lowest number of steps so far
-                                dup = freq[j];  // first duplicated frequency (largest of f[i] and f[j])
-                            }
-                        }
-                    }
-                }
-                printf("Part 2: %d\n", dup);
-                free(freq);
-                free(modfreq);
-            }
-        }
-        free(str);
-        fclose(fp);
+    // Parse, part 1
+    const char *c = input;
+    for (int i = 0; i < N && *c; i++, c++) {
+        int x = 0;
+        const int sgn = *c++ == '+' ? 1 : -1;
+        while (*c & 32)
+            x = x * 10 + (*c++ & 15);
+        freq[i + 1] = freq[i] + (modf[i] = sgn * x);
     }
-    return 0;
+    printf("%d\n", freq[N]);  // 439
+
+    // Part 2
+    const int shift = freq[N];  // value shift at start of new loop
+    for (int i = 0; i < N; ++i)
+        modf[i] = freq[i] % shift;  // remainder of cumulative frequency by overall shift
+    // Check every pair of identical remainders
+    // (disregards possibility of duplicate frequency on the very first loop)
+    // (also disregards possibility of shift <= 0)
+    int firstdup = 0, minsteps = INT_MAX;
+    for (int i = 0; i < N - 1; ++i)
+        for (int j = i + 1; j < N; ++j)
+            if (modf[i] == modf[j]) {
+                // Number of steps to reach the duplicate frequency
+                // (disregards possibility of f[i] >= f[j], but this never happens for my input)
+                const int steps = (freq[j] - freq[i]) / shift * N + i;
+                if (steps < minsteps) {
+                    minsteps = steps;    // lowest number of steps so far
+                    firstdup = freq[j];  // first duplicated frequency (largest of f[i] and f[j])
+                }
+            }
+    printf("%d\n", firstdup);  // 124645
+
+#ifdef TIMER
+    printf("Time: %.0f us\n", stoptimer_us());
+#endif
 }
