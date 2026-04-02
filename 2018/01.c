@@ -13,7 +13,7 @@
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) :  4.33 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
- *     Raspberry Pi 5 (2.4 GHz)      :     ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 19.1  µs
  */
 
 #include <stdio.h>
@@ -63,26 +63,26 @@ int main(void)
     const int shift = freq[N];  // value shift at start of new loop (freq[0]=0)
     Equiv *const freqmod = calloc(shift, sizeof *freqmod);
     for (int i = 0; i < N; ++i)
-        if (freq[i] >= 0) {  // discard negative frequencies, works for my input
-            const int rem = freq[i] % shift;  // remainder of cumulative frequency by overall shift
-            freqmod[rem].index[freqmod[rem].count++] = i;
+        if (freq[i] >= 0) {  // disregard negative frequencies, works for my input
+            Equiv *const m = &freqmod[freq[i] % shift];  // remainder of frequency by shift after one loop
+            m->index[m->count++] = i;  // save index not frequency because needed for steps
         }
-    // Check every pair of identical remainders
-    // discard duplicate frequencies on first loop
-    // discard possibility of shift <= 0
     int firstdup = 0, minsteps = INT_MAX;
     const Equiv *const end = freqmod + shift;
     for (const Equiv *m = freqmod; m != end; ++m)
+        // Check every pair of identical remainders
+        // disregard duplicate frequencies on first loop
+        // disregard possibility of shift <= 0
         for (int i = 0; i < m->count - 1; ++i) {
             const int fi = freq[m->index[i]];
             for (int j = i + 1; j < m->count; ++j) {
-                // Number of steps to reach the duplicate frequency
-                // discard f[i] >= f[j], but this never happens for my input
+                // Number of steps to reach duplicate frequency
+                // disregard f[i] >= f[j], but this never happens for my input
                 const int fj = freq[m->index[j]];
-                const int steps = (fj - fi) / shift * N + m->index[i];
+                const int steps = (fj - fi) / shift * N + m->index[i];  // add i because it occurs before j
                 if (steps < minsteps) {
-                    minsteps = steps;    // lowest number of steps so far
-                    firstdup = fj;  // first duplicated frequency (largest of f[i] and f[j])
+                    minsteps = steps;  // lowest number of steps so far
+                    firstdup = fj;     // first duplicated frequency (largest of f[i] and f[j])
                 }
             }
         }
