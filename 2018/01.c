@@ -11,12 +11,13 @@
  * Get minimum runtime from timer output:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :   ? µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 178 µs
- *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  4.33 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :     ? µs
  */
 
 #include <stdio.h>
+#include <stdlib.h>  // calloc, free
 #include <limits.h>  // INT_MAX
 #ifdef TIMER
     #include "../startstoptimer.h"
@@ -25,55 +26,70 @@
 #define FNAME "../aocinput/2018-01-input.txt"
 #define FSIZE 4096  // needed for my input: 3567
 #define N 989  // lines in input file
+#define M 3    // max equivalent frequencies, needed for my input: 3
+
+// Buckets for frequencies in same equivalence class
+typedef struct equiv {
+    int count;
+    int index[M];
+} Equiv;
 
 static char input[FSIZE];
 static int freq[N + 1];  // start with 0
-static int modf[N];  // part 1: steps, part 2: freq mod shift
 
 int main(void)
 {
-    FILE *f = fopen(FNAME, "rb");
+    FILE *f = fopen(FNAME, "rb");  // binary mode required for fread
     if (!f) { fprintf(stderr, "File not found: "FNAME"\n"); return 1; }
-    fread(input, 1, FSIZE, f);
+    fread(input, 1, FSIZE, f);  // discard bytes read
     fclose(f);
 
 #ifdef TIMER
     starttimer();
 #endif
 
-    // Parse, part 1
+    // Part 1
     const char *c = input;
     for (int i = 0; i < N && *c; i++, c++) {
         int x = 0;
-        const int sgn = *c++ == '+' ? 1 : -1;
+        const int sgn = 44 - *c++;  // '+': 44-43=1, '-': 44-45=-1
         while (*c & 32)
             x = x * 10 + (*c++ & 15);
-        freq[i + 1] = freq[i] + (modf[i] = sgn * x);
+        freq[i + 1] = freq[i] + sgn * x;
     }
     printf("%d\n", freq[N]);  // 439
 
     // Part 2
-    const int shift = freq[N];  // value shift at start of new loop
+    const int shift = freq[N];  // value shift at start of new loop (freq[0]=0)
+    Equiv *const freqmod = calloc(shift, sizeof *freqmod);
     for (int i = 0; i < N; ++i)
-        modf[i] = freq[i] % shift;  // remainder of cumulative frequency by overall shift
+        if (freq[i] >= 0) {  // discard negative frequencies, works for my input
+            const int rem = freq[i] % shift;  // remainder of cumulative frequency by overall shift
+            freqmod[rem].index[freqmod[rem].count++] = i;
+        }
     // Check every pair of identical remainders
-    // (disregards possibility of duplicate frequency on the very first loop)
-    // (also disregards possibility of shift <= 0)
+    // discard duplicate frequencies on first loop
+    // discard possibility of shift <= 0
     int firstdup = 0, minsteps = INT_MAX;
-    for (int i = 0; i < N - 1; ++i)
-        for (int j = i + 1; j < N; ++j)
-            if (modf[i] == modf[j]) {
+    const Equiv *const end = freqmod + shift;
+    for (const Equiv *m = freqmod; m != end; ++m)
+        for (int i = 0; i < m->count - 1; ++i) {
+            const int fi = freq[m->index[i]];
+            for (int j = i + 1; j < m->count; ++j) {
                 // Number of steps to reach the duplicate frequency
-                // (disregards possibility of f[i] >= f[j], but this never happens for my input)
-                const int steps = (freq[j] - freq[i]) / shift * N + i;
+                // discard f[i] >= f[j], but this never happens for my input
+                const int fj = freq[m->index[j]];
+                const int steps = (fj - fi) / shift * N + m->index[i];
                 if (steps < minsteps) {
                     minsteps = steps;    // lowest number of steps so far
-                    firstdup = freq[j];  // first duplicated frequency (largest of f[i] and f[j])
+                    firstdup = fj;  // first duplicated frequency (largest of f[i] and f[j])
                 }
             }
+        }
     printf("%d\n", firstdup);  // 124645
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+    printf("Time: %.0f ns\n", stoptimer_ns());
 #endif
+    free(freqmod);
 }
