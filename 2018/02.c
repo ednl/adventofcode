@@ -42,13 +42,13 @@ int main(void)
 
     int sum2 = 0, sum3 = 0;
     for (int i = 0; i < IDS; ++i) {
-        unsigned char countchar[ALF] = {0};
+        unsigned char count[ALF] = {0};  // histogram with 26 bins, one for each letter
         for (int j = 0; j < LEN; ++j)
-            countchar[id[i][j] - 'a']++;  // count every different letter in the ID
+            count[id[i][j] - 'a']++;
         bool has2 = false, has3 = false;
         for (int j = 0; j < ALF; ++j) {
-            has2 = has2 || countchar[j] == 2;
-            has3 = has3 || countchar[j] == 3;
+            has2 = has2 || count[j] == 2;
+            has3 = has3 || count[j] == 3;
         }
         sum2 += has2;
         sum3 += has3;
