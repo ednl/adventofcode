@@ -1,68 +1,76 @@
+/**
+ * Advent of Code 2018
+ * Day 2: Inventory Management System
+ * https://adventofcode.com/2018/day/2
+ * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *     cc -std=c17 -Wall -Wextra -pedantic 02.c
+ * Enable timer:
+ *     cc -std=gnu17 -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 02.c
+ * Get minimum runtime from timer output:
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  55 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :   ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
+ */
+
 #include <stdio.h>
+#include <stdbool.h>
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
-#define N 250  // number of IDs (lines) in the input file
-#define L ('z' - 'a' + 1)  // letters in the alphabet
-#define W 26   // ID width (characters)
+#define FNAME "../aocinput/2018-02-input.txt"
+#define IDS 250  // number of IDs (lines in input file)
+#define LEN 26   // ID length (characters per line in input file)
+#define ALF ('z' - 'a' + 1)  // letters in the alphabet
 
-static const char *fname = "../aocinput/2018-02-input.txt";
-static char id[N][W + 1] = {0};  // +1 for string terminator
-static unsigned int bin[L] = {0};
+static char id[IDS][LEN + 1];  // +'\n'
 
 int main(void)
 {
-    size_t i, j, k;
-    FILE *fp = fopen(fname, "r");
+    FILE *f = fopen(FNAME, "rb");  // fread requires binary mode
+    if (!f) { fprintf(stderr, "File not found: "FNAME"\n"); return 1; }
+    fread(id, sizeof id, 1, f);
+    fclose(f);
 
-    if (fp) {
-        // Read all IDs into array
-        i = 0;
-        while (i < N && fscanf(fp, "%s ", id[i]) > 0) {
-            ++i;
-        }
-        fclose(fp);
+#ifdef TIMER
+    starttimer();
+#endif
 
-        unsigned int c2 = 0, c3 = 0, b2, b3;
-        for (i = 0; i < N; ++i) {
-            for (j = 0; j < W; ++j) {
-                bin[id[i][j] - 'a']++;  // count every different letter in the ID
-            }
-            b2 = b3 = 0;
-            for (j = 0; j < L; ++j) {
-                if (bin[j] == 2) {
-                    b2 = 1;
-                } else if (bin[j] == 3) {
-                    b3 = 1;
-                }
-                bin[j] = 0;  // reset for next ID
-            }
-            c2 += b2;
-            c3 += b3;
+    int sum2 = 0, sum3 = 0;
+    for (int i = 0; i < IDS; ++i) {
+        unsigned char countchar[ALF] = {0};
+        for (int j = 0; j < LEN; ++j)
+            countchar[id[i][j] - 'a']++;  // count every different letter in the ID
+        bool has2 = false, has3 = false;
+        for (int j = 0; j < ALF; ++j) {
+            has2 = has2 || countchar[j] == 2;
+            has3 = has3 || countchar[j] == 3;
         }
-        printf("Part 1: %u\n", c2 * c3);
-
-        // Compare every pair of IDs
-        for (i = 0; i < N - 1; ++i) {
-            for (j = i + 1; j < N; ++j) {
-                unsigned int diff = 0;  // count different letters
-                for (k = 0; k < W; ++k) {
-                    if (id[i][k] != id[j][k]) {
-                        if (++diff == 2) {
-                            break;  // stop b/c we're looking for exactly 1 difference
-                        }
-                    }
-                }
-                if (diff == 1) {  // found them
-                    printf("Part 2: ");
-                    for (k = 0; k < W; ++k) {
-                        if (id[i][k] == id[j][k]) {  // only print identical chars
-                            printf("%c", id[i][k]);
-                        }
-                    }
-                    printf("\n");
-                    return 0;  // done
-                }
-            }
-        }
+        sum2 += has2;
+        sum3 += has3;
     }
-    return 0;
+    printf("%u\n", sum2 * sum3);  // 5750
+
+    for (int i = 0; i < IDS - 1; ++i)
+        for (int j = i + 1; j < IDS; ++j) {
+            int diff = 0;
+            for (int k = 0; k < LEN; ++k)
+                if (id[i][k] != id[j][k])
+                    if (++diff == 2)
+                        goto nextj;  // only interest4ed in diff=1
+            for (int k = 0; k < LEN; ++k)  // diff=0 check not needed for my input
+                if (id[i][k] == id[j][k])
+                    putchar(id[i][k]);  // tzyvunogzariwkpcbdewmjhxi
+            putchar('\n');
+        #ifdef TIMER
+            printf("Time: %.0f us\n", stoptimer_us());
+        #endif
+            return 0;
+        nextj:;
+        }
+    return 1;  // no pair of IDs found that differ by one letter
 }
