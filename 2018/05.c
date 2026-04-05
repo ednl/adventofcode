@@ -1,107 +1,73 @@
+/**
+ * Advent of Code 2018
+ * Day 5: Alchemical Reduction
+ * https://adventofcode.com/2018/day/5
+ * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *     cc -std=c17 -Wall -Wextra -pedantic 05.c
+ * Enable timer:
+ *     cc -std=gnu17 -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 05.c
+ * Get minimum runtime from timer output:
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 279 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :   ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
+*/
+
 #include <stdio.h>
-#include <ctype.h>
-#include <stdbool.h>
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
-// Input file is 50,000 chars long (+newline)
-#define N (50 * 1000)
+#define FNAME "../aocinput/2018-05-input.txt"
+#define FSIZE (50 * 1000)  // characters in input file, excludes newline
+#define REDUCED (1 << 14)  // 16384, needed for my input: 11126
 
-typedef struct Polymer {
-    struct Polymer *prev, *next;
-    int unit;
-    bool polarity;
-} Polymer;
+static char input[FSIZE];
+static char stack1[REDUCED];
+static char stack2[REDUCED];
 
-static Polymer polymer[N] = {0}, *head = NULL;
-
-static int reduce(int remove)
+// Reduce input (src) of size 'len' onto stack (dst)
+// 'skip' is lowercase char a-z
+static int reduce(char *dst, const char *src, const int len, const int skip)
 {
-    // Reset
-    for (int i = 1; i < N; ++i) {
-        polymer[i - 1].next = &polymer[i];
-        polymer[i].prev = &polymer[i - 1];
-    }
-    head = polymer;
-    head->prev = polymer[N - 1].next = NULL;
-
-    // Remove one unit everywhere
-    Polymer *p, *q;
-    int n = N;
-    if (remove) {
-        while (head && head->unit == remove) {
-            head = head->next;
-            --n;
-        }
-        if (head) {
-            head->prev = NULL;
-            p = head->next;
-            while (p) {
-                while (p && p->unit == remove) {
-                    q = p->prev;
-                    q->next = (p = p->next);
-                    if (p)
-                        p->prev = q;
-                    --n;
-                }
-                if (p)
-                    p = p->next;
-            }
-        }
-    }
-
-    int oldn;
-    do {
-        oldn = n;
-        p = head;
-        q = p ? p->next : NULL;
-        while (p && q) {
-            while (p && q && p->unit == q->unit && p->polarity != q->polarity) {
-                if (p->prev && q->next) {  // in the middle
-                    p = p->prev;
-                    q = q->next;
-                    p->next = q;
-                    q->prev = p;
-                } else if (q->next) {  // at head end
-                    q = (p = q->next)->next;
-                    p->prev = NULL;
-                    head = p;
-                } else if (p->prev) {  // at tail end
-                    p = (q = p->prev)->prev;
-                    q->next = NULL;
-                } else {
-                    p = q = head = NULL;
-                }
-                n -= 2;
-            }
-            q = (p = q) ? p->next : NULL;
-        }
-    } while (oldn > n);
+    int n = 0;
+    for (int i = 0; i < len; )
+        if ((src[i] | 32) == skip)
+            i++;
+        else if (n > 0 && (dst[n - 1] ^ src[i]) == 32) {
+            n--;
+            i++;
+        } else
+            dst[n++] = src[i++];
     return n;
 }
 
 int main(void)
 {
-    FILE *f = fopen("../aocinput/2018-05-input.txt", "r");
-    if (!f)
-        return 1;
-
-    int c, n = 0;
-    while (n < N && (c = fgetc(f)) != EOF && c != '\n') {
-        polymer[n].polarity = c == (polymer[n].unit = toupper(c));
-        ++n;
-    }
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) return 1;
+    fread(input, sizeof input, 1, f);
     fclose(f);
-    if (n < N)
-        return 2;
 
-    printf("Part 1: %d\n", reduce(0));  // 11118
+#ifdef TIMER
+    starttimer();
+#endif
 
-    int min = N;
-    for (c = 'A'; c <= 'Z'; ++c) {
-        n = reduce(c);
-        if (n < min)
-            min = n;
-    }
-    printf("Part 2: %d\n", min);  // 6948
+    // Part 1
+    const int n = reduce(stack1, input, FSIZE, 0);
+    printf("%d\n", n);  // 11118
 
-    return 0;
+    // Part 2
+    int min = n;
+    for (int skip = 'a', r; skip <= 'z'; ++skip)
+        if ((r = reduce(stack2, stack1, n, skip)) < min)
+            min = r;
+    printf("%d\n", min);  // 6948
+
+#ifdef TIMER
+    printf("Time: %.0f us\n", stoptimer_us());
+#endif
 }
