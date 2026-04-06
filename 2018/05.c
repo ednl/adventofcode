@@ -11,7 +11,7 @@
  * Get minimum runtime from timer output:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 278 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 270 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :   ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : 863 µs
 */
@@ -33,13 +33,13 @@ static char stack2[REDUCED];
 // skip is ASCII lowercase char a-z where A|32 = a
 static int reduce(char *dst, const char *src, const int len, const int skip)
 {
-    int n = 0;
+    int n = 0;  // points at last entry (start with zero char as sentinel)
     for (int i = 0; i < len; ++i)
         if ((src[i] | 32) != skip) {  // |32 = ASCII tolower(A-Z), nop for a-z
-            if (n > 0 && (dst[n - 1] ^ src[i]) == 32)  // same letter, opposite case
+            if ((dst[n] ^ src[i]) == 32)  // same letter, opposite case
                 n--;  // pop from stack
             else
-                dst[n++] = src[i];  // push to stack
+                dst[++n] = src[i];  // push to stack
         }
     return n;
 }
