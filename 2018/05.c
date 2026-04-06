@@ -35,11 +35,11 @@ static int reduce(char *dst, const char *src, const int len, const int skip)
 {
     int n = 0;
     for (int i = 0; i < len; ++i)
-        if ((src[i] | 32) != skip) {  // |32 = ASCII tolower(A-Z)
-            if (n > 0 && (dst[n - 1] ^ src[i]) == 32)  // same letter opposite case
-                n--;  // pop
+        if ((src[i] | 32) != skip) {  // |32 = ASCII tolower(A-Z), nop for a-z
+            if (n > 0 && (dst[n - 1] ^ src[i]) == 32)  // same letter, opposite case
+                n--;  // pop from stack
             else
-                dst[n++] = src[i];  // push
+                dst[n++] = src[i];  // push to stack
         }
     return n;
 }
