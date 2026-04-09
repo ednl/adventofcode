@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "../startstoptimer.h"
 
 #define KEEP 23U
 // Values from my input file
@@ -14,6 +15,7 @@ static unsigned int line[LEN] = {0};
 
 int main(void)
 {
+    starttimer();
     unsigned int i = 0, j = 1, n = 1, m = KEEP + 1, k = KEEP, hi = 0;
 
     for (unsigned int t = 0; t < 6U; ++t) {
@@ -49,7 +51,7 @@ int main(void)
         if (score[t] > hi)
             hi = score[t];
     }
-    printf("Part 1: %u\n", hi);
+    printf("Part 1: %u\n", hi);  // 390093
 
     while (k <= MARBLES2) {
         for (unsigned int t = 0; t < 12U; ++t) {
@@ -79,7 +81,7 @@ int main(void)
         if (score[t] > hi)
             hi = score[t];
     }
-    printf("Part 2: %u\n", hi);
+    printf("Part 2: %u\n", hi);  // 3150377341
     printf("j=%u N/23*37=%u\n", j, MARBLES2 / 23 * 37);
-    return 0;
+    printf("Time: %.0f us\n", stoptimer_us());
 }

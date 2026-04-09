@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "../startstoptimer.h"
 
 // Values from my input file
 #define PLAYERS      471U
@@ -74,7 +75,8 @@ static unsigned int play(unsigned int marbles)
 
 int main(void)
 {
-    printf("Part 1: %u\n", play(MARBLES1));
-    printf("Part 2: %u\n", play(MARBLES2));
-    return 0;
+    starttimer();
+    printf("Part 1: %u\n", play(MARBLES1));  // 390093
+    printf("Part 2: %u\n", play(MARBLES2));  // 3150377341
+    printf("Time: %.0f us\n", stoptimer_us());
 }
