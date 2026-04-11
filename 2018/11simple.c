@@ -1,11 +1,12 @@
 #include <stdio.h>
+#include "../startstoptimer.h"
 
 #define SERIAL  2866
 #define GRIDSIZE 300
 
-typedef struct {
+typedef struct power {
     int totalpower, row, col, squaresize;
-} power_t;
+} Power;
 
 static int grid[GRIDSIZE][GRIDSIZE];
 
@@ -17,15 +18,16 @@ static int power(int row, int col)
 
 int main(void)
 {
+    starttimer();
     // Init
     for (int i = 0; i < GRIDSIZE; ++i)
         for (int j = 0; j < GRIDSIZE; ++j)
             grid[i][j] = power(i + 1, j + 1);
 
-    power_t max = {0};
+    Power max = {0};
     int squaresize = 3, declinestreak = 0;
     while (declinestreak < 2 && squaresize <= GRIDSIZE) {
-        power_t cur = {0};
+        Power cur = {0};
         for (int i = 0; i < GRIDSIZE - squaresize + 1; ++i)
             for (int j = 0; j < GRIDSIZE - squaresize + 1; ++j) {
                 int totalpower = 0;
@@ -33,17 +35,18 @@ int main(void)
                     for (int x = 0; x < squaresize; ++x)
                         totalpower += grid[i + y][j + x];
                 if (totalpower > cur.totalpower)
-                    cur = (power_t){totalpower, i, j, squaresize};
+                    cur = (Power){totalpower, i, j, squaresize};
             }
         if (cur.totalpower > max.totalpower) {
             max = cur;
             declinestreak = 0;
             if (squaresize == 3)
-                printf("Part 1: %d,%d\n", max.col + 1, max.row + 1);
+                printf("Part 1: %d,%d\n", max.col + 1, max.row + 1);  // 20,50
         } else
             declinestreak++;
         ++squaresize;
     }
-    printf("Part 2: %d,%d,%d\n", max.col + 1, max.row + 1, max.squaresize);
+    printf("Part 2: %d,%d,%d\n", max.col + 1, max.row + 1, max.squaresize);  // 238,278,9
+    printf("Time: %.0f us\n", stoptimer_us());
     return 0;
 }
