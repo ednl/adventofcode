@@ -13,7 +13,7 @@
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 1.58 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : ?    µs
- *     Raspberry Pi 5 (2.4 GHz)      : ?    µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 6.74 µs
 */
 
 #include <stdio.h>
@@ -77,7 +77,7 @@ static int guess(const Vec *pos, const int len)
         for (int j = i + 1; j < len; ++j) {
             const int dy = pos[j].y - pos[i].y;
             const int dv = vel[i].y - vel[j].y;
-            if (dv && dy && (dv < 0 == dy < 0)) {
+            if (dv && dy && (dv < 0) == (dy < 0)) {
                 sum += dy / dv;
                 count++;
             }
