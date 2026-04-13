@@ -1,20 +1,21 @@
 #include <stdio.h>    // fopen, fgetc, fclose, printf, putchar, fputs
 #include <stdlib.h>   // qsort
 #include <stdbool.h>  // bool
+#include "../startstoptimer.h"
 
 #define EXAMPLE 0
 #if EXAMPLE == 1
-#define NAME "../aocinput/2018-13-example.txt"
+#define FNAME "../aocinput/2018-13-example.txt"
 #define GRIDCOLS 13
 #define GRIDROWS  6
 #define CARTLEN   2
 #elif EXAMPLE == 2
-#define NAME "../aocinput/2018-13-example2.txt"
+#define FNAME "../aocinput/2018-13-example2.txt"
 #define GRIDCOLS  7
 #define GRIDROWS  7
 #define CARTLEN   9
 #else
-#define NAME "../aocinput/2018-13-input.txt"
+#define FNAME "../aocinput/2018-13-input.txt"
 #define GRIDCOLS 150
 #define GRIDROWS 150
 #define CARTLEN   17
@@ -93,9 +94,9 @@ static int cmp_carts(const void * a, const void * b)
 
 int main(void)
 {
-    FILE *f = fopen(NAME, "r");
+    FILE *f = fopen(FNAME, "r");
     if (!f) {
-        fputs("File not found.", stderr);
+        fputs("File not found: "FNAME, stderr);
         return 1;
     }
     int c, x = 0;
@@ -127,6 +128,8 @@ int main(void)
         ++rows;
     show();
 
+    starttimer();
+
     bool firstcrash = true;
     while (carts > 1) {
         for (int i = 0; i < carts; ++i) {
@@ -146,11 +149,11 @@ int main(void)
                 t += cart[i].turns++ % 3;
             cart[i].head = turn[cart[i].head][t];
         }
-        qsort(cart, (size_t)carts, sizeof *cart, cmp_carts);
+        qsort(cart, carts, sizeof *cart, cmp_carts);
         while (carts > 0 && cart[carts - 1].head == NONE)
             --carts;
         show();
     }
     printf("Part 2: %d,%d\n", cart[0].pos.x, cart[0].pos.y);  // example1=(7,3) example2=(6,4) part2=(134,117)
-    return 0;
+    printf("Time: %.0f us\n", stoptimer_us());
 }
