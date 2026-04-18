@@ -188,35 +188,37 @@ int main(void)
             }
         threeormore += behavelike >= 3;
     }
-    printf("%u\n", threeormore);  // 570
+    printf("%u\n", threeormore);  // part 1: 570
 
     // Part 2
     uint rowcount[SIZE];
-    uint only1[SIZE];
+    uint only1[SIZE];  // stack of rows with only one match
     uint done = 0;
     for (uint i = 0; i < SIZE; ++i)
         if ((rowcount[i] = __builtin_popcount(match[i])) == 1)
             only1[done++] = i;
+    // Assumes solution exists, can be found via rows, and is unique
     while (done < SIZE) {
         for (uint i = 0; i < done; ++i) {
             const uint k = only1[i];
             const uint reset = ~match[k];
             for (uint j = 0; j < SIZE; ++j)
                 if (rowcount[j] > 1)
-                    match[j] &= reset;
+                    match[j] &= reset;  // delete this column from other rows
         }
         done = 0;
         for (uint i = 0; i < SIZE; ++i)
             if ((rowcount[i] = __builtin_popcount(match[i])) == 1)
                 only1[done++] = i;
     }
+    // Condense match table to direct translation
     for (int i = 0; i < SIZE; ++i)
         func[i] = optable[31 - __builtin_clz(match[i])];
-
+    // Run program
     uint reg[REG] = {0};
     for (uint i = 0; i < inputsize.x1; ++i)
         (*func[prog[i].op])(reg, prog[i].a, prog[i].b, prog[i].c);
-    printf("%u\n", reg[0]);  // 503
+    printf("%u\n", reg[0]);  // part 2: 503
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
