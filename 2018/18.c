@@ -4,28 +4,23 @@
  * https://adventofcode.com/2018/day/18
  * By: E. Dronkert https://github.com/ednl
  *
- * Benchmark on an iMac (Late 2013, 3.2 GHz quad-core Core i5 "Haswell"),
- * compiler Apple clang 12.0.0 with -O3 -march=native:
- *
- *     $ hyperfine -N -w 20 -r 100 ./a.out
- *     Benchmark 1: ./a.out
- *       Time (mean ± σ):      23.1 ms ±   0.5 ms    [User: 21.2 ms, System: 0.7 ms]
- *       Range (min … max):    21.7 ms …  24.1 ms    100 runs
- *
- * Benchmark on a Raspberry Pi 4, compiler Debian gcc 10.2.1-6 with -O3 -march=native
- * and the CPU in performance mode:
- *
- *     echo performance | sudo tee /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
- *     (to reset, replace performance with ondemand)
- *     /boot/config.txt: arm_boost=1, no overclock
- *
- *     $ hyperfine -N -w 10 -r 50 ./a.out
- *     Benchmark 1: ./a.out
- *       Time (mean ± σ):      89.5 ms ±   0.4 ms    [User: 87.5 ms, System: 1.6 ms]
- *       Range (min … max):    89.2 ms …  91.4 ms    50 runs
+ * Compile:
+ *     cc -std=c17 -Wall -Wextra -pedantic 18.c
+ * Enable timer:
+ *     cc -std=gnu17 -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 18.c
+ * Get minimum runtime from timer output:
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  9.05 ms
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  ?    ms
+ *     Raspberry Pi 5 (2.4 GHz)      :  ?    ms
 */
+
 #include <stdio.h>
 #include <stdint.h>
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
 #define EXAMPLE 0
 #if EXAMPLE
@@ -105,15 +100,19 @@ int main(void)
 #if EXAMPLE
     show();
 #endif
+#ifdef TIMER
+    starttimer();
+#endif
     printf("Part 1: %d\n", evolve(PART1));  // 663502
 #if EXAMPLE
     show();
 #endif
-
     int stable = 1000;  // my input: 536 is start of repeating pattern, 1000 was a reasonable guess
     int period = 1, base = evolve(stable - PART1);
     while (evolve(1) != base)
         period++;  // my input: period = 28 (and incidentally, (1000000000 - 1000) % 28 = 0)
     printf("Part 2: %d\n", evolve((PART2 - stable) % period));  // 201341 (same as step 1000)
-    return 0;
+#ifdef TIMER
+    printf("Time: %.0f us\n", stoptimer_us());
+#endif
 }
