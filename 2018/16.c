@@ -9,11 +9,11 @@
  * Enable timer:
  *     cc -std=gnu17 -Wno-unused-parameter -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 16.c
  * Get minimum runtime from timer output:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";sp
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 24 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 16 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :  ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : 58 µs
+ *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
 */
 
 #include <stdio.h>
@@ -28,11 +28,10 @@
 #define PROG 1024  // program lines, needed for my input: 853
 #define REG  4     // registers
 
-typedef unsigned uint;
+typedef unsigned short u16;
 
-typedef union vec2 {
-    uint arr[2];
-    struct { uint x0, x1; };
+typedef struct vec2 {
+    u16 part1, part2;
 } Vec2;
 
 typedef enum assembly {
@@ -47,33 +46,22 @@ typedef enum assembly {
 } Assembly;
 
 typedef struct code {
-    uint op, a, b, c;
+    u16 op, a, b, c;
 } Code;
 
-typedef void (*microcode)(uint *reg, uint a, uint b, uint c);
-
-static const uint set[SIZE] = {
-    0x0001, 0x0002, 0x0004, 0x0008, 0x0010, 0x0020, 0x0040, 0x0080,
-    0x0100, 0x0200, 0x0400, 0x0800, 0x1000, 0x2000, 0x4000, 0x8000,
-};
-
-static const uint clr[SIZE] = {
-    0xfffe, 0xfffd, 0xfffb, 0xfff7, 0xffef, 0xffdf, 0xffbf, 0xff7f,
-    0xfeff, 0xfdff, 0xfbff, 0xf7ff, 0xefff, 0xdfff, 0xbfff, 0x7fff,
-};
+typedef void (*microcode)(u16 *reg, u16 a, u16 b, u16 c);
 
 static char input[FSIZE];
-static uint before[TEST][REG];
-static uint after[TEST][REG];
+static u16 before[TEST][REG];
+static u16 after[TEST][REG];
 static Code test[TEST];
 static Code prog[PROG];
-static uint match[SIZE];
-static uint block[SIZE];
+static u16 match[SIZE];
 
-static void parse_reg(uint *reg, const char **str)
+static void parse_reg(u16 *reg, const char **str)
 {
     *str += 9;
-    for (int i = 0; i < REG; ++i, *str += 3)
+    for (u16 i = 0; i < REG; ++i, *str += 3)
         reg[i] = **str & 15;
 }
 
@@ -91,9 +79,9 @@ static void parse_code(Code *code, const char **str)
     *str += 8;
 }
 
-static Vec2 parse(const uint fsize)
+static Vec2 parse(const u16 fsize)
 {
-    uint i = 0, j = 0;
+    u16 i = 0, j = 0;
     const char *c = input;
     const char *const end = input + fsize;
     // Test samples
@@ -107,10 +95,10 @@ static Vec2 parse(const uint fsize)
     c += 2;
     for (; c < end && j < PROG; ++j)
         parse_code(&prog[j], &c);
-    return (Vec2){.x0 = i, .x1 = j};
+    return (Vec2){.part1 = i, .part2 = j};
 }
 
-static void runall(uint *restrict out, const uint *restrict reg, const uint a, const uint b)
+static void runall(u16 *restrict out, const u16 *restrict reg, const u16 a, const u16 b)
 {
     out[ADDR] = reg[a] +  reg[b];
     out[ADDI] = reg[a] +      b ;
@@ -130,25 +118,25 @@ static void runall(uint *restrict out, const uint *restrict reg, const uint a, c
     out[EQRI] = reg[a] ==     b ;
 }
 
-static void addr(uint *r, uint a, uint b, uint c) { r[c] = r[a] +  r[b]; }
-static void addi(uint *r, uint a, uint b, uint c) { r[c] = r[a] +    b ; }
-static void mulr(uint *r, uint a, uint b, uint c) { r[c] = r[a] *  r[b]; }
-static void muli(uint *r, uint a, uint b, uint c) { r[c] = r[a] *    b ; }
-static void banr(uint *r, uint a, uint b, uint c) { r[c] = r[a] &  r[b]; }
-static void bani(uint *r, uint a, uint b, uint c) { r[c] = r[a] &    b ; }
-static void borr(uint *r, uint a, uint b, uint c) { r[c] = r[a] |  r[b]; }
-static void bori(uint *r, uint a, uint b, uint c) { r[c] = r[a] |    b ; }
-static void setr(uint *r, uint a, uint b, uint c) { r[c] = r[a];         }
-static void seti(uint *r, uint a, uint b, uint c) { r[c] =   a ;         }
-static void gtrr(uint *r, uint a, uint b, uint c) { r[c] = r[a] >  r[b]; }
-static void gtir(uint *r, uint a, uint b, uint c) { r[c] =   a  >  r[b]; }
-static void gtri(uint *r, uint a, uint b, uint c) { r[c] = r[a] >    b ; }
-static void eqrr(uint *r, uint a, uint b, uint c) { r[c] = r[a] == r[b]; }
-static void eqir(uint *r, uint a, uint b, uint c) { r[c] =   a  == r[b]; }
-static void eqri(uint *r, uint a, uint b, uint c) { r[c] = r[a] ==   b ; }
+static void addr(u16 *r, u16 a, u16 b, u16 c) { r[c] = r[a] +  r[b]; }
+static void addi(u16 *r, u16 a, u16 b, u16 c) { r[c] = r[a] +    b ; }
+static void mulr(u16 *r, u16 a, u16 b, u16 c) { r[c] = r[a] *  r[b]; }
+static void muli(u16 *r, u16 a, u16 b, u16 c) { r[c] = r[a] *    b ; }
+static void banr(u16 *r, u16 a, u16 b, u16 c) { r[c] = r[a] &  r[b]; }
+static void bani(u16 *r, u16 a, u16 b, u16 c) { r[c] = r[a] &    b ; }
+static void borr(u16 *r, u16 a, u16 b, u16 c) { r[c] = r[a] |  r[b]; }
+static void bori(u16 *r, u16 a, u16 b, u16 c) { r[c] = r[a] |    b ; }
+static void setr(u16 *r, u16 a, u16 b, u16 c) { r[c] = r[a];         }
+static void seti(u16 *r, u16 a, u16 b, u16 c) { r[c] =   a ;         }
+static void gtrr(u16 *r, u16 a, u16 b, u16 c) { r[c] = r[a] >  r[b]; }
+static void gtir(u16 *r, u16 a, u16 b, u16 c) { r[c] =   a  >  r[b]; }
+static void gtri(u16 *r, u16 a, u16 b, u16 c) { r[c] = r[a] >    b ; }
+static void eqrr(u16 *r, u16 a, u16 b, u16 c) { r[c] = r[a] == r[b]; }
+static void eqir(u16 *r, u16 a, u16 b, u16 c) { r[c] =   a  == r[b]; }
+static void eqri(u16 *r, u16 a, u16 b, u16 c) { r[c] = r[a] ==   b ; }
 
-static const microcode optable[SIZE] = {addr, addi, mulr, muli, banr, bani, borr, bori, setr, seti, gtrr, gtir, gtri, eqrr, eqir, eqri};
-static microcode func[SIZE];
+static const microcode funlist[SIZE] = {addr, addi, mulr, muli, banr, bani, borr, bori, setr, seti, gtrr, gtir, gtri, eqrr, eqir, eqri};
+static microcode funmap[SIZE];
 
 int main(void)
 {
@@ -158,7 +146,7 @@ int main(void)
         fputs("File not found: "FNAME, stderr);
         return 1;
     }
-    const uint fsize = fread(input, 1, FSIZE, f);
+    const u16 fsize = fread(input, 1, FSIZE, f);
     fclose(f);
 
 #ifdef TIMER
@@ -169,55 +157,51 @@ int main(void)
     const Vec2 inputsize = parse(fsize);
 
     // Part 1
-    uint threeormore = 0;
-    for (uint i = 0; i < inputsize.x0; ++i) {
-        uint out[SIZE];
+    u16 threeormore = 0;
+    u16 out[SIZE];
+    for (u16 i = 0; i < inputsize.part1; ++i) {
         runall(out, before[i], test[i].a, test[i].b);
-        uint *const m = &match[test[i].op];
-        uint *const b = &block[test[i].op];
-        const uint res = after[i][test[i].c];
-        uint behavelike = 0;
-        for (int j = 0; j < SIZE; ++j)
+        const u16 res = after[i][test[i].c];
+        u16 *const m = &match[test[i].op];
+        u16 behavelike = 0;
+        for (u16 j = 0; j < SIZE; ++j)
             if (out[j] == res) {
                 behavelike++;
-                if (!(*b & set[j]))  // if not blocked
-                    *m |= set[j];    // set match
-            } else {
-                *m &= clr[j];  // clear match
-                *b |= set[j];  // set block
+                *m |= 1U << j;
             }
         threeormore += behavelike >= 3;
     }
     printf("%u\n", threeormore);  // part 1: 570
 
     // Part 2
-    uint rowcount[SIZE];
-    uint only1[SIZE];  // stack of rows with only one match
-    uint done = 0;
-    for (uint i = 0; i < SIZE; ++i)
-        if ((rowcount[i] = __builtin_popcount(match[i])) == 1)
-            only1[done++] = i;
+    u16 possible[SIZE];  // number of possibilities per opcode
+    u16 solved[SIZE];  // stack of row indexes with only one match
+    u16 sp = 0;  // stack pointer
+    for (u16 i = 0; i < SIZE; ++i)
+        if ((possible[i] = __builtin_popcount(match[i])) == 1)
+            solved[sp++] = i;
     // Assumes solution exists, can be found via rows, and is unique
-    while (done < SIZE) {
-        for (uint i = 0; i < done; ++i) {
-            const uint k = only1[i];
-            const uint reset = ~match[k];
-            for (uint j = 0; j < SIZE; ++j)
-                if (rowcount[j] > 1)
+    while (sp < SIZE) {
+        for (u16 i = 0; i < sp; ++i) {
+            const u16 reset = ~match[solved[i]];
+            for (u16 j = 0; j < SIZE; ++j)
+                if (possible[j] > 1)
                     match[j] &= reset;  // delete this column from other rows
         }
-        done = 0;
-        for (uint i = 0; i < SIZE; ++i)
-            if ((rowcount[i] = __builtin_popcount(match[i])) == 1)
-                only1[done++] = i;
+        sp = 0;
+        for (u16 i = 0; i < SIZE; ++i)
+            if ((possible[i] = __builtin_popcount(match[i])) == 1)
+                solved[sp++] = i;
     }
-    // Condense match table to direct translation
-    for (int i = 0; i < SIZE; ++i)
-        func[i] = optable[31 - __builtin_clz(match[i])];
+
+    // Condense match table to direct translation array
+    for (u16 i = 0; i < SIZE; ++i)
+        funmap[i] = funlist[31 - __builtin_clz(match[i])];
+
     // Run program
-    uint reg[REG] = {0};
-    for (uint i = 0; i < inputsize.x1; ++i)
-        (*func[prog[i].op])(reg, prog[i].a, prog[i].b, prog[i].c);
+    u16 reg[REG] = {0};
+    for (u16 i = 0; i < inputsize.part2; ++i)
+        (*funmap[prog[i].op])(reg, prog[i].a, prog[i].b, prog[i].c);
     printf("%u\n", reg[0]);  // part 2: 503
 
 #ifdef TIMER
