@@ -1,62 +1,62 @@
-#include <stdio.h>
-#include <string.h>  // strcmp
-#include <stdint.h>
+/**
+ * Advent of Code 2018
+ * Day 19: Go With The Flow
+ * https://adventofcode.com/2018/day/19
+ * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *     cc -std=c17 -Wall -Wextra -pedantic 19.c
+ * Enable timer:
+ *     cc -std=gnu17 -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 19.c
+ * Get minimum runtime from timer output:
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 18 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
+*/
 
-#define SHOW 0
-#define NAME "../aocinput/2018-19-input.txt"
-#define MEMSIZE 64
+#include <stdio.h>
+#include <string.h>  // memset
+#include <stdint.h>  // int64_t
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
+
+#define FNAME "../aocinput/2018-19-input.txt"
+#define FSIZE  512  // needed for my input: 405
+#define MEMSIZE 64  // needed for my input: 36
 #define REGCOUNT 6
 
-typedef enum _opcode_t {
-    NOP,
+typedef enum opcode {
     ADDR, ADDI, MULR, MULI, BANR, BANI, BORR, BORI,
     SETR, SETI, GTRR, GTIR, GTRI, EQRR, EQIR, EQRI,
     OPCOUNT
-} opcode_t;
+} Opcode;
 
-static const char opname[OPCOUNT][5] = {
-    "nop",
-    "addr", "addi", "mulr", "muli", "banr", "bani", "borr", "bori",
-    "setr", "seti", "gtrr", "gtir", "gtri", "eqrr", "eqir", "eqri"
-};
-
-typedef struct _instr_t {
-    opcode_t op;
+typedef struct instr {
+    Opcode op;
     int a, b, c;
-} instr_t;
+} Instr;
 
-static instr_t mem[MEMSIZE];
+static char input[FSIZE];
+static Instr mem[MEMSIZE];
 static int64_t reg[REGCOUNT];
-static int progsize, ip, ipreg;
+static int ip, ipreg;
 
-static int read(void)
+static int parseint(const char **str)
 {
-    FILE *f = fopen(NAME, "r");
-    if (!f)
-        return 0;
-    fscanf(f, "#ip %d ", &ipreg);
-    char s[5];
-    int n = 0, a, b, c;
-    while (n < MEMSIZE && fscanf(f, "%4s %d %d %d ", s, &a, &b, &c) == 4) {
-        opcode_t op = NOP;
-        for (int i = 1; i < OPCOUNT; ++i)
-            if (!strcmp(s, opname[i])) {
-                op = (opcode_t)i;
-                break;
-            }
-        mem[n++] = (instr_t){op, a, b, c};
-    }
-    fclose(f);
-    return n;
+    int x = 0;
+    while (**str >= '0')
+        x = x * 10 + (*(*str)++ & 15);
+    (*str)++;  // skip space/newline
+    return x;
 }
 
 static void exec(void)
 {
-#if SHOW
-    printf("%2d:  %4s %d %2d %2d  ", ip, opname[mem[ip].op], mem[ip].a, mem[ip].b, mem[ip].c);
-#endif
     reg[ipreg] = ip;
-    instr_t * const i = &mem[ip];
+    const Instr *const i = &mem[ip];
     switch (i->op) {
         case ADDR: reg[i->c] = reg[i->a] +  reg[i->b]; break;
         case ADDI: reg[i->c] = reg[i->a] +      i->b ; break;
@@ -74,11 +74,9 @@ static void exec(void)
         case EQRR: reg[i->c] = reg[i->a] == reg[i->b]; break;
         case EQIR: reg[i->c] =     i->a  == reg[i->b]; break;
         case EQRI: reg[i->c] = reg[i->a] ==     i->b ; break;
+        default: break;
     }
-    ip = (int)reg[ipreg] + 1;
-#if SHOW
-    printf("[%lld,%lld,%8lld,%8lld,%2lld,%lld] => %2d\n", reg[0], reg[1], reg[2], reg[3], reg[4], reg[5], ip);
-#endif
+    ip = reg[ipreg] + 1;
 }
 
 // Ref.: https://en.wikipedia.org/wiki/Divisor_function#Formulas_at_prime_powers
@@ -107,26 +105,57 @@ static int64_t sumofdivisors(int64_t x)
 
 int main(void)
 {
-    if (!(progsize = read())) {
-        fputs("File not found.", stderr);
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) {
+        fputs("File not found: "FNAME, stderr);
         return 1;
+    }
+    const int fsize = fread(input, 1, FSIZE, f);
+    fclose(f);
+
+#ifdef TIMER
+    starttimer();
+#endif
+
+    // Parse
+    const char *ch = input + 4;  // skip "#ip "
+    ipreg = parseint(&ch);  // global
+    const char *const end = input + fsize;
+    for (int n = 0; ch < end; ++n) {  // asumes MEMSIZE is big enough
+        Opcode op;
+        switch (*(ch + 1)) {  // second letter of the opcode is unique (apart from r/i)
+            case 'a': op = *(ch + 3) == 'r' ? BANR : BANI; break;
+            case 'd': op = *(ch + 3) == 'r' ? ADDR : ADDI; break;
+            case 'e': op = *(ch + 3) == 'r' ? SETR : SETI; break;
+            case 'o': op = *(ch + 3) == 'r' ? BORR : BORI; break;
+            case 'q': op = *(ch + 2) == 'r' ? (*(ch + 3) == 'r' ? EQRR : EQRI) : EQIR; break;
+            case 't': op = *(ch + 2) == 'r' ? (*(ch + 3) == 'r' ? GTRR : GTRI) : GTIR; break;
+            case 'u': op = *(ch + 3) == 'r' ? MULR : MULI; break;
+            default: fprintf(stderr, "Unknown opcode on line %d\n", n + 1); return 2;
+        }
+        ch += 5;  // skip 4-char opcode +space
+        const int a = parseint(&ch);
+        const int b = parseint(&ch);
+        const int c = parseint(&ch);
+        mem[n] = (Instr){op, a, b, c};
     }
 
     // Part 1
     do {
         exec();
     } while (reg[ipreg]);
-    printf("Part 1: %lld\n", sumofdivisors(reg[2]));  // part 1: 1922
+    printf("%lld\n", sumofdivisors(reg[2]));  // part 1: 1922
 
     // Part 2
     ip = 0;
+    memset(reg, 0, sizeof reg);
     reg[0] = 1;
-    for (int i = 1; i < REGCOUNT; ++i)
-        reg[i] = 0;
     do {
         exec();
     } while (reg[ipreg]);
-    printf("Part 2: %lld\n", sumofdivisors(reg[2]));  // part 2: 22302144
+    printf("%lld\n", sumofdivisors(reg[2]));  // part 2: 22302144
 
-    return 0;
+#ifdef TIMER
+    printf("Time: %.0f us\n", stoptimer_us());
+#endif
 }
