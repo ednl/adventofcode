@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <string.h>  // memset
 #include <stdint.h>  // int64_t
+#include <inttypes.h>  // PRId64
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
@@ -144,7 +145,7 @@ int main(void)
     do {
         exec();
     } while (reg[ipreg]);
-    printf("%lld\n", sumofdivisors(reg[2]));  // part 1: 1922
+    printf("%"PRId64"\n", sumofdivisors(reg[2]));  // part 1: 1922
 
     // Part 2
     ip = 0;
@@ -153,7 +154,7 @@ int main(void)
     do {
         exec();
     } while (reg[ipreg]);
-    printf("%lld\n", sumofdivisors(reg[2]));  // part 2: 22302144
+    printf("%"PRId64"\n", sumofdivisors(reg[2]));  // part 2: 22302144
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
