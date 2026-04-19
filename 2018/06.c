@@ -1,6 +1,25 @@
+/**
+ * Advent of Code 2018
+ * Day 6: Chronal Coordinates
+ * https://adventofcode.com/2018/day/6
+ * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *     cc -std=c17 -Wall -Wextra -pedantic 06.c
+ * Enable timer:
+ *     cc -std=gnu17 -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 06.c
+ * Get minimum runtime from timer output:
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  ? ms
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  ? ms
+ *     Raspberry Pi 5 (2.4 GHz)      :  ? ms
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
+#include "../startstoptimer.h"
 
 #define N 50     // number of points in the input
 #define M 10000  // "safe distance" for part 2
@@ -74,6 +93,8 @@ int main(void)
     if (n < N || xmin >= xmax || ymin >= ymax)
         return 2;
 
+    starttimer();
+
     // Normalise width and height to start from zero
     for (int i = 0; i < n; ++i) {
         point[i].x -= xmin;
@@ -81,6 +102,15 @@ int main(void)
     }
     xmax -= xmin;
     ymax -= ymin;
+    printf("max=(%d,%d)\n", xmax, ymax);
+    int xavg = N / 2 - 1, yavg = xavg;
+    for (int i = 0; i < N; ++i) {
+        xavg += point[i].x;
+        yavg += point[i].y;
+    }
+    xavg /= N;
+    yavg /= N;
+    printf("avg=(%d,%d)\n", xavg, yavg);
 
     // To which point are border locations closest?
     // That point has an infinite area.
@@ -126,7 +156,7 @@ int main(void)
         }
     }
     if (maxindex >= 0) {
-        printf("Part 1: %d\n", point[maxindex].close);
+        printf("Part 1: %d\n", point[maxindex].close);  // 3882
     }
 
     // How many locations have a "safe distance"?
@@ -137,7 +167,6 @@ int main(void)
             safe += safedist(x, y);
         }
     }
-    printf("Part 2: %d\n", safe);
-
-    return 0;
+    printf("Part 2: %d\n", safe);  // 43852
+    printf("Time: %.0f ms\n", stoptimer_ms());
 }
