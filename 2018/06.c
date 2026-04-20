@@ -11,9 +11,9 @@
  * Get minimum runtime from timer output:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  ? ms
- *     Mac Mini 2020 (M1 3.2 GHz)    :  ? ms
- *     Raspberry Pi 5 (2.4 GHz)      :  ? ms
+ *     Macbook Pro 2024 (M4 4.4 GHz) :    ? ms
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 9.84 ms
+ *     Raspberry Pi 5 (2.4 GHz)      :    ? ms
 */
 
 #include <stdio.h>
@@ -102,15 +102,15 @@ int main(void)
     }
     xmax -= xmin;
     ymax -= ymin;
-    printf("max=(%d,%d)\n", xmax, ymax);
-    int xavg = N / 2 - 1, yavg = xavg;
-    for (int i = 0; i < N; ++i) {
-        xavg += point[i].x;
-        yavg += point[i].y;
-    }
-    xavg /= N;
-    yavg /= N;
-    printf("avg=(%d,%d)\n", xavg, yavg);
+    // printf("max=(%d,%d)\n", xmax, ymax);
+    // int xavg = N / 2 - 1, yavg = xavg;
+    // for (int i = 0; i < N; ++i) {
+    //     xavg += point[i].x;
+    //     yavg += point[i].y;
+    // }
+    // xavg /= N;
+    // yavg /= N;
+    // printf("avg=(%d,%d)\n", xavg, yavg);
 
     // To which point are border locations closest?
     // That point has an infinite area.
@@ -168,5 +168,5 @@ int main(void)
         }
     }
     printf("Part 2: %d\n", safe);  // 43852
-    printf("Time: %.0f ms\n", stoptimer_ms());
+    printf("Time: %.0f us\n", stoptimer_us());
 }
