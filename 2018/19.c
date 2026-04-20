@@ -10,15 +10,15 @@
  *     cc -std=gnu17 -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 19.c
  * Get minimum runtime from timer output:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
- * Minimum runtime measurements:
+ * Minimum runtime measurements, includes all parsing but not reading from disk:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 18 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :  ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : 95 µs
 */
 
 #include <stdio.h>
-#include <string.h>  // memset
-#include <stdint.h>  // int64_t
+#include <string.h>    // memset
+#include <stdint.h>    // int64_t
 #include <inttypes.h>  // PRId64
 #ifdef TIMER
     #include "../startstoptimer.h"
@@ -28,6 +28,7 @@
 #define FSIZE  512  // needed for my input: 405
 #define MEMSIZE 64  // needed for my input: 36
 #define REGCOUNT 6
+#define DIVSUM   2  // register index of integer for which to calculate sum of divisors
 
 typedef enum opcode {
     ADDR, ADDI, MULR, MULI, BANR, BANI, BORR, BORI,
@@ -43,7 +44,7 @@ typedef struct instr {
 static char input[FSIZE];
 static Instr mem[MEMSIZE];
 static int64_t reg[REGCOUNT];
-static int ip, ipreg;
+static int64_t *ipreg;  // points to one of reg[]
 
 static int parseint(const char **str)
 {
@@ -54,32 +55,40 @@ static int parseint(const char **str)
     return x;
 }
 
-static void exec(void)
+static int64_t exec(const int init)
 {
-    reg[ipreg] = ip;
-    const Instr *const i = &mem[ip];
-    switch (i->op) {
-        case ADDR: reg[i->c] = reg[i->a] +  reg[i->b]; break;
-        case ADDI: reg[i->c] = reg[i->a] +      i->b ; break;
-        case MULR: reg[i->c] = reg[i->a] *  reg[i->b]; break;
-        case MULI: reg[i->c] = reg[i->a] *      i->b ; break;
-        case BANR: reg[i->c] = reg[i->a] &  reg[i->b]; break;
-        case BANI: reg[i->c] = reg[i->a] &      i->b ; break;
-        case BORR: reg[i->c] = reg[i->a] |  reg[i->b]; break;
-        case BORI: reg[i->c] = reg[i->a] |      i->b ; break;
-        case SETR: reg[i->c] = reg[i->a]             ; break;
-        case SETI: reg[i->c] =     i->a              ; break;
-        case GTRR: reg[i->c] = reg[i->a] >  reg[i->b]; break;
-        case GTIR: reg[i->c] =     i->a  >  reg[i->b]; break;
-        case GTRI: reg[i->c] = reg[i->a] >      i->b ; break;
-        case EQRR: reg[i->c] = reg[i->a] == reg[i->b]; break;
-        case EQIR: reg[i->c] =     i->a  == reg[i->b]; break;
-        case EQRI: reg[i->c] = reg[i->a] ==     i->b ; break;
-        default: break;
-    }
-    ip = reg[ipreg] + 1;
+    memset(reg, 0, sizeof reg);  // reset registers
+    reg[0] = init;    // part 1: 0, part 2: 1
+    int ip = 0;       // instruction pointer
+    do {              // execution loop
+        *ipreg = ip;  // always store in reg according to puzzle description
+        const Instr *const i = &mem[ip];  // convenience pointer
+        switch (i->op) {
+            case ADDR: reg[i->c] = reg[i->a] +  reg[i->b]; break;
+            case ADDI: reg[i->c] = reg[i->a] +      i->b ; break;
+            case MULR: reg[i->c] = reg[i->a] *  reg[i->b]; break;
+            case MULI: reg[i->c] = reg[i->a] *      i->b ; break;
+            case BANR: reg[i->c] = reg[i->a] &  reg[i->b]; break;
+            case BANI: reg[i->c] = reg[i->a] &      i->b ; break;
+            case BORR: reg[i->c] = reg[i->a] |  reg[i->b]; break;
+            case BORI: reg[i->c] = reg[i->a] |      i->b ; break;
+            case SETR: reg[i->c] = reg[i->a]             ; break;
+            case SETI: reg[i->c] =     i->a              ; break;
+            case GTRR: reg[i->c] = reg[i->a] >  reg[i->b]; break;
+            case GTIR: reg[i->c] =     i->a  >  reg[i->b]; break;
+            case GTRI: reg[i->c] = reg[i->a] >      i->b ; break;
+            case EQRR: reg[i->c] = reg[i->a] == reg[i->b]; break;
+            case EQIR: reg[i->c] =     i->a  == reg[i->b]; break;
+            case EQRI: reg[i->c] = reg[i->a] ==     i->b ; break;
+            default: break;
+        }
+        ip = *ipreg + 1;  // always +1 according to puzzle description
+        // No need to check for ip bounds because jump back to start comes sooner
+    } while (*ipreg);     // until jump back to address 1 (0+1=1)
+    return reg[DIVSUM];   // holds number for which we seek the sum of its divisors
 }
 
+// Reverse engineered from input file: algo is to calculate sum of divisors
 // Ref.: https://en.wikipedia.org/wiki/Divisor_function#Formulas_at_prime_powers
 static int64_t sumofdivisors(int64_t x)
 {
@@ -118,11 +127,10 @@ int main(void)
     starttimer();
 #endif
 
-    // Parse
     const char *ch = input + 4;  // skip "#ip "
-    ipreg = parseint(&ch);  // global
+    ipreg = reg + parseint(&ch);  // global pointer to special IP register
     const char *const end = input + fsize;
-    for (int n = 0; ch < end; ++n) {  // asumes MEMSIZE is big enough
+    for (int n = 0; ch < end; ++n) {  // assume MEMSIZE is big enough
         Opcode op;
         switch (*(ch + 1)) {  // second letter of the opcode is unique (apart from r/i)
             case 'a': op = *(ch + 3) == 'r' ? BANR : BANI; break;
@@ -141,20 +149,8 @@ int main(void)
         mem[n] = (Instr){op, a, b, c};
     }
 
-    // Part 1
-    do {
-        exec();
-    } while (reg[ipreg]);
-    printf("%"PRId64"\n", sumofdivisors(reg[2]));  // part 1: 1922
-
-    // Part 2
-    ip = 0;
-    memset(reg, 0, sizeof reg);
-    reg[0] = 1;
-    do {
-        exec();
-    } while (reg[ipreg]);
-    printf("%"PRId64"\n", sumofdivisors(reg[2]));  // part 2: 22302144
+    printf("%"PRId64"\n", sumofdivisors(exec(0)));  // part 1: 1922
+    printf("%"PRId64"\n", sumofdivisors(exec(1)));  // part 2: 22302144
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
