@@ -53,39 +53,6 @@ static int parseint(const char **str)
     return x;
 }
 
-static uint exec(const int init)
-{
-    uint reg[REGCOUNT] = {0};
-    reg[0] = init;        // part 1: 0, part 2: 1
-    uint ip = 0;          // instruction pointer
-    do {                  // execution loop
-        reg[ipreg] = ip;  // always store in reg according to puzzle description
-        const Instr *const m = &mem[ip];  // convenience pointer
-        switch (m->op) {
-            case ADDR: reg[m->c] = reg[m->a] +  reg[m->b]; break;
-            case ADDI: reg[m->c] = reg[m->a] +      m->b ; break;
-            case MULR: reg[m->c] = reg[m->a] *  reg[m->b]; break;
-            case MULI: reg[m->c] = reg[m->a] *      m->b ; break;
-            case BANR: reg[m->c] = reg[m->a] &  reg[m->b]; break;
-            case BANI: reg[m->c] = reg[m->a] &      m->b ; break;
-            case BORR: reg[m->c] = reg[m->a] |  reg[m->b]; break;
-            case BORI: reg[m->c] = reg[m->a] |      m->b ; break;
-            case SETR: reg[m->c] = reg[m->a]             ; break;
-            case SETI: reg[m->c] =     m->a              ; break;
-            case GTRR: reg[m->c] = reg[m->a] >  reg[m->b]; break;
-            case GTIR: reg[m->c] =     m->a  >  reg[m->b]; break;
-            case GTRI: reg[m->c] = reg[m->a] >      m->b ; break;
-            case EQRR: reg[m->c] = reg[m->a] == reg[m->b]; break;
-            case EQIR: reg[m->c] =     m->a  == reg[m->b]; break;
-            case EQRI: reg[m->c] = reg[m->a] ==     m->b ; break;
-            default: break;
-        }
-        ip = reg[ipreg] + 1;  // always +1 according to puzzle description
-        // No need to check for ip bounds because jump back to start comes sooner
-    } while (reg[ipreg]);     // until jump back to address 1 (0+1=1)
-    return reg[DIVSUM];       // holds number for which we seek the sum of its divisors
-}
-
 // Reverse engineered from input file: algo is to calculate sum of divisors
 // Ref.: https://en.wikipedia.org/wiki/Divisor_function#Formulas_at_prime_powers
 static uint sumofdivisors(uint x)
@@ -109,6 +76,39 @@ static uint sumofdivisors(uint x)
         p += 2;
     }
     return prod;
+}
+
+static uint exec(const int init)
+{
+    uint reg[REGCOUNT] = {0};
+    reg[0] = init;
+    uint ip = 0;
+    do {
+        reg[ipreg] = ip;  // always store in reg according to puzzle description
+        const Instr *const m = &mem[ip];  // convenience pointer
+        switch (m->op) {
+            case ADDR: reg[m->c] = reg[m->a] +  reg[m->b]; break;
+            case ADDI: reg[m->c] = reg[m->a] +      m->b ; break;
+            case MULR: reg[m->c] = reg[m->a] *  reg[m->b]; break;
+            case MULI: reg[m->c] = reg[m->a] *      m->b ; break;
+            case BANR: reg[m->c] = reg[m->a] &  reg[m->b]; break;
+            case BANI: reg[m->c] = reg[m->a] &      m->b ; break;
+            case BORR: reg[m->c] = reg[m->a] |  reg[m->b]; break;
+            case BORI: reg[m->c] = reg[m->a] |      m->b ; break;
+            case SETR: reg[m->c] = reg[m->a]             ; break;
+            case SETI: reg[m->c] =     m->a              ; break;
+            case GTRR: reg[m->c] = reg[m->a] >  reg[m->b]; break;
+            case GTIR: reg[m->c] =     m->a  >  reg[m->b]; break;
+            case GTRI: reg[m->c] = reg[m->a] >      m->b ; break;
+            case EQRR: reg[m->c] = reg[m->a] == reg[m->b]; break;
+            case EQIR: reg[m->c] =     m->a  == reg[m->b]; break;
+            case EQRI: reg[m->c] = reg[m->a] ==     m->b ; break;
+            default: break;
+        }
+        ip = reg[ipreg] + 1;  // always +1 according to puzzle description
+        // No need to check for ip bounds because jump back to start comes sooner
+    } while (reg[ipreg]);  // until jump back to address 1 (0+1=1)
+    return sumofdivisors(reg[DIVSUM]);
 }
 
 int main(void)
@@ -147,8 +147,8 @@ int main(void)
         mem[n] = (Instr){op, a, b, c};
     }
 
-    printf("%u\n", sumofdivisors(exec(0)));  // part 1: 1922
-    printf("%u\n", sumofdivisors(exec(1)));  // part 2: 22302144
+    printf("%u\n", exec(0));  // part 1: 1922
+    printf("%u\n", exec(1));  // part 2: 22302144
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
