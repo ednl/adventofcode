@@ -13,7 +13,7 @@
  * Minimum runtime measurements, includes all parsing but not reading from disk:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 1.40 ms
  *     Mac Mini 2020 (M1 3.2 GHz)    :    ? ms
- *     Raspberry Pi 5 (2.4 GHz)      :    ? ms
+ *     Raspberry Pi 5 (2.4 GHz)      : 3.88 ms
  */
 
 #include <stdio.h>    // fopen, fclose, fgetc, printf, putchar
@@ -158,7 +158,7 @@ int main(void)
 {
     FILE *f = fopen(FNAME, "rb");
     if (!f) {
-        fputs("File not found: "FNAME, f);
+        fputs("File not found: "FNAME, stderr);
         return 1;
     }
     fread(input, 1, FSIZE, f);
