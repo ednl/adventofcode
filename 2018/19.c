@@ -11,9 +11,9 @@
  * Get minimum runtime from timer output:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements, includes all parsing but not reading from disk:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 18 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :  ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : 95 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  18 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :   ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 104 µs
 */
 
 #include <stdio.h>
@@ -24,9 +24,9 @@
 #define FNAME "../aocinput/2018-19-input.txt"
 #define FSIZE  512  // needed for my input: 405
 #define MEMSIZE 64  // needed for my input: 36
-#define OPCOUNT 16
-#define REGCOUNT 6
-#define DIVSUM   2  // register index of integer for which to calculate sum of divisors
+#define OPCOUNT 16  // assembly language has 16 different opcodes
+#define REGCOUNT 6  // registers
+#define DIVSUM   2  // register index of interest
 
 typedef unsigned int uint;
 
@@ -103,7 +103,6 @@ static uint exec(const int init)
             case EQRR: reg[m->c] = reg[m->a] == reg[m->b]; break;
             case EQIR: reg[m->c] =     m->a  == reg[m->b]; break;
             case EQRI: reg[m->c] = reg[m->a] ==     m->b ; break;
-            default: break;
         }
         ip = reg[ipreg] + 1;  // always +1 according to puzzle description
         // No need to check for ip bounds because jump back to start comes sooner
@@ -125,26 +124,26 @@ int main(void)
     starttimer();
 #endif
 
-    const char *ch = input + 4;  // skip "#ip "
-    ipreg = parseint(&ch);  // global index of special register
+    const char *c = input + 4;  // skip "#ip "
+    ipreg = parseint(&c);  // global index of special register
     const char *const end = input + fsize;
-    for (int n = 0; ch < end; ++n) {  // assume MEMSIZE is big enough
+    for (int n = 0; c < end; ++n) {  // assume MEMSIZE is big enough
         Opcode op;
-        switch (*(ch + 1)) {  // second letter of the opcode is unique (apart from r/i)
-            case 'a': op = *(ch + 3) == 'r' ? BANR : BANI; break;
-            case 'd': op = *(ch + 3) == 'r' ? ADDR : ADDI; break;
-            case 'e': op = *(ch + 3) == 'r' ? SETR : SETI; break;
-            case 'o': op = *(ch + 3) == 'r' ? BORR : BORI; break;
-            case 'q': op = *(ch + 2) == 'r' ? (*(ch + 3) == 'r' ? EQRR : EQRI) : EQIR; break;
-            case 't': op = *(ch + 2) == 'r' ? (*(ch + 3) == 'r' ? GTRR : GTRI) : GTIR; break;
-            case 'u': op = *(ch + 3) == 'r' ? MULR : MULI; break;
+        switch (*(c + 1)) {  // second letter of the opcode is unique (apart from r/i)
+            case 'a': op = *(c + 3) == 'r' ? BANR : BANI; break;
+            case 'd': op = *(c + 3) == 'r' ? ADDR : ADDI; break;
+            case 'e': op = *(c + 3) == 'r' ? SETR : SETI; break;
+            case 'o': op = *(c + 3) == 'r' ? BORR : BORI; break;
+            case 'q': op = *(c + 2) == 'r' ? (*(c + 3) == 'r' ? EQRR : EQRI) : EQIR; break;
+            case 't': op = *(c + 2) == 'r' ? (*(c + 3) == 'r' ? GTRR : GTRI) : GTIR; break;
+            case 'u': op = *(c + 3) == 'r' ? MULR : MULI; break;
             default: fprintf(stderr, "Unknown opcode on line %d\n", n + 1); return 2;
         }
-        ch += 5;  // skip 4-char opcode +space
-        const int a = parseint(&ch);
-        const int b = parseint(&ch);
-        const int c = parseint(&ch);
-        mem[n] = (Instr){op, a, b, c};
+        c += 5;  // skip 4-char opcode +space
+        const int par0 = parseint(&c);
+        const int par1 = parseint(&c);
+        const int par2 = parseint(&c);
+        mem[n] = (Instr){op, par0, par1, par2};
     }
 
     printf("%u\n", exec(0));  // part 1: 1922
