@@ -26,7 +26,8 @@
 #define MEMSIZE 64  // needed for my input: 36
 #define OPCOUNT 16  // assembly language has 16 different opcodes
 #define REGCOUNT 6  // registers
-#define DIVSUM   2  // register index of interest
+#define REGINIT  0  // register index to initialise
+#define REGDIVS  2  // register index of interest
 
 typedef unsigned int uint;
 
@@ -41,12 +42,13 @@ typedef struct instr {
 } Instr;
 
 static char input[FSIZE];
-static Instr mem[MEMSIZE];
-static uint ipreg;  // index into reg[]
+static Instr mem[MEMSIZE];  // program memory
+static uint ipreg;  // special register index
 
-static int parseint(const char **str)
+// Parse unsigned int, advance char pointer, skip one more
+static uint parseint(const char **str)
 {
-    int x = 0;
+    uint x = 0;
     while (**str >= '0')
         x = x * 10 + (*(*str)++ & 15);
     (*str)++;  // skip space/newline
@@ -55,25 +57,27 @@ static int parseint(const char **str)
 
 // Reverse engineered from input file: algo is to calculate sum of divisors
 // Ref.: https://en.wikipedia.org/wiki/Divisor_function#Formulas_at_prime_powers
+//   sigma1(n) = prod[(p^(a+1) - 1)/(p - 1)]
+//   product over every prime where a is maximum p^a that divides n
+//   (if p is not a divisor of n, product term is 1)
 static uint sumofdivisors(uint x)
 {
     // Special case: prime factor = 2
-    uint pp = 2;
+    uint pa = 2;  // p^a starting with 2^1
     while (!(x & 1)) {
-        pp <<= 1;
+        pa <<= 1;
         x >>= 1;
     }
+    uint prod = pa - 1;  // (2^(a+1)-1)/(2-1)
     // Other potential prime factors
-    uint p = 3, prod = pp - 1;
-    while (p <= x) {
-        pp = p;
+    for (uint p = 3; p <= x; p += 2) {
+        pa = p;  // p^a where a=1
         while (!(x % p)) {
-            pp *= p;
+            pa *= p;
             x /= p;
         }
-        if (pp != p)
-            prod *= (pp - 1) / (p - 1);
-        p += 2;
+        if (pa != p)  // mathematically unnecessary test but speeds it up
+            prod *= (pa - 1) / (p - 1);
     }
     return prod;
 }
@@ -81,7 +85,7 @@ static uint sumofdivisors(uint x)
 static uint exec(const int init)
 {
     uint reg[REGCOUNT] = {0};
-    reg[0] = init;
+    reg[REGINIT] = init;
     uint ip = 0;
     do {
         reg[ipreg] = ip;  // always store in reg according to puzzle description
@@ -107,7 +111,7 @@ static uint exec(const int init)
         ip = reg[ipreg] + 1;  // always +1 according to puzzle description
         // No need to check for ip bounds because jump back to start comes sooner
     } while (reg[ipreg]);  // until jump back to address 1 (0+1=1)
-    return sumofdivisors(reg[DIVSUM]);
+    return sumofdivisors(reg[REGDIVS]);  // native implementation of reverse engineered algo
 }
 
 int main(void)
@@ -140,10 +144,10 @@ int main(void)
             default: fprintf(stderr, "Unknown opcode on line %d\n", n + 1); return 2;
         }
         c += 5;  // skip 4-char opcode +space
-        const int par0 = parseint(&c);
         const int par1 = parseint(&c);
         const int par2 = parseint(&c);
-        mem[n] = (Instr){op, par0, par1, par2};
+        const int par3 = parseint(&c);
+        mem[n] = (Instr){op, par1, par2, par3};
     }
 
     printf("%u\n", exec(0));  // part 1: 1922
