@@ -27,6 +27,7 @@
 #define MEMSIZE 32  // needed for my input: 31
 #define REGCOUNT 6  // registers
 #define REGINIT  0  // register index to initialise
+#define PROGSTART 6
 
 typedef unsigned int uint;
 
@@ -80,7 +81,7 @@ static void exec(const uint init)
 {
     memset(reg, 0, sizeof reg);
     reg[REGINIT] = init;
-    uint ip = 0;
+    uint ip = PROGSTART;
     while (ip < progsize) {
         *ipreg = ip;
         *prog[ip].r = prog[ip].fun(prog[ip].a, prog[ip].b);
