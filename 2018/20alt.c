@@ -28,6 +28,7 @@
 #define BIGDIST  1000  // distance >=1000 is big
 #define BITINDEX    5  // 5 bits needed to count 0..31
 #define WORDINDEX (16 - BITINDEX)  // 11 bits left to index bitfield of 32-bit words
+#define BITMASK ((1u << BITINDEX) - 1)  // select lowest 5 bits
 
 // Interpret 2x 8-bit position as 16-bit index
 // Assume every x,y fits in signed char
@@ -49,7 +50,7 @@ typedef struct sol {
 } Sol;
 
 static char input[FSIZE];
-static uint32_t seen[1 << WORDINDEX];  // 11-bit size
+static uint32_t seen[1u << WORDINDEX];  // 11-bit size
 static Room stack[STACKSIZE];
 static int sp;  // stackpointer
 
@@ -75,8 +76,8 @@ static Room peek(void)
 // Assume every room revisit has greater distance than first visit
 static void check(Sol *const sol, const Room room)
 {
-    const unsigned i = room.pos.index >> 5;
-    const uint32_t bit = 1u << (room.pos.index & 0x1f);
+    const unsigned i = room.pos.index >> BITINDEX;  // highest 11 bits
+    const uint32_t bit = 1u << (room.pos.index & BITMASK);  // lowest 5 bits
     if (seen[i] & bit)
         return;
     seen[i] |= bit;
