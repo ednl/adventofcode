@@ -10,7 +10,7 @@
  *     cc -std=gnu17 -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 20alt.c
  * Get minimum runtime from timer output:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
- * Minimum runtime measurements, includes all parsing but not reading from disk:
+ * Minimum runtime measurements, does not include reading from disk:
  *     Macbook Pro 2024 (M4 4.4 GHz) :  45 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :  79 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 144 µs
@@ -26,6 +26,8 @@
 #define FSIZE   16384  // needed for my input: 14185
 #define STACKSIZE 256  // needed for my input: 225
 #define BIGDIST  1000  // distance >=1000 is big
+#define BITINDEX    5  // 5 bits needed to count 0..31
+#define WORDINDEX (16 - BITINDEX)  // 11 bits left to index bitfield of 32-bit words
 
 // Interpret 2x 8-bit position as 16-bit index
 // Assume every x,y fits in signed char
@@ -40,30 +42,37 @@ typedef struct room {
     uint16_t dist;
 } Room;
 
+// Solution
 typedef struct sol {
-    uint16_t max, big;
+    uint16_t max;  // part 1: max distance
+    uint16_t big;  // part 2: big distance count
 } Sol;
 
 static char input[FSIZE];
-static uint32_t seen[1<<11];  // 11-bit size + 5-bit bit index = 16-bit bitfield index
+static uint32_t seen[1 << WORDINDEX];  // 11-bit size
 static Room stack[STACKSIZE];
-static int sp;
+static int sp;  // stackpointer
 
+// No checks: assume stack is never full
 static void push(const Room x)
 {
     stack[sp++] = x;
 }
 
+// No checks: assume parentheses in input are grammatically correct
 static Room pop(void)
 {
     return stack[--sp];
 }
 
+// No checks: assume pipes in input are grammatically correct
 static Room peek(void)
 {
     return stack[sp - 1];
 }
 
+// Check new room against current solution
+// Assume every room revisit has greater distance than first visit
 static void check(Sol *const sol, const Room room)
 {
     const unsigned i = room.pos.index >> 5;
