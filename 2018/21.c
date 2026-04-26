@@ -11,9 +11,9 @@
  * Get minimum runtime from timer output:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements, includes all parsing but not reading from disk:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 1.61 ms
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 1.60 ms
  *     Mac Mini 2020 (M1 3.2 GHz)    :    ? ms
- *     Raspberry Pi 5 (2.4 GHz)      :    ? ms
+ *     Raspberry Pi 5 (2.4 GHz)      : 3.46 ms
  */
 
 #include <stdio.h>
@@ -59,15 +59,18 @@ static uint seti(const uint a, const uint b) { return     a           ; }
 static uint gtrr(const uint a, const uint b) { return reg[a] >  reg[b]; }
 static uint gtir(const uint a, const uint b) { return     a  >  reg[b]; }
 static uint gtri(const uint a, const uint b) { return reg[a] >      b ; }
-static uint eqrr(const uint a, const uint b) { // return reg[a] == reg[b];
+static uint eqr2(const uint a, const uint b) { // return reg[a] == reg[b];
     const uint i = reg[a] >> 5;
     const uint j = 1u << (reg[a] & 31);
     if (seen[i] & j)
-        return 1;  // duplicate
+        return 1;  // halt on first duplicate
     seen[i] |= j;
-    if (!prev)
-        printf("%u\n", reg[a]);  // part 1: first hash
     prev = reg[a];  // part 2: last hash before the first duplicate
+    return 0;
+}
+static uint eqrr(const uint a, const uint b) { // return reg[a] == reg[b];
+    printf("%u\n", reg[a]);  // part 1: first hash
+    mem[28].fun = eqr2;
     return 0;
 }
 static uint eqir(const uint a, const uint b) { return     a  == reg[b]; }
