@@ -11,10 +11,10 @@
  * Get minimum runtime from timer output:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements, includes all parsing but not reading from disk:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 1.79 ms
- *     Raspberry Pi 5 (2.4 GHz)      : 2.78 ms !!
- *     Mac Mini 2020 (M1 3.2 GHz)    : 2.95 ms
-*/
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 1.61 ms
+ *     Mac Mini 2020 (M1 3.2 GHz)    :    ? ms
+ *     Raspberry Pi 5 (2.4 GHz)      :    ? ms
+ */
 
 #include <stdio.h>
 #ifdef TIMER
@@ -26,7 +26,7 @@
 #define MEMSIZE 32  // needed for my input: 31
 #define REGCOUNT 6  // registers
 #define PROGSTART 6  // first 6 instructions are just a parsing test
-#define HASHCOUNT 12288  // needed for my input: 10372 (index 10371 is first repeated hash)
+#define SEENSIZE (0x1000000u >> 5)  // hashes are 3 bytes, bitfield words are 32-bit
 
 typedef unsigned int uint;
 
@@ -38,13 +38,13 @@ typedef struct instr {
     uint a, b;  // function parameters
 } Instr;
 
-static char input[FSIZE];   // text file
-static Instr mem[MEMSIZE];  // program
-static uint memsize;        // program size
-static uint reg[REGCOUNT];  // registers
-static uint *ipreg;         // pointer to special register
-static uint hash[HASHCOUNT];
-static uint hashcount;
+static char input[FSIZE];    // text file
+static Instr mem[MEMSIZE];   // program
+static uint memsize;         // program size
+static uint reg[REGCOUNT];   // registers
+static uint *ipreg;          // pointer to special register
+static uint seen[SEENSIZE];  // bitfield to keep track of all hashes
+static uint prev;            // hash before the first duplicate
 
 static uint addr(const uint a, const uint b) { return reg[a] +  reg[b]; }
 static uint addi(const uint a, const uint b) { return reg[a] +      b ; }
@@ -60,8 +60,15 @@ static uint gtrr(const uint a, const uint b) { return reg[a] >  reg[b]; }
 static uint gtir(const uint a, const uint b) { return     a  >  reg[b]; }
 static uint gtri(const uint a, const uint b) { return reg[a] >      b ; }
 static uint eqrr(const uint a, const uint b) { // return reg[a] == reg[b];
-    hash[hashcount++] = reg[a];
-    return hashcount == HASHCOUNT;
+    const uint i = reg[a] >> 5;
+    const uint j = 1u << (reg[a] & 31);
+    if (seen[i] & j)
+        return 1;  // duplicate
+    seen[i] |= j;
+    if (!prev)
+        printf("%u\n", reg[a]);  // part 1: first hash
+    prev = reg[a];  // part 2: last hash before the first duplicate
+    return 0;
 }
 static uint eqir(const uint a, const uint b) { return     a  == reg[b]; }
 static uint eqri(const uint a, const uint b) { return reg[a] ==     b ; }
@@ -131,14 +138,8 @@ int main(void)
     mem[17] = (Instr){shri, &reg[1], 1, 8};
     mem[18] = mem[27];  // jmp 8
 
-    exec();  // fill array with consecutive hashes
-    printf("%u\n", hash[0]); // part 1: 3173684
-
-    // Detect cycle by having an idea how large it is with hindsight
-    uint i = 0, j = HASHCOUNT - 1;
-    for (; hash[i] != hash[j]; ++i);
-    while (hash[--i] == hash[--j]);
-    printf("%u\n", hash[j]); // part 2: 12464363
+    exec(); // part 1: 3173684
+    printf("%u\n", prev); // part 2: 12464363
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
