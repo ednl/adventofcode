@@ -11,13 +11,12 @@
  * Get minimum runtime from timer output:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements, includes all parsing but not reading from disk:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  ? µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 14 µs
- *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 1.79 ms
+ *     Mac Mini 2020 (M1 3.2 GHz)    :    ? ms
+ *     Raspberry Pi 5 (2.4 GHz)      :    ? ms
 */
 
 #include <stdio.h>
-#include <string.h>  // memset
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
@@ -26,8 +25,8 @@
 #define FSIZE  512  // needed for my input: 390
 #define MEMSIZE 32  // needed for my input: 31
 #define REGCOUNT 6  // registers
-#define REGINIT  0  // register index to initialise
-#define PROGSTART 6
+#define PROGSTART 6  // first 6 instructions are just a parsing test
+#define HASHCOUNT 12288  // needed for my input: 10372 (index 10371 is first repeated hash)
 
 typedef unsigned int uint;
 
@@ -39,11 +38,13 @@ typedef struct instr {
     uint a, b;  // function parameters
 } Instr;
 
-static char input[FSIZE];    // text file
-static Instr prog[MEMSIZE];  // program
-static uint progsize;        // program size
-static uint reg[REGCOUNT];   // registers
-static uint *ipreg;          // pointer to special register
+static char input[FSIZE];   // text file
+static Instr mem[MEMSIZE];  // program
+static uint memsize;        // program size
+static uint reg[REGCOUNT];  // registers
+static uint *ipreg;         // pointer to special register
+static uint hash[HASHCOUNT];
+static uint hashcount;
 
 static uint addr(const uint a, const uint b) { return reg[a] +  reg[b]; }
 static uint addi(const uint a, const uint b) { return reg[a] +      b ; }
@@ -58,14 +59,13 @@ static uint seti(const uint a, const uint b) { return     a           ; }
 static uint gtrr(const uint a, const uint b) { return reg[a] >  reg[b]; }
 static uint gtir(const uint a, const uint b) { return     a  >  reg[b]; }
 static uint gtri(const uint a, const uint b) { return reg[a] >      b ; }
-static uint eqrr(const uint a, const uint b) { return reg[a] == reg[b]; }
+static uint eqrr(const uint a, const uint b) { // return reg[a] == reg[b];
+    hash[hashcount++] = reg[a];
+    return hashcount == HASHCOUNT;
+}
 static uint eqir(const uint a, const uint b) { return     a  == reg[b]; }
 static uint eqri(const uint a, const uint b) { return reg[a] ==     b ; }
-static uint halt(const uint a, const uint b)
-{
-    printf("%u\n", reg[a]);
-    return 1;
-}
+static uint shri(const uint a, const uint b) { return reg[a] >>     b ; }  // undocumented opcode
 
 // Parse unsigned int, advance char pointer, skip one more
 static uint parseint(const char **str)
@@ -77,14 +77,14 @@ static uint parseint(const char **str)
     return x;
 }
 
-static void exec(const uint init)
+// Run until program accesses out of bounds memory
+// Called once so no need to reset global registers
+static void exec(void)
 {
-    memset(reg, 0, sizeof reg);
-    reg[REGINIT] = init;
     uint ip = PROGSTART;
-    while (ip < progsize) {
+    while (ip < memsize) {
         *ipreg = ip;
-        *prog[ip].r = prog[ip].fun(prog[ip].a, prog[ip].b);
+        *mem[ip].r = mem[ip].fun(mem[ip].a, mem[ip].b);
         ip = *ipreg + 1;
     }
 }
@@ -114,7 +114,7 @@ int main(void)
             case 'd': fun = *(c + 3) == 'r' ? addr : addi; break;
             case 'e': fun = *(c + 3) == 'r' ? setr : seti; break;
             case 'o': fun = *(c + 3) == 'r' ? borr : bori; break;
-            case 'q': fun = *(c + 2) == 'r' ? (*(c + 3) == 'r' ? halt : eqri) : eqir; break;
+            case 'q': fun = *(c + 2) == 'r' ? (*(c + 3) == 'r' ? eqrr : eqri) : eqir; break;
             case 't': fun = *(c + 2) == 'r' ? (*(c + 3) == 'r' ? gtrr : gtri) : gtir; break;
             case 'u': fun = *(c + 3) == 'r' ? mulr : muli; break;
             default: fprintf(stderr, "Unknown opcode on line %d\n", n + 1); return 2;
@@ -123,12 +123,22 @@ int main(void)
         const uint par1 = parseint(&c);
         const uint par2 = parseint(&c);
         const uint par3 = parseint(&c);
-        prog[n] = (Instr){fun, &reg[par3], par1, par2};
+        mem[n] = (Instr){fun, &reg[par3], par1, par2};
     }
-    progsize = n;
+    memsize = n;
 
-    exec(0);  // part 1: 3173684
-    prog[28].fun = eqrr;
+    // Instructions 17..26 are: reg[1] >>= 8
+    mem[17] = (Instr){shri, &reg[1], 1, 8};
+    mem[18] = mem[27];  // jmp 8
+
+    exec();  // fill array with consecutive hashes
+    printf("%u\n", hash[0]); // part 1: 3173684
+
+    // Detect cycle by having an idea how large it is with hindsight
+    uint i = 0, j = HASHCOUNT - 1;
+    for (; hash[i] != hash[j]; ++i);
+    while (hash[--i] == hash[--j]);
+    printf("%u\n", hash[j]); // part 2: 12464363
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
