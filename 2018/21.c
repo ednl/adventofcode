@@ -11,9 +11,9 @@
  * Get minimum runtime from timer output:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements, includes parsing but not reading from disk:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  46.1 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :  71.2 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 151   µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :     ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  60.8 µs
+ *     Raspberry Pi 5 (2.4 GHz)      :   ?   µs
  */
 
 #include <stdio.h>
@@ -44,10 +44,9 @@ static uint parseint(const char **str)
 // Hashing algorithm translated from input file
 static uint hash(uint prev)
 {
-    uint next = seed;
-    for (prev |= 0x10000U; prev; prev >>= 8)
-        next = (next + (prev & 0xFFU)) * mult;
-    return next & 0xFFFFFFU;
+    uint next = (seed + (prev & 0xFFU)) * mult;
+    next = (next + (prev >> 8 & 0xFFU)) * mult;
+    return ((next + (prev >> 16 | 1U)) * mult) & 0xFFFFFFU;
 }
 
 int main(void)
