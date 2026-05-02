@@ -36,8 +36,8 @@ typedef enum opcode {
 } OpCode;
 
 typedef struct vm {
-    int64_t *app;
-    int64_t *mem;
+    int64_t *app;  // ROM code
+    int64_t *mem;  // RAM
     int cap, len;
 } VM;
 
@@ -66,7 +66,7 @@ static int csv(const char *fname, int64_t *const list, const int size)
 
 static int64_t run(VM *vm, const int noun, const int verb)
 {
-    int64_t *const m = vm->mem;
+    int64_t *const m = vm->mem;  // short name
     memcpy(m, vm->app, vm->len * sizeof *m);
     m[1] = noun;
     m[2] = verb;
