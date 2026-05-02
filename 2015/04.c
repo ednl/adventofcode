@@ -9,11 +9,11 @@
  * Enable timer:
  *    cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 04.c
  * Get minimum runtime from timer output:
- *     n=1000;m=999999;for((i=0;i<n;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i/$n)";done
+ *     n=2000;m=9999999;for((i=0;i<n;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i/$n)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 170 ms
- *     Mac Mini 2020 (M1 3.2 GHz)    : 335 ms
- *     Raspberry Pi 5 (2.4 GHz)      : 533 ms
+ *     Macbook Pro 2024 (M4 4.4 GHz) :   ? ms
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 138 ms
+ *     Raspberry Pi 5 (2.4 GHz)      :   ? ms
  */
 
 #if __APPLE__
@@ -118,28 +118,30 @@ static uint32_t md5(unsigned number)
              | (uint32_t)chunk[k];
     }
 
-    uint32_t A = 0x67452301, B = 0xefcdab89, C = 0x98badcfe, D = 0x10325476;
-    for (uint32_t i = 0; i < 64; ++i) {
-        uint32_t F, g;
-        switch (i >> 4) {
-            case 0:
-                F = D ^ (B & (C ^ D));
-                g = i;
-                break;
-            case 1:
-                F = C ^ (D & (B ^ C));
-                g = (i * 5 + 1) & 0xf;
-                break;
-            case 2:
-                F = B ^ C ^ D;
-                g = (i * 3 + 5) & 0xf;
-                break;
-            default:
-                F = C ^ (B | ~D);
-                g = (i * 7) & 0xf;
-                break;
-        }
-        F += A + K[i] + M[g];
+    uint32_t i = 0, g, A = 0x67452301, B = 0xefcdab89, C = 0x98badcfe, D = 0x10325476;
+    for (; i < 16; ++i) {
+        const uint32_t F = ((B & C) | (~B & D)) + A + K[i] + M[i];
+        A = D;
+        D = C;
+        C = B;
+        B += F << rot[i] | F >> (32 - rot[i]);
+    }
+    for (g = 1; i < 32; ++i, g += 5) {
+        const uint32_t F = ((D & B) | (~D & C)) + A + K[i] + M[g & 0xf];
+        A = D;
+        D = C;
+        C = B;
+        B += F << rot[i] | F >> (32 - rot[i]);
+    }
+    for (g = 5; i < 48; ++i, g += 3) {
+        const uint32_t F = (B ^ C ^ D) + A + K[i] + M[g & 0xf];
+        A = D;
+        D = C;
+        C = B;
+        B += F << rot[i] | F >> (32 - rot[i]);
+    }
+    for (g = 0; i < 64; ++i, g += 7) {
+        const uint32_t F = (C ^ (B | ~D)) + A + K[i] + M[g & 0xf];
         A = D;
         D = C;
         C = B;
