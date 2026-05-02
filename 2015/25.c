@@ -13,7 +13,7 @@
  *     ./a.out < input.txt      read input file using redirected input
  *     cat input.txt | ./a.out  read input file using piped input
  * Get minimum runtime from timer output in Bash:
- *     m=9999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  *     (optionally replace './a.out' with 2nd or 3rd run command above)
  *     output redirection is needed to only select the timing info, which is printed to stderr
  * Minimum runtime measurements including result output which is redirected to /dev/null in shell:
