@@ -50,7 +50,7 @@ static int run(const int noun, const int verb)
     memcpy(vm.mem, vm.app, vm.len * sizeof *vm.mem);
     vm.mem[1] = noun;
     vm.mem[2] = verb;
-    for (int *ip = vm.mem;; ip += 4)
+    for (const int *ip = vm.mem;; ip += 4)
         switch (*ip) {
             case ADD: vm.mem[*(ip + 3)] = vm.mem[*(ip + 1)] + vm.mem[*(ip + 2)]; break;
             case MUL: vm.mem[*(ip + 3)] = vm.mem[*(ip + 1)] * vm.mem[*(ip + 2)]; break;
