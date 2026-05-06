@@ -46,8 +46,9 @@ typedef struct point {
 } Point;
 
 // Wire segment
+// ::p0.x must be first field, for sorting
 typedef struct seg {
-    Point p0, p1;  // either .x or .y is the same, other one is sorted: p0.? <= p1.?
+    Point p0, p1;  // either .x or .y is the same, other one is sorted: p0.xy <= p1.xy
     int dist;  // distance at p0
     int step;  // +1 if wire direction is p0 -> p1, -1 if p0 <- p1
 } Seg;
@@ -58,9 +59,11 @@ static char input[FSIZE];
 // Two wires, two orientations, up to 160 segments
 static Seg wire[WIRES][ORIS][SEGS];
 
+// Sort segments by ::p0.x ascending
+// ::p0.x must be first field of Seg
 static int asc_x(const void *p, const void *q)
 {
-    const int *a = p, *b = q;  // ::p0.x must be first field of Seg
+    const int *a = p, *b = q;
     if (*a < *b) return -1;
     if (*a > *b) return +1;
     return 0;
@@ -99,12 +102,12 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     int len[WIRES][ORIS] = {0};  // count of vert/horz segments of wires 0/1
     int n = 0, x1 = 0, y1 = 0, d1 = 0;
     for (const char *c = input; *c; ++c) {
-        Dir dir;  // input is good so safe to not init
+        Dir dir = 0;  // bogus init to keep compiler happy
         switch (*c++) {
-            case 'U': dir = UP;    break;
             case 'D': dir = DOWN;  break;
             case 'L': dir = LEFT;  break;
             case 'R': dir = RIGHT; break;
+            case 'U': dir = UP;    break;
         }
         // Parse int
         int step = *c++ & 15;
@@ -130,7 +133,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 
     int mindist = 1 << 30;
     int minpath = 1 << 30;
-    for (int i = 0, j = 1; i < 2; ++i, --j) {
+    for (int i = 0, j = 1; i < 2; ++i, --j) {  // wire 0 vs. 1, then 1 vs. 0
         Seg *h = wire[i][HORZ];
         const Seg *const hend = &h[len[i][HORZ]];
         Seg *const v = wire[j][VERT];
