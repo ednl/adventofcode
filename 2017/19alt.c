@@ -32,7 +32,7 @@ typedef struct vec2 {
 static const Vec2 step[] = {[U]={0,-1}, [D]={0,1}, [L]={-1,0}, [R]={1,0}};
 static char grid[DIM][DIM + 1];  // +\n
 static char code[LET];  // letters collected along the way
-static int codelen;
+static int len;
 static int steps;
 
 static char probe(const Vec2 pos, const int dir)
@@ -66,7 +66,7 @@ int main(void)
                 (probe(pos, L) == ' ' ? R : L);  // was U/D, now L/R
             case '-':
             case '|': break;
-            default: code[codelen++] = grid[pos.y][pos.x];
+            default: code[len++] = grid[pos.y][pos.x];
         }
 done:
     printf("%s %d\n", code, steps);  // DWNBGECOMY 17228
