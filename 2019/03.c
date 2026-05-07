@@ -69,8 +69,8 @@ static int asc_x(const void *p, const void *q)
     return 0;
 }
 
-// Binary search for first index of vert line that might cross horz segment from xmin onwards
-// vert must be sorted by ::p0.x (= ::p1.x)
+// Binary search for first index of vert line that might cross horz segment
+// from xmin onwards. Array vert must be sorted by ::p0.x (= ::p1.x)
 static int first(const Seg *const vert, const int len, const int xmin)
 {
     if (vert->p0.x >= xmin) return 0;  // this is the first
@@ -85,6 +85,9 @@ static int first(const Seg *const vert, const int len, const int xmin)
     return r;  // v[r].p0.x >= xmin
 }
 
+// Match all horizontal segments with a list of sorted (by x) vertical segments
+// Calculate minimal manhattan distance and minimal combined path length of all
+// crossing points found
 static void cross(const Seg *h, Seg *const v, const int hlen, const int vlen, int *const mindist, int *const minpath)
 {
     const Seg *const hend = &h[hlen];
