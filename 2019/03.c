@@ -90,9 +90,9 @@ static int first(const Seg *const vert, const int len, const int xmin)
 // crossing points found
 static void cross(const Seg *h, Seg *const v, const int hlen, const int vlen, int *const mindist, int *const minpath)
 {
-    const Seg *const hend = &h[hlen];
     qsort(v, vlen, sizeof (Seg), asc_x);
-    for (; h != hend; ++h)
+    for (const Seg *const hend = &h[hlen]; h != hend; ++h)
+        // For every horizontal segment in wire order
         for (int k = first(v, vlen, h->p0.x); k >= 0 && k < vlen && v[k].p0.x <= h->p1.x; ++k)
             // Fixed x of vertical line crosses horizontal segment
             if (v[k].p0.y <= h->p0.y && h->p0.y <= v[k].p1.y) {
@@ -124,14 +124,21 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     int len[WIRES][ORIS] = {0};  // count of vert/horz segments of wires 0/1
     int n = 0, x1 = 0, y1 = 0, d1 = 0;
     for (const char *c = input; *c; ++c) {
+        // Perfect hash function U=0, D=1, L=2, R=3 but it isn't faster
+        // U 85 55 01010101
+        // D 68 44 01000100
+        // L 76 4C 01001100
+        // R 82 52 01010010
+        // Dir dir = ((*c ^ 1) & 3) << (*c >> 3 & 1);
+        // c++;
         Dir dir = 0;  // bogus init to keep compiler happy
         switch (*c++) {
             case 'D': dir = DOWN;  break;
             case 'L': dir = LEFT;  break;
             case 'R': dir = RIGHT; break;
-            case 'U': dir = UP;    break;
+            case 'U': dir = UP;    break;  // "out of order" to keep it alphabetical
         }
-        // Parse int
+        // Parse unsigned int
         int step = *c++ & 15;
         while (*c > ',')  // until comma or newline
             step = step * 10 + (*c++ & 15);
