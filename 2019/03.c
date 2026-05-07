@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  8.64 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  8.43 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : 13.6  µs
  *     Raspberry Pi 5 (2.4 GHz)      : 38.5  µs
  */
@@ -85,6 +85,25 @@ static int first(const Seg *const vert, const int len, const int xmin)
     return r;  // v[r].p0.x >= xmin
 }
 
+static void cross(const Seg *h, Seg *const v, const int hlen, const int vlen, int *const mindist, int *const minpath)
+{
+    const Seg *const hend = &h[hlen];
+    qsort(v, vlen, sizeof (Seg), asc_x);
+    for (; h != hend; ++h)
+        for (int k = first(v, vlen, h->p0.x); k >= 0 && k < vlen && v[k].p0.x <= h->p1.x; ++k)
+            // Fixed x of vertical line crosses horizontal segment
+            if (v[k].p0.y <= h->p0.y && h->p0.y <= v[k].p1.y) {
+                // Fixed y of horizontal line crosses vertical segment
+                const int dist = abs(v[k].p0.x) + abs(h->p0.y);
+                if (dist < *mindist)
+                    *mindist = dist;
+                const int path = h->dist + h->step * (v[k].p0.x - h->p0.x)
+                    + v[k].dist + v[k].step * (h->p0.y - v[k].p0.y);
+                if (path < *minpath)
+                    *minpath = path;
+            }
+}
+
 int main(void)
 {
     // Read input file from disk
@@ -131,28 +150,11 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         }
     }
 
+    // Parts 1 & 2
     int mindist = 1 << 30;
     int minpath = 1 << 30;
-    for (int i = 0, j = 1; i < 2; ++i, --j) {  // wire 0 vs. 1, then 1 vs. 0
-        Seg *h = wire[i][HORZ];
-        const Seg *const hend = &h[len[i][HORZ]];
-        Seg *const v = wire[j][VERT];
-        const int vlen = len[j][VERT];
-        qsort(v, vlen, sizeof (Seg), asc_x);
-        for (; h != hend; ++h)
-            for (int k = first(v, vlen, h->p0.x); k >= 0 && k < vlen && v[k].p0.x <= h->p1.x; ++k)
-                // Fixed x of vertical line crosses horizontal segment
-                if (v[k].p0.y <= h->p0.y && h->p0.y <= v[k].p1.y) {
-                    // Fixed y of horizontal line crosses vertical segment
-                    const int dist = abs(v[k].p0.x) + abs(h->p0.y);
-                    if (dist < mindist)
-                        mindist = dist;
-                    const int path = h->dist + h->step * (v[k].p0.x - h->p0.x)
-                        + v[k].dist + v[k].step * (h->p0.y - v[k].p0.y);
-                    if (path < minpath)
-                        minpath = path;
-                }
-    }
+    cross(wire[0][HORZ], wire[1][VERT], len[0][HORZ], len[1][VERT], &mindist, &minpath);
+    cross(wire[1][HORZ], wire[0][VERT], len[1][HORZ], len[0][VERT], &mindist, &minpath);
     printf("%d %d\n", mindist, minpath);  // part 1: 209, part 2: 43258
 
 #ifdef TIMER
