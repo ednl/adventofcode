@@ -14,8 +14,8 @@
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 1.11 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :    ? µs
- *     Raspberry Pi 5 (2.4 GHz)      :    ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 1.82 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 4.26 µs
  */
 
 #include <stdio.h>
@@ -92,7 +92,7 @@ static int len;
 
 static void run(const int inp)
 {
-    int *p[3];
+    int *p[3] = {0};
     memcpy(mem, app, len * sizeof *app);
     for (int ip = 0;; ) {
         const Instr *const instr = &decode[mem[ip++]];
