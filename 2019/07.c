@@ -13,9 +13,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 12.3 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :  ?   µs
- *     Raspberry Pi 5 (2.4 GHz)      :  ?   µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  55.6 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :   ?   µs
+ *     Raspberry Pi 5 (2.4 GHz)      :   ?   µs
  */
 
 #include <stdio.h>
@@ -45,11 +45,11 @@
 typedef int32_t VMType;
 
 typedef enum vmstate {
-    VM_STATE_NUL,  // default state, needs to be initialised (resize, fresh code, get ID)
-    VM_STATE_INI,  // initialised, needs to be reset (reset IP)
-    VM_STATE_OK ,  // ready for first run, first INP will get "phase setting" from ID
-    VM_STATE_RUN,  // running after getting "phase setting", or suspended after OUT
-    VM_STATE_HLT,  // halted after HLT or error
+    VM_STATE_NUL = 0,  // default state, needs to be initialised (resize, fresh code, get ID)
+    VM_STATE_INI,      // initialised, needs to be reset (reset IP, next state)
+    VM_STATE_1ST,      // reset done (IP+state), first INP on first run will get "phase setting" from ID
+    VM_STATE_RUN,      // running after getting "phase setting", or suspended after OUT
+    VM_STATE_HLT,      // halted after HLT or error
 } VMState;
 
 // Day 2: "Encountering an unknown opcode means something went wrong."
@@ -129,15 +129,16 @@ static void vm_init(VM *const vm, const VMType *const code, const int size, cons
 {
     memcpy(vm->mem, code, size * sizeof *code);  // fresh copy of intcode program, fixed size
     vm->id = id;  // set "phase setting" (VM series index)
-    vm->ip = 0;  // reset instruction pointer
-    vm->state = VM_STATE_INI;
+    // vm->ip static init = 0
+    vm->state = VM_STATE_INI;  // initialisation done, ready for reset
 }
 
-// Reset instruction pointer (no fresh intcode)
-static void vm_reset(VM *const vm)
+// Prepare for first run: reset instruction pointer and state
+// but no fresh intcode or ID
+static void vm_first(VM *const vm)
 {
     vm->ip = 0;
-    vm->state = VM_STATE_OK;  // ready for first run, first INP will get "phase setting"
+    vm->state = VM_STATE_1ST;  // reset done, ready for first run
 }
 
 // inputval: output of previous VM, or 0 for first run of first VM
@@ -146,8 +147,8 @@ static VMType vm_input(VM *const vm, const VMType inputval)
     // Normal INP
     if (vm->state == VM_STATE_RUN)
         return inputval;
-    // First INP: give "phase setting"
-    vm->state = VM_STATE_RUN;  // state was INI or OK
+    // First INP: give "phase setting" from ID
+    vm->state = VM_STATE_RUN;  // state was 1ST (or possibly NUL/INI)
     return vm->id;  // part 1: 0-4, part 2: 5-9
 }
 
@@ -194,6 +195,33 @@ static VMType run(VM *const vm, const VMType inputval)
     }
 }
 
+// Run 5 VMs in series until the last one halts
+// Part 1: phaseoffset=0 => phase settings 0-4, one series run
+// Part 2: phaseoffset=5 => phase settings 5-9, series run until HLT
+static VMType series(const int phaseoffset)
+{
+    VMType max = 0;
+    // Full init to start
+    for (int i = 0; i < SERIES; ++i)
+        vm_init(&vm[i], intcode, VM_SIZE, i + phaseoffset);
+    // SERIES=5 => 120 permutations, phase[] = index 0-4 shuffled
+    for (int *phase; (phase = permutations(SERIES)); ) {
+        // Simple reset (IP+state) for each new permutation
+        for (int i = 0; i < SERIES; ++i)
+            vm_first(&vm[i]);
+        // When one VM halts, all should be halted
+        // my input: 10 loops for every permutation
+        for (VMType out = 0; vm[0].state != VM_STATE_HLT; ) {
+            // One series of 5 is a complete run, last output is new thruster setting
+            for (int i = 0; i < SERIES; ++i)
+                out = run(&vm[phase[i]], out);
+            if (out > max)
+                max = out;
+        }
+    }
+    return max;
+}
+
 int main(void)
 {
     // Read from disk
@@ -209,36 +237,11 @@ int main(void)
 #endif
 
     // Parse intcode CSV data
-    const int size = vm_parse(input, intcode);
+    // discard return value, should be VM_SIZE
+    vm_parse(input, intcode);
 
-    // Part 1: run once in series
-    for (int i = 0; i < SERIES; ++i)
-        vm_init(&vm[i], intcode, size, i);  // ID = "phase setting" 0-4
-    // 5 VMs => 120 permutations
-    int max = 0;
-    for (int *phase; (phase = permutations(SERIES)); ) {
-        // For each new permutation: reset IP and state, but no fresh intcode or ID
-        for (int i = 0; i < SERIES; ++i)
-            vm_reset(&vm[i]);
-        int out = 0;  // first input for first VM
-        for (int i = 0; i < SERIES; ++i)
-            out = run(&vm[phase[i]], out);  // phase[] = index 0-4 shuffled
-        if (out > max)
-            max = out;
-    }
-    printf("%d\n", max);  // 929800
-
-    // Part 2: run with feedback
-    for (int i = 0; i < SERIES; ++i)
-        vm_init(&vm[i], intcode, size, i + SERIES);  // ID = "phase setting" 5-9
-    // max = 0;
-    // for (int out = 0, *phase; (phase = permutations(SERIES)); ) {
-    //     for (int i = 0; i < SERIES; ++i)
-    //         out = run(&vm[i], phase[i] + SERIES, out);
-    //     if (out > max)
-    //         max = out;
-    // }
-    // printf("%d\n", max);  // 15432220
+    printf("%d\n", series(0));       // part 1: 929800
+    printf("%d\n", series(SERIES));  // part 2: 15432220
 
 #ifdef TIMER
     }
