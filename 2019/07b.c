@@ -176,7 +176,7 @@ int aoc_thispuzzle(char **exe)
 void aoc_setfilename(int num)
 {
     static const char *test = "../aocinput/2019-07-example.txt";
-    static const char *fmt = "%02d.txt";
+    static const char *fmt = "../aocinput/2019-%02d-input.txt";
 
     if (num)
         snprintf(vm_filename, VM_FNLEN, fmt, num);

@@ -13,103 +13,183 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 10.7 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 12.3 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :  ?   µs
  *     Raspberry Pi 5 (2.4 GHz)      :  ?   µs
  */
 
 #include <stdio.h>
-#include <stdint.h>       // uint16_t, uint8_t
-#include <string.h>       // memcpy
+#include <stdint.h>  // uint16_t, int32_t
+#include <string.h>  // memcpy
+#include <stdbool.h>
 #include "../combperm.h"  // permutations
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
+// Puzzle specific constants
 #define FNAME "../aocinput/2019-07-input.txt"
-#define FSIZE 1254  // needed for my input: 1254
-#define VMSIZE 523  // needed for my input: 523
-#define PARAMS 3
+#define FSIZE  1254  // needed for my input: 1254 (bytes in input file)
+#define VM_SIZE 523  // needed for my input: 523 (CSV count)
 #define SERIES 5
 
-typedef enum opcode {
-    ADD =  1,  // add params and store
-    MUL =  2,  // multiply params and store
-    INP =  3,  // input & store value
-    OUT =  4,  // output value
-    JNZ =  5,  // if par0 != 0 then ip = par1
-    JZ  =  6,  // if par0 == 0 then ip = par1
-    LT  =  7,  // par2 = par0  < par1
-    EQ  =  8,  // par2 = par0 == par1
-    HLT = 99,  // halt program
-} OpCode;
+// VM macros
+#define POS (&vm->mem[vm->mem[vm->ip++]])  // get positional parameter address, advance instruction pointer
+#define IMM (&vm->mem[vm->ip++])           // get immediate parameter address, advance instruction pointer
 
-// LSB = opcode, MSB = 3x 2-bit parmodes, 1x 2-bit parcount
-static const uint16_t decode[] = {
-    [    1] = 0x0301,  // 00 00 00 11 00000001  ADD
-    [  101] = 0x0701,  // 00 00 01 11 00000001
-    [ 1001] = 0x1301,  // 00 01 00 11 00000001
-    [ 1101] = 0x1701,  // 00 01 01 11 00000001
-    [    2] = 0x0302,  // 00 00 00 11 00000010  MUL
-    [  102] = 0x0702,  // 00 00 01 11 00000010
-    [ 1002] = 0x1302,  // 00 01 00 11 00000010
-    [ 1102] = 0x1702,  // 00 01 01 11 00000010
-    [    3] = 0x0103,  // 00 00 00 01 00000011  INP
-    [    4] = 0x0104,  // 00 00 00 01 00000100  OUT
-    [  104] = 0x0504,  // 00 00 01 01 00000100
-    [    5] = 0x0205,  // 00 00 00 10 00000101  JNZ
-    [  105] = 0x0605,  // 00 00 01 10 00000101
-    [ 1005] = 0x1205,  // 00 01 00 10 00000101
-    [ 1105] = 0x1605,  // 00 01 01 10 00000101
-    [    6] = 0x0206,  // 00 00 00 10 00000110  JZ
-    [  106] = 0x0606,  // 00 00 01 10 00000110
-    [ 1006] = 0x1206,  // 00 01 00 10 00000110
-    [ 1106] = 0x1606,  // 00 01 01 10 00000110
-    [    7] = 0x0307,  // 00 00 00 11 00000111  LT
-    [  107] = 0x0707,  // 00 00 01 11 00000111
-    [ 1007] = 0x1307,  // 00 01 00 11 00000111
-    [ 1107] = 0x1707,  // 00 01 01 11 00000111
-    [    8] = 0x0308,  // 00 00 00 11 00001000  EQ
-    [  108] = 0x0708,  // 00 00 01 11 00001000
-    [ 1008] = 0x1308,  // 00 01 00 11 00001000
-    [ 1108] = 0x1708,  // 00 01 01 11 00001000
-    [   99] = 0x0063,  // 00 00 00 00 01100011  HLT
+// VM constants
+#define VM_OK   0
+#define VM_ERR -1
+
+// VM uses 32-bit int
+typedef int32_t VMType;
+
+typedef enum vmstate {
+    VM_STATE_NUL,  // default state, needs to be initialised (resize, fresh code, get ID)
+    VM_STATE_INI,  // initialised, needs to be reset (reset IP)
+    VM_STATE_OK ,  // ready for first run, first INP will get "phase setting" from ID
+    VM_STATE_RUN,  // running after getting "phase setting", or suspended after OUT
+    VM_STATE_HLT,  // halted after HLT or error
+} VMState;
+
+// Day 2: "Encountering an unknown opcode means something went wrong."
+typedef enum vmopcode {
+    VM_OP_ADD =  1,  // add params and store
+    VM_OP_MUL =  2,  // multiply params and store
+    VM_OP_INP =  3,  // input & store value
+    VM_OP_OUT =  4,  // output value
+    VM_OP_JNZ =  5,  // if par0 != 0 then ip = par1
+    VM_OP_JZ  =  6,  // if par0 == 0 then ip = par1
+    VM_OP_LT  =  7,  // par2 = par0  < par1
+    VM_OP_EQ  =  8,  // par2 = par0 == par1
+    VM_OP_HLT = 99,  // halt program
+} VMOpCode;
+
+// Translation of parameter modes and opcode from
+// decimal to binary with added info: parameter count
+// MSByte = opcode
+// LSByte = 3x 2-bit parmode, 1x 2-bit parcount
+static const uint16_t vm_decode[] = {
+    [    1] = 0x0103,  // 00000001 00 00 00 11  ADD
+    [  101] = 0x0107,  // 00000001 00 00 01 11
+    [ 1001] = 0x0113,  // 00000001 00 01 00 11
+    [ 1101] = 0x0117,  // 00000001 00 01 01 11
+    [    2] = 0x0203,  // 00000010 00 00 00 11  MUL
+    [  102] = 0x0207,  // 00000010 00 00 01 11
+    [ 1002] = 0x0213,  // 00000010 00 01 00 11
+    [ 1102] = 0x0217,  // 00000010 00 01 01 11
+    [    3] = 0x0301,  // 00000011 00 00 00 01  INP
+    [    4] = 0x0401,  // 00000100 00 00 00 01  OUT
+    [  104] = 0x0405,  // 00000100 00 00 01 01
+    [    5] = 0x0502,  // 00000101 00 00 00 10  JNZ
+    [  105] = 0x0506,  // 00000101 00 00 01 10
+    [ 1005] = 0x0512,  // 00000101 00 01 00 10
+    [ 1105] = 0x0516,  // 00000101 00 01 01 10
+    [    6] = 0x0602,  // 00000110 00 00 00 10  JZ
+    [  106] = 0x0606,  // 00000110 00 00 01 10
+    [ 1006] = 0x0612,  // 00000110 00 01 00 10
+    [ 1106] = 0x0616,  // 00000110 00 01 01 10
+    [    7] = 0x0703,  // 00000111 00 00 00 11  LT
+    [  107] = 0x0707,  // 00000111 00 00 01 11
+    [ 1007] = 0x0713,  // 00000111 00 01 00 11
+    [ 1107] = 0x0717,  // 00000111 00 01 01 11
+    [    8] = 0x0803,  // 00001000 00 00 00 11  EQ
+    [  108] = 0x0807,  // 00001000 00 00 01 11
+    [ 1008] = 0x0813,  // 00001000 00 01 00 11
+    [ 1108] = 0x0817,  // 00001000 00 01 01 11
+    [   99] = 0x6300,  // 01100011 00 00 00 00  HLT
 };
 
-static char input[FSIZE];
-static int dat[VMSIZE];
-static int mem[SERIES][VMSIZE];
-static int len;
+typedef struct vm {
+    VMType mem[VM_SIZE];  // no dynamic size needed
+    int id, ip;  // ID = "phase setting", ip = instruction pointer
+    VMState state;
+} VM;
 
-static int run(const int id, const int phase, const int inp)
+static char input[FSIZE];
+static VMType intcode[VM_SIZE];  // intcode program from input file CSV
+static VM vm[SERIES];
+
+// Parse one-line CSV of signed ints from input file to VM data
+static int vm_parse(const char *const input, VMType *const code)
 {
-    int *p[3] = {0};
-    int inpcount = 0;
-    int *const m = &mem[id][0];
-    for (int ip = 0;; ) {
-        const uint16_t instr = decode[m[ip++]];
-        switch (instr >> 8) {  // MSByte = parmodes/parcount
-            case 0x01: p[0] = &m[m[ip++]]; break;
-            case 0x02: p[0] = &m[m[ip++]]; p[1] = &m[m[ip++]]; break;
-            case 0x03: p[0] = &m[m[ip++]]; p[1] = &m[m[ip++]]; p[2] = &m[m[ip++]]; break;
-            case 0x05: p[0] = &m[ip++]; break;
-            case 0x06: p[0] = &m[ip++]; p[1] = &m[m[ip++]]; break;
-            case 0x07: p[0] = &m[ip++]; p[1] = &m[m[ip++]]; p[2] = &m[m[ip++]]; break;
-            case 0x12: p[0] = &m[m[ip++]]; p[1] = &m[ip++]; break;
-            case 0x13: p[0] = &m[m[ip++]]; p[1] = &m[ip++]; p[2] = &m[m[ip++]]; break;
-            case 0x16: p[0] = &m[ip++]; p[1] = &m[ip++]; break;
-            case 0x17: p[0] = &m[ip++]; p[1] = &m[ip++]; p[2] = &m[m[ip++]]; break;
+    int n = 0;
+    for (const char *c = input; *c; ++c) {
+        const VMType sgn = *c == '-' ? (c++, -1) : 1;
+        VMType x = *c++ & 15;
+        while (*c > ',')
+            x = x * 10 + (*c++ & 15);
+        code[n++] = x * sgn;
+    }
+    return n;
+}
+
+// Full VM initialisation
+static void vm_init(VM *const vm, const VMType *const code, const int size, const int id)
+{
+    memcpy(vm->mem, code, size * sizeof *code);  // fresh copy of intcode program, fixed size
+    vm->id = id;  // set "phase setting" (VM series index)
+    vm->ip = 0;  // reset instruction pointer
+    vm->state = VM_STATE_INI;
+}
+
+// Reset instruction pointer (no fresh intcode)
+static void vm_reset(VM *const vm)
+{
+    vm->ip = 0;
+    vm->state = VM_STATE_OK;  // ready for first run, first INP will get "phase setting"
+}
+
+// inputval: output of previous VM, or 0 for first run of first VM
+static VMType vm_input(VM *const vm, const VMType inputval)
+{
+    // Normal INP
+    if (vm->state == VM_STATE_RUN)
+        return inputval;
+    // First INP: give "phase setting"
+    vm->state = VM_STATE_RUN;  // state was INI or OK
+    return vm->id;  // part 1: 0-4, part 2: 5-9
+}
+
+static VMType vm_output(VM *const vm, const VMType *const outputval)
+{
+    if (vm->mem[vm->ip] == VM_OP_HLT)  // next instruction is HLT?
+        vm->state = VM_STATE_HLT;
+    return *outputval;
+}
+
+static VMType run(VM *const vm, const VMType inputval)
+{
+    VMType *p1 = 0, *p2 = 0, *p3 = 0;  // max 3 instruction parameters
+    for (;;) {  // rely on OUT or HLT to return
+        const uint16_t instr = vm_decode[vm->mem[vm->ip++]];  // avoid decimal decoding
+        switch (instr & 0xff) {  // LSByte = parmode/count
+            // Parameter macros:
+            //   POS = &vm->mem[vm->mem[vm->ip++]]
+            //   IMM = &vm->mem[vm->ip++]
+            case 0x01: p1 = POS;                     break;
+            case 0x02: p1 = POS; p2 = POS;           break;
+            case 0x03: p1 = POS; p2 = POS; p3 = POS; break;
+            case 0x05: p1 = IMM;                     break;
+            case 0x06: p1 = IMM; p2 = POS;           break;
+            case 0x07: p1 = IMM; p2 = POS; p3 = POS; break;
+            case 0x12: p1 = POS; p2 = IMM;           break;
+            case 0x13: p1 = POS; p2 = IMM; p3 = POS; break;
+            case 0x16: p1 = IMM; p2 = IMM;           break;
+            case 0x17: p1 = IMM; p2 = IMM; p3 = POS; break;
+            default: vm->state = VM_STATE_HLT; return VM_ERR;  // unknown parmode/count
         }
-        switch (instr & 0xff) {  // LSByte = opcode
-            case ADD: *p[2] = *p[0] + *p[1]; break;
-            case MUL: *p[2] = *p[0] * *p[1]; break;
-            case INP: *p[0] = inpcount++ ? inp : phase; break;
-            case OUT: return *p[0];
-            case JNZ: if (*p[0] != 0) ip = *p[1]; break;
-            case JZ : if (*p[0] == 0) ip = *p[1]; break;
-            case LT : *p[2] = *p[0]  < *p[1]; break;
-            case EQ : *p[2] = *p[0] == *p[1]; break;
-            case HLT: return -1;
+        switch (instr >> 8) {  // MSByte = opcode
+            case VM_OP_ADD: *p3 = *p1 + *p2; break;
+            case VM_OP_MUL: *p3 = *p1 * *p2; break;
+            case VM_OP_INP: *p1 = vm_input(vm, inputval); break;  // at first INP: state from OK to RUN
+            case VM_OP_OUT: return vm_output(vm, p1);  // state = HLT if next instruction is HLT
+            case VM_OP_JNZ: if (*p1 != 0) vm->ip = *p2; break;
+            case VM_OP_JZ : if (*p1 == 0) vm->ip = *p2; break;
+            case VM_OP_LT : *p3 = *p1  < *p2; break;
+            case VM_OP_EQ : *p3 = *p1 == *p2; break;
+            case VM_OP_HLT: vm->state = VM_STATE_HLT; return VM_OK;
+            default       : vm->state = VM_STATE_HLT; return VM_ERR;  // unknown opcode
         }
     }
 }
@@ -124,41 +204,44 @@ int main(void)
     fclose(f);
 
 #ifdef TIMER
-starttimer();
-for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
-    len = 0;
+    starttimer();
+    for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
-    // Parse CSV signed ints to vm.app
-    for (const char *c = input; *c; ++c) {
-        const int sgn = *c == '-' ? (c++, -1) : 1;
-        int x = *c++ & 15;
-        while (*c > ',')
-            x = x * 10 + (*c++ & 15);
-        dat[len++] = x * sgn;
-    }
+    // Parse intcode CSV data
+    const int size = vm_parse(input, intcode);
 
-    // Init each VM once
+    // Part 1: run once in series
     for (int i = 0; i < SERIES; ++i)
-        memcpy(mem[i], dat, len * sizeof *dat);
-
-    // Part 1: run in series once
+        vm_init(&vm[i], intcode, size, i);  // ID = "phase setting" 0-4
+    // 5 VMs => 120 permutations
     int max = 0;
     for (int *phase; (phase = permutations(SERIES)); ) {
-        int out = 0;
+        // For each new permutation: reset IP and state, but no fresh intcode or ID
         for (int i = 0; i < SERIES; ++i)
-            out = run(i, phase[i], out);
+            vm_reset(&vm[i]);
+        int out = 0;  // first input for first VM
+        for (int i = 0; i < SERIES; ++i)
+            out = run(&vm[phase[i]], out);  // phase[] = index 0-4 shuffled
         if (out > max)
             max = out;
     }
     printf("%d\n", max);  // 929800
 
-    // Part 2: run with feedback loop
-    const int inp[SERIES] = {5,6,7,8,9};
-    printf("%d\n", max);  // 15432220
+    // Part 2: run with feedback
+    for (int i = 0; i < SERIES; ++i)
+        vm_init(&vm[i], intcode, size, i + SERIES);  // ID = "phase setting" 5-9
+    // max = 0;
+    // for (int out = 0, *phase; (phase = permutations(SERIES)); ) {
+    //     for (int i = 0; i < SERIES; ++i)
+    //         out = run(&vm[i], phase[i] + SERIES, out);
+    //     if (out > max)
+    //         max = out;
+    // }
+    // printf("%d\n", max);  // 15432220
 
 #ifdef TIMER
-}
-fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());
+    }
+    fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());
 #endif
 }
