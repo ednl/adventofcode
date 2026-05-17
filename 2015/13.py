@@ -1,5 +1,8 @@
 import re
 from itertools import permutations
+from time import monotonic_ns
+
+t0 = monotonic_ns()
 
 rule = re.compile(r'^(\w+) would (gain|lose) (\d+) happiness units by sitting next to (\w+)\.$')
 person = []
@@ -36,3 +39,6 @@ for p in permutations(range(len(person))):
         max_k = k
         mem_d = min_d
 print(max_k, max_k - mem_d)
+
+t1 = monotonic_ns()
+print(f"Time: {(t1 - t0) / 1000000:.2f} ms")
