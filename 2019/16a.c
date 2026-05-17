@@ -1,29 +1,31 @@
-///////////////////////////////////////////////////////////////////////////////
-////
-////  Advent of Code 2019
-////  Day 16: Flawed Frequency Transmission, part one
-////
-////  E. Dronkert
-////  https://github.com/ednl/aoc2019
-////
-///////////////////////////////////////////////////////////////////////////////
-
-////////// Includes & Defines /////////////////////////////////////////////////
+/**
+ * Advent of Code 2019
+ * Day 16: Flawed Frequency Transmission, part 1
+ * https://adventofcode.com/2019/day/16
+ * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *     cc -std=c17 -Wall -Wextra -pedantic 16a.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 16a.c
+ * Get minimum runtime from timer output in bash:
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 2.84 ms
+ *     Mac Mini 2020 (M1 3.2 GHz)    :    ? ms
+ *     Raspberry Pi 5 (2.4 GHz)      :    ? ms
+ */
 
 #include <stdio.h>   // fopen, fgetc, printf
 #include <stdlib.h>  // abs
 #include <ctype.h>   // isdigit
+#ifdef TIMER
+#include "../startstoptimer.h"
+#endif
 
 #define MAXLEN 1500
 
-////////// Function Declarations //////////////////////////////////////////////
-
-int finddigits(const char * const, int *);
-void show(int *);
-
-////////// Function Definitions ///////////////////////////////////////////////
-
-int finddigits(const char * const s, int *a)
+static int finddigits(const char * const s, int *a)
 {
     FILE *fp;
     const char * pc;
@@ -45,7 +47,7 @@ int finddigits(const char * const s, int *a)
     return i;
 }
 
-void show(int *a)
+static void show(int *a)
 {
     int i;
 
@@ -53,8 +55,6 @@ void show(int *a)
         printf("%d", a[i]);
     printf("\n");
 }
-
-////////// Main ///////////////////////////////////////////////////////////////
 
 int main(void)
 {
@@ -69,6 +69,10 @@ int main(void)
 
     if (!(len = finddigits(data, vec)))
         return 1;
+
+#ifdef TIMER
+    starttimer();
+#endif
 
     for (i = 0; i < 7; ++i)
         offset = offset * 10 + vec[i];
@@ -112,6 +116,9 @@ int main(void)
             vec[i] %= 10;
         }
     }
-    show(vec);
-    return 0;
+    show(vec);  // 25131128
+
+#ifdef TIMER
+    printf("Time: %.0f us\n", stoptimer_us());
+#endif
 }
