@@ -1,6 +1,15 @@
 #include <stdlib.h>  // malloc, free
 #include "combperm.h"
 
+// Successive calls give combinations of k indices from a set of n.
+// Adapted from Knuth 4A, §7.2.1.3, algorithm T.
+// Returns pointer to array of int, index 0..k-1.
+//
+// For example: combinations(3,2) gives [0,1], [0,2], [1,2]
+// The fourth call will return NULL (and memory is freed).
+//
+// To reset and free memory before all combinations have been
+// generated, call with n<=0 or k<=0 or n<=k.
 int *combinations(const int n, const int k)
 {
     static int *index = NULL;
@@ -25,6 +34,8 @@ int *combinations(const int n, const int k)
         return index;
     }
 
+    // Construct new combination, return immediately when
+    // the next one is complete.
     while (j >= 0) {
         index[j] = j + 1;
         j--;
@@ -47,6 +58,7 @@ int *combinations(const int n, const int k)
         return index = NULL;
     }
 
+    // No more new combinations
     index[j--] = x;
     return index;
 }
@@ -59,46 +71,57 @@ static void swap(int *const restrict a, int *const restrict b)
     *b = tmp;
 }
 
-int *permutations(const int n)
+// Successive calls give permutations in lexicographic order of len index numbers.
+// https://en.wikipedia.org/wiki/Permutation#Generation_in_lexicographic_order
+// NB: not thread-safe because permutations are stored in local static variable.
+// Returns pointer to first element of next permutation of n index numbers.
+// Call as permutations(0) to reset and free memory.
+int *permutations(const int len)
 {
     static int *index = NULL;
+    static int n = 0;
 
     // Wrong input or manual reset: reset & return
-    if (n < 1) {
+    if (len < 1) {
         free(index);
-        return index = NULL;
+        n = 0;
+        return (index = NULL);
     }
 
-    // Initialisation
-    if (!index) {
-        index = malloc(n * sizeof *index);
-        if (!index)
-            return NULL;
-        for (int i = 0; i < n; ++i)
-            index[i] = i;
+    // (Re-) initialisation on first call or if len changes
+    if (index == NULL || len != n) {
+        int *tmp = realloc(index, len * sizeof *tmp);
+        if (tmp) {
+            index = tmp;
+            n = len;
+            for (int i = 0; i < len; ++i)
+                index[i] = i;
+        }
         return index;
     }
 
-    // Find last consecutive elements in increasing order
-    int k = n - 2;
-    while (k >= 0 && index[k] >= index[k + 1])
-        --k;
+    // Find pivot_x: last element where next element is larger
+    int px = n - 2;
+    while (px >= 0 && index[px] >= index[px + 1])
+        --px;
 
     // If not found, this was the final permutation: reset & return
-    if (k < 0) {
+    if (px < 0) {
         free(index);
-        return index = NULL;
+        n = 0;
+        return (index = NULL);
     }
 
-    // Find last element larger than index[k] and swap them
-    int l = n - 1;
-    while (l > k && index[k] >= index[l])
-        --l;
-    swap(&index[k], &index[l]);
+    // Find pivot_y: last element larger than pivot_x and swap them
+    int py = n - 1;
+    while (index[px] >= index[py])
+        --py;  // py will be at least px+1 because pivot_x < pivot_x+1
+    swap(&index[px], &index[py]);
 
-    // Reverse sequence after index[k] and return permutation
-    int i = k + 1, j = n - 1;
-    while (i < j)
-        swap(&index[i++], &index[j--]);
+    // Reverse suffix = sequence after pivot_x
+    for (int l = px + 1, r = n - 1; l < r; ++l, --r)
+        swap(&index[l], &index[r]);
+
+    // Return next permutation
     return index;
 }
