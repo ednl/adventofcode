@@ -251,7 +251,7 @@ bool vm_read_output(VM *const vm, VMType *const outputval)
     return vm_deq(&vm->out, outputval);
 }
 
-int run(VM *const vm)
+VMState run(VM *const vm)
 {
     VMType *p[VM_PAR_SIZE] = {0};  // max 3 instruction parameters
     vm->state = VM_STATE_RUN;
