@@ -45,9 +45,9 @@ static bool isnew(const u32 state)
 static u32 evolve(u32 prev)
 {
     const u32 U = prev >> DIM;               // row 6 (shifted in) was already zero
-    const u32 D = prev << DIM & 0x01ffffe0;  // reset rows 1 and 6 (0000 0001 1111 1111 1111 1111 1110 0000)
-    const u32 L = prev >> 1   & 0x00f7bdef;  // reset right column (0000 0000 1111 0111 1011 1101 1110 1111)
-    const u32 R = prev << 1   & 0x01ef7bde;  // reset left  column (0000 0001 1110 1111 0111 1011 1101 1110)
+    const u32 D = prev << DIM & 0x01ffffe0;  // reset row 6 (and 1) = 0000 0001 1111 1111 1111 1111 1110 0000
+    const u32 L = prev >> 1   & 0x00f7bdef;  // reset right column  = 0000 0000 1111 0111 1011 1101 1110 1111
+    const u32 R = prev << 1   & 0x01ef7bde;  // reset left  column  = 0000 0001 1110 1111 0111 1011 1101 1110
     u32 next = 0, bit = 1;
     for (int i = 0; i < LEN; ++i, bit <<= 1) {
         const u32 nb = ((U & bit) + (D & bit) + (L & bit) + (R & bit)) >> i;
