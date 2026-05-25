@@ -11,7 +11,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 11 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 10 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : 19 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 46 µs
  */
@@ -34,8 +34,8 @@ static u32 seen[(1 << LEN) >> 5];
 
 static bool isnew(const u32 state)
 {
-    u32 *const i = &seen[state >> 5];
-    const u32 bit = 1U << (state & 31U);
+    u32 *const i = &seen[state >> 5];  // not DIM but 2^5=32 bits in u32
+    const u32 bit = 1U << (state & 31U);  // 2^5-1=31
     if (*i & bit)
         return false;
     *i |= bit;
@@ -49,11 +49,11 @@ static u32 evolve(const u32 prev)
     const u32 L = prev >> 1   & 0x00f7bdef;  // reset right column  = 0000 0000 1111 0111 1011 1101 1110 1111
     const u32 R = prev << 1   & 0x01ef7bde;  // reset left  column  = 0000 0001 1110 1111 0111 1011 1101 1110
     u32 next = 0;
-    for (u32 i = 0, bit = 1; i != LEN; bit <<= 1, ++i) {
-        const u32 nb = ((U & bit) + (D & bit) + (L & bit) + (R & bit)) >> i;
-        if (nb == 1 || (nb == 2 && !(prev & bit)))
-            next |= bit;
-    }
+    for (u32 bit = 1, i = 0; i != LEN; bit <<= 1, ++i)
+        switch (((U & bit) + (D & bit) + (L & bit) + (R & bit)) >> i) {
+            case 2: if (!(prev & bit))
+            case 1:     next |= bit;
+        }
     return next;
 }
 
