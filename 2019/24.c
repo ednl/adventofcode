@@ -11,9 +11,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 1.08 ms
- *     Mac Mini 2020 (M1 3.2 GHz)    : 1.67 ms
- *     Raspberry Pi 5 (2.4 GHz)      : 3.31 ms
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 1.07 ms
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 1.65 ms
+ *     Raspberry Pi 5 (2.4 GHz)      : 3.30 ms
  */
 
 #include <stdio.h>
@@ -41,39 +41,17 @@ typedef enum index {
 
 // Which locations to add for part 2
 static const Index index[LEN][2] = {
-    {OUT_U, OUT_L},
-    {OUT_U, ZERO },
-    {OUT_U, ZERO },
-    {OUT_U, ZERO },
-    {OUT_U, OUT_R},
-
-    {ZERO , OUT_L},
-    {ZERO , ZERO },
-    { IN_D, ZERO },
-    {ZERO , ZERO },
-    {ZERO , OUT_R},
-
-    {ZERO , OUT_L},
-    { IN_R, ZERO },
-    {ZERO , ZERO },
-    { IN_L, ZERO },
-    {ZERO , OUT_R},
-
-    {ZERO , OUT_L},
-    {ZERO , ZERO },
-    { IN_U, ZERO },
-    {ZERO , ZERO },
-    {ZERO , OUT_R},
-
-    {OUT_D, OUT_L},
-    {OUT_D, ZERO },
-    {OUT_D, ZERO },
-    {OUT_D, ZERO },
-    {OUT_D, OUT_R},
+    {OUT_U, OUT_L}, {OUT_U, ZERO }, {OUT_U, ZERO }, {OUT_U, ZERO }, {OUT_U, OUT_R},
+    {ZERO , OUT_L}, {ZERO , ZERO }, { IN_D, ZERO }, {ZERO , ZERO }, {ZERO , OUT_R},
+    {ZERO , OUT_L}, { IN_R, ZERO }, {ZERO , ZERO }, { IN_L, ZERO }, {ZERO , OUT_R},
+    {ZERO , OUT_L}, {ZERO , ZERO }, { IN_U, ZERO }, {ZERO , ZERO }, {ZERO , OUT_R},
+    {OUT_D, OUT_L}, {OUT_D, ZERO }, {OUT_D, ZERO }, {OUT_D, ZERO }, {OUT_D, OUT_R},
 };
 
 static char input[FSIZE];
 static u32 seen[(1 << LEN) >> 5];
+static u32 state0[LEN2];
+static u32 state1[LEN2];
 
 static bool isnew(const u32 state)
 {
@@ -115,6 +93,10 @@ static u32 evolve2(const u32 prev, const u32 outside, const u32 inside)
         [OUT_L] = outside >> 11 & 1,  // left of centre
         [OUT_R] = outside >> 13 & 1,  // right of centre
         // Add inside to central locations (udlr as seen from outside)
+        // [IN_U] = (inside >> 20 & 1) + (inside >> 21 & 1) + (inside >> 22 & 1) + (inside >> 23 & 1) + (inside >> 24 & 1),
+        // [IN_D] = (inside >>  0 & 1) + (inside >>  1 & 1) + (inside >>  2 & 1) + (inside >>  3 & 1) + (inside >>  4 & 1),
+        // [IN_L] = (inside >>  4 & 1) + (inside >>  9 & 1) + (inside >> 14 & 1) + (inside >> 19 & 1) + (inside >> 24 & 1),
+        // [IN_R] = (inside >>  0 & 1) + (inside >>  5 & 1) + (inside >> 10 & 1) + (inside >> 15 & 1) + (inside >> 20 & 1),
         [IN_U] = __builtin_popcount(inside & 0x01f00000U),  // bottom row = 0000 0001 1111 0000 0000 0000 0000 0000
         [IN_D] = __builtin_popcount(inside & 0x0000001fU),  // top    row = 0000 0000 0000 0000 0000 0000 0001 1111
         [IN_L] = __builtin_popcount(inside & 0x01084210U),  // right  col = 0000 0001 0000 1000 0100 0010 0001 0000
@@ -136,28 +118,31 @@ static u32 evolve2(const u32 prev, const u32 outside, const u32 inside)
 int main(void)
 {
     FILE *f = fopen(FNAME, "rb");
+    if (!f) return 1;
     fread(input, 1, FSIZE, f);
     fclose(f);
 
+#ifdef TIMER
     starttimer();
+#endif
 
-    u32 init = 0, bit = 1;
+    u32 bugs = 0, bit = 1;
     for (const char *c = input; *c; ++c)
         switch (*c) {
-            case '#' : init |= bit; /* fall-through */
+            case '#' : bugs |= bit; /* fall-through */
             case '.' : bit <<= 1; break;
         }
 
     // Part 1
-    u32 state = init;
+    u32 state = bugs;
     while (isnew(state))
         state = evolve1(state);
     printf("%u\n", state);  // example: 2129920, input: 7543003
 
     // Part 2
-    u32 state0[LEN2] = {0}, *a = state0;
-    u32 state1[LEN2] = {0}, *b = state1;
-    a[MID] = init;
+    u32 *a = state0;
+    u32 *b = state1;
+    a[MID] = bugs;
     for (int i = 0; i < GEN; ++i) {
         const int spread = (i >> 1) + 1;
         for (int j = MID - spread; j <= MID + spread; ++j)
@@ -166,10 +151,12 @@ int main(void)
         a = b;
         b = tmp;
     }
-    u32 sum = 0;
-    for (int i = 0; i < LEN2; ++i)
+    int sum = 0;
+    for (int i = 1; i < LEN2 - 1; ++i)
         sum += __builtin_popcount(a[i]);
-    printf("%u\n", sum);  // 1975
+    printf("%d\n", sum);  // 1975
 
+#ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
+#endif
 }
