@@ -22,11 +22,17 @@
     #include "../startstoptimer.h"
 #endif
 
-#define FNAME "../aocinput/2019-24-input.txt"
+#define EXAMPLE 0
+#if EXAMPLE
+    #define FNAME "../aocinput/2019-24-example.txt"
+    #define GEN 10
+#else
+    #define FNAME "../aocinput/2019-24-input.txt"
+    #define GEN 200
+#endif
 #define FSIZE 32  // >= 5*(5+1)+1
 #define DIM 5
 #define LEN (DIM * DIM)
-#define GEN 200
 #define MID ((GEN >> 1) + 1)
 #define LEN2 ((MID << 1) + 1)
 
@@ -52,6 +58,26 @@ static char input[FSIZE];
 static u32 seen[(1 << LEN) >> 5];
 static u32 state0[LEN2];
 static u32 state1[LEN2];
+
+#if EXAMPLE
+static void show(const u32 *const state, const int index0, const int index1)
+{
+    putchar('\n');
+    for (int i = 0; i < DIM; ++i) {
+        for (int j = index0; j <= index1; ++j) {
+            u32 x = state[j] >> (i * DIM) & ((1U << DIM) - 1U);
+            for (int k = 0; k < DIM; x >>= 1, ++k)
+                if (index0 == index1 || i != (DIM >> 1) || k != (DIM >> 1))
+                    putchar(x & 1 ? '#' : '.');
+                else
+                    putchar('?');
+            putchar(' ');
+        }
+        putchar('\n');
+    }
+    putchar('\n');
+}
+#endif
 
 static bool isnew(const u32 state)
 {
@@ -80,11 +106,11 @@ static u32 evolve1(const u32 prev)
 
 static u32 evolve2(const u32 prev, const u32 outside, const u32 inside)
 {
-    // Same as evolve1() but also reset centre location
-    const u32 U = prev >> DIM & 0x01ffefff;
-    const u32 D = prev << DIM & 0x01ffefe0;
-    const u32 L = prev >> 1   & 0x00f7adef;
-    const u32 R = prev << 1   & 0x01ef6bde;
+    // Same as evolve1() but also reset centre location                v
+    const u32 U = prev >> DIM & 0x01ffefff;  // 0000 0001 1111 1111 1110 1111 1111 1111
+    const u32 D = prev << DIM & 0x01ffefe0;  // 0000 0001 1111 1111 1110 1111 1110 0000
+    const u32 L = prev >> 1   & 0x00f7adef;  // 0000 0000 1111 0111 1010 1101 1110 1111
+    const u32 R = prev << 1   & 0x01ef6bde;  // 0000 0001 1110 1111 0110 1011 1101 1110
     const u32 add[INDICES] = {
         [ZERO] = 0,
         // Add outside to border rows/cols (udlr as seen from inside)
@@ -93,14 +119,15 @@ static u32 evolve2(const u32 prev, const u32 outside, const u32 inside)
         [OUT_L] = outside >> 11 & 1,  // left of centre
         [OUT_R] = outside >> 13 & 1,  // right of centre
         // Add inside to central locations (udlr as seen from outside)
-        // [IN_U] = (inside >> 20 & 1) + (inside >> 21 & 1) + (inside >> 22 & 1) + (inside >> 23 & 1) + (inside >> 24 & 1),
-        // [IN_D] = (inside >>  0 & 1) + (inside >>  1 & 1) + (inside >>  2 & 1) + (inside >>  3 & 1) + (inside >>  4 & 1),
-        // [IN_L] = (inside >>  4 & 1) + (inside >>  9 & 1) + (inside >> 14 & 1) + (inside >> 19 & 1) + (inside >> 24 & 1),
-        // [IN_R] = (inside >>  0 & 1) + (inside >>  5 & 1) + (inside >> 10 & 1) + (inside >> 15 & 1) + (inside >> 20 & 1),
         [IN_U] = __builtin_popcount(inside & 0x01f00000U),  // bottom row = 0000 0001 1111 0000 0000 0000 0000 0000
         [IN_D] = __builtin_popcount(inside & 0x0000001fU),  // top    row = 0000 0000 0000 0000 0000 0000 0001 1111
         [IN_L] = __builtin_popcount(inside & 0x01084210U),  // right  col = 0000 0001 0000 1000 0100 0010 0001 0000
         [IN_R] = __builtin_popcount(inside & 0x00108421U),  // left   col = 0000 0000 0001 0000 1000 0100 0010 0001
+        // This takes about the same time as popcount, maaaybe a little slower
+        // [IN_U] = (inside >> 20 & 1) + (inside >> 21 & 1) + (inside >> 22 & 1) + (inside >> 23 & 1) + (inside >> 24 & 1),
+        // [IN_D] = (inside >>  0 & 1) + (inside >>  1 & 1) + (inside >>  2 & 1) + (inside >>  3 & 1) + (inside >>  4 & 1),
+        // [IN_L] = (inside >>  4 & 1) + (inside >>  9 & 1) + (inside >> 14 & 1) + (inside >> 19 & 1) + (inside >> 24 & 1),
+        // [IN_R] = (inside >>  0 & 1) + (inside >>  5 & 1) + (inside >> 10 & 1) + (inside >> 15 & 1) + (inside >> 20 & 1),
     };
     u32 next = 0;
     for (u32 bit = 1, i = 0; i != LEN; bit <<= 1, ++i) {
@@ -132,19 +159,27 @@ int main(void)
             case '#' : bugs |= bit; /* fall-through */
             case '.' : bit <<= 1; break;
         }
+#if EXAMPLE
+    show(&bugs, 0, 0);
+    printf("Input: %u\n", bugs);  // 1205552
+#endif
 
     // Part 1
     u32 state = bugs;
     while (isnew(state))
         state = evolve1(state);
+#if EXAMPLE
+    show(&state, 0, 0);
+    printf("Part 1: ");
+#endif
     printf("%u\n", state);  // example: 2129920, input: 7543003
 
     // Part 2
+    state0[MID] = bugs;
     u32 *a = state0;
     u32 *b = state1;
-    a[MID] = bugs;
     for (int i = 0; i < GEN; ++i) {
-        const int spread = (i >> 1) + 1;
+        const int spread = (i >> 1) + 1;  // 2 generations to traverse a level, +1 = new level both sides
         for (int j = MID - spread; j <= MID + spread; ++j)
             b[j] = evolve2(a[j], a[j - 1], a[j + 1]);
         u32 *const tmp = a;
@@ -154,7 +189,11 @@ int main(void)
     int sum = 0;
     for (int i = 1; i < LEN2 - 1; ++i)
         sum += __builtin_popcount(a[i]);
-    printf("%d\n", sum);  // 1975
+#if EXAMPLE
+    show(a, 1, LEN2 - 2);
+    printf("Part 2: ");
+#endif
+    printf("%d\n", sum);  // example: 99, input: 1975
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
