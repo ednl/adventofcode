@@ -11,13 +11,15 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  5.75 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  5.21 µs (no sort: 12.3 µs)
  *     Mac Mini 2020 (M1 3.2 GHz)    :  9.4  µs
  *     Raspberry Pi 5 (2.4 GHz)      : 19.8  µs
  */
 
 #include <stdio.h>
-#include <stdlib.h>  // qsort
+#ifndef NOSORT
+    #include <stdlib.h>  // qsort
+#endif
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
@@ -39,6 +41,31 @@ static int parseint(const char **s)
     return x;
 }
 
+#ifdef NOSORT
+static int find2(void)
+{
+    for (int i = 0; i < N - 1; ++i) {
+        const int r = SUM - data[i];
+        for (int j = i + 1; j < N; ++j)
+            if (r == data[j])
+                return data[i] * data[j];
+    }
+    return 0;
+}
+
+static int find3(void)
+{
+    for (int i = 0; i < N - 2; ++i)
+        for (int j = i + 1; j < N - 1; ++j) {
+            const int r = SUM - (data[i] + data[j]);
+            if (r > 0)
+                for (int k = j + 1; k < N; ++k)
+                    if (r == data[k])
+                        return data[i] * data[j] * data[k];
+        }
+    return 0;
+}
+#else
 static int sort_int_asc(const void *p, const void *q)
 {
     const int a = *(const int *)p;
@@ -61,6 +88,7 @@ static int twosum(const int *a, const int *b, const int sum)
     }
     return 0;
 }
+#endif
 
 int main(void)
 {
@@ -74,9 +102,15 @@ int main(void)
 #endif
 
     // Parse and sort input
+#ifndef NOSORT
     const int *a = data;
+#endif
     int *b = data;
     for (const char *c = input; *c; *b++ = parseint(&c));
+#ifdef NOSORT
+    printf("%d\n", find2());  // 802011
+    printf("%d\n", find3());  // 248607374
+#else
     qsort(data, N, sizeof *data, sort_int_asc);
 
     // Part 1
@@ -86,6 +120,7 @@ int main(void)
     int p;
     for (; !(p = twosum(a + 1, b, SUM - *a)); ++a);
     printf("%d\n", *a * p);  // 248607374
+#endif
 
 #ifdef TIMER
     printf("Time: %.0f ns\n", stoptimer_ns());
