@@ -1,6 +1,6 @@
 /**
  * Advent of Code 2020
- * Day 3:
+ * Day 3: Toboggan Trajectory
  * https://adventofcode.com/2020/day/3
  * By: E. Dronkert https://github.com/ednl
  *
@@ -11,9 +11,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 1.71 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : 2.71 µs
- *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 7.82 µs
  */
 
 #include <stdio.h>
@@ -31,7 +31,7 @@ typedef struct slope {
     int right, down;
 } Slope;
 
-// (3,1) is slope for part 1
+// [1]={3,1} is slope for part 1
 static const Slope slope[SLOPE] = {{1,1}, {3,1}, {5,1}, {7,1}, {1,2}};
 
 static char map[ROW][COL + 1];  // +newline
@@ -57,8 +57,7 @@ int main(void)
         }
         prod *= tree[i];
     }
-    printf("%u\n", tree[1]);  // 247
-    printf("%u\n", prod);     // 2983070376
+    printf("%u %u\n", tree[1], prod);  // 247 2983070376
 
 #ifdef TIMER
     printf("Time: %.0f ns\n", stoptimer_ns());
