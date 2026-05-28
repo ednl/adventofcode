@@ -1,42 +1,66 @@
-#include <stdio.h>
-#include <string.h>  // memcpy
+/**
+ * Advent of Code 2020
+ * Day 3:
+ * https://adventofcode.com/2020/day/3
+ * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *     cc -std=c17 -Wall -Wextra -pedantic 03.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 03.c
+ * Get minimum runtime from timer output in bash:
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) : ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 2.71 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ */
 
-#define W 31
-#define H 323
+#include <stdio.h>
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
+
+#define FNAME "../aocinput/2020-03-input.txt"
+#define ROW 323  // lines in input file
+#define COL  31  // characters per line (excl. newline)
+#define SLOPE 5  // different slopes for part 2
+#define TREE '#'
 
 typedef struct slope {
-    int x, y;
+    int right, down;
 } Slope;
 
-static const Slope slope[] = {
-    {1, 1},
-    {3, 1},  // slope for part 1
-    {5, 1},
-    {7, 1},
-    {1, 2},
-};
+// (3,1) is slope for part 1
+static const Slope slope[SLOPE] = {{1,1}, {3,1}, {5,1}, {7,1}, {1,2}};
 
-static char area[H][W + 1];
+static char map[ROW][COL + 1];  // +newline
+static unsigned tree[SLOPE];
 
 int main(void)
 {
-    FILE *f = fopen("../aocinput/2020-03-input.txt", "r");
-    if (!f)
-        return 1;
-    char line[64];
-    for (int i = 0; fgets(line, sizeof line, f); ++i)
-        memcpy(&area[i][0], line, W);
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) return 1;
+    fread(map, sizeof map, 1, f);
     fclose(f);
 
-    unsigned mult = 1;
-    for (size_t i = 0; i < sizeof slope / sizeof *slope; ++i) {
-        unsigned tree = 0;
-        for (int x = 0, y = 0; y < H; x = (x + slope[i].x) % W, y += slope[i].y)
-            tree += area[y][x] == '#';
-        mult *= tree;
-        if (i == 1)
-            printf("Part 1: %u\n", tree);  // 247
+#ifdef TIMER
+    starttimer();
+#endif
+
+    unsigned prod = 1;  // overflows int
+    for (int i = 0; i < SLOPE; ++i) {
+        for (int row = 0, col = 0; row < ROW; col += slope[i].right, row += slope[i].down) {
+            if (col >= COL)  // more than 2x as fast as mod
+                col -= COL;
+            tree[i] += map[row][col] == TREE;
+        }
+        prod *= tree[i];
     }
-    printf("Part 2: %u\n", mult);  // 2983070376
-    return 0;
+    printf("%u\n", tree[1]);  // 247
+    printf("%u\n", prod);     // 2983070376
+
+#ifdef TIMER
+    printf("Time: %.0f ns\n", stoptimer_ns());
+#endif
 }
