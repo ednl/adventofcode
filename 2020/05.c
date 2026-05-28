@@ -5,63 +5,73 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 05.c ../startstoptimer.c
- *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 05.c ../startstoptimer.c
- * Get minimum runtime:
- *     m=99999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
- * Minimum runtime:
- *     Mac Mini 2020 (M1 3.2 GHz)          :  67 µs
- *     ThinkPad Ubuntu (i5 8250U 1.8 GHz)  :  89 µs
- *     Raspberry Pi 5 (2.4 GHz)            : 107 µs
- *     iMac 2013 (i5 Haswell 4570 3.2 GHz) : 125 µs
- *     Raspberry Pi 4 (1.8 GHz)            : 462 µs
+ *     cc -std=c17 -Wall -Wextra -pedantic 05.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 05.c
+ * Get minimum runtime from timer output in bash:
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) : ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 39.1 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
-#include <stdio.h>              // fopen, fclose, fgets, printf
-#include <stdlib.h>             // qsort
-#include "../startstoptimer.h"  // my own timing function
+#include <stdio.h>
+#include <stdlib.h>  // qsort
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
-#define INP "../aocinput/2020-05-input.txt"
-#define N 1024  // number of lines in my input file is 761
-#define LEN 16  // line length = 10x F/B/L/R + '\n' + '\0'
-static int seat[N];
+#define FNAME "../aocinput/2020-05-input.txt"
+#define N 761  // lines in input file
+#define L 10   // line length = 10x F/B/L/R (excl. newline)
+#define FSIZE (N * (L + 1))  // +newline
 
-// Qsort helper function: sort ints ascending
-static int cmp_int_asc(const void *p, const void *q)
+static char input[FSIZE];
+static unsigned seat[N];
+
+// Qsort helper function: sort u32 ascending
+static int cmp_u32_asc(const void *p, const void *q)
 {
-    const int a = *(int *)p;
-    const int b = *(int *)q;
+    const unsigned a = *(const unsigned *)p;
+    const unsigned b = *(const unsigned *)q;
     if (a < b) return -1;
-    if (a > b) return 1;
+    if (a > b) return +1;
     return 0;
 }
 
 int main(void)
 {
-    starttimer();
-    FILE *f = fopen(INP, "r");
-    if (!f)
-        return 1;
-    int n = 0, maxid = 0;
-    char boardingpass[LEN];
-    while (n < N && fgets(boardingpass, sizeof boardingpass, f)) {
-        int id = 0;
-        for (int i = 0; i < 10; ++i)  // 10-bit binary number
-            id = id << 1 | !(boardingpass[i] & 4);  // B or R is 1, F or L is 0
-        if (id > maxid)
-            maxid = id;
-        seat[n++] = id;  // save complete list for part 2
-    }
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) return 1;
+    fread(input, FSIZE, 1, f);  // known fixed size
     fclose(f);
-    printf("Part 1: %d\n", maxid);  // 861
 
-    qsort(seat, n, sizeof *seat, cmp_int_asc);
-    for (int i = 1; i < n; ++i)  // start at second seat
+#ifdef TIMER
+    starttimer();
+#endif
+
+    // Parse
+    const char *c = input;
+    for (int i = 0; i < N; ++c, ++i) {  // skip newline
+        unsigned id = 0;
+        while (*c != '\n')
+            id = id << 1 | !(*c++ & 4);  // F or L = 0, B or R = 1
+        seat[i] = id;
+    }
+
+    // Part 1
+    qsort(seat, N, sizeof *seat, cmp_u32_asc);
+    printf("%u\n", seat[N - 1]);  // 861
+
+    // Part 2
+    for (int i = 1; i < N; ++i)
         if (seat[i] - 1 != seat[i - 1]) {  // gap before this seat?
-            printf("Part 2: %d\n", seat[i] - 1);  // 633
+            printf("%u\n", seat[i] - 1);  // 633
             break;
         }
 
-    printf("Time: %.0f µs\n", stoptimer_us());
-    return 0;
+#ifdef TIMER
+    printf("Time: %.0f ns\n", stoptimer_ns());
+#endif
 }
