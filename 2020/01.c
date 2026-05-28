@@ -35,7 +35,7 @@ static int data[N];
 static int parseint(const char **s)
 {
     int x = 0;
-    while (**s & '0')
+    while (**s >= '0')
         x = x * 10 + (*(*s)++ & 15);
     (*s)++;  // skip newline
     return x;
