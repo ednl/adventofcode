@@ -53,10 +53,10 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     memset(tree, 0, sizeof tree);
 #endif
 
-    unsigned prod = 1;  // overflows int
+    unsigned prod = 1;  // overflows signed int
     for (int i = 0; i < SLOPE; ++i) {
         for (int row = 0, col = 0; row < ROW; col += slope[i].right, row += slope[i].down) {
-            if (col >= COL)  // more than 2x as fast as mod
+            if (col >= COL)  // more than twice as fast as mod (%)
                 col -= COL;
             tree[i] += map[row][col] == TREE;
         }
