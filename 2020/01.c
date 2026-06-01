@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  2.34 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  2.33 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : 10.6  µs
  */
@@ -42,7 +42,7 @@ static int sort_int_asc(const void *p, const void *q)
     return 0;
 }
 
-// Part 1: find product of two numbers that sum to 2020
+// Find product of two numbers between a and b incl. that sum to 2020
 static int twosum(const int *a, const int *b, const int sum)
 {
     while (a < b) {
@@ -53,13 +53,14 @@ static int twosum(const int *a, const int *b, const int sum)
         while (a < b && *a + *b < sum)
             a++;
     }
-    return 0;
+    return 0;  // not found
 }
 
 int main(void)
 {
     // Read input file
     FILE *f = fopen(FNAME, "rb");
+    if (!f) return 1;
     fread(input, 1, FSIZE, f);
     fclose(f);
 
@@ -70,30 +71,25 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 
     // Parse and sort input
     {
-        // Convert ASCII digits to values
+        // Convert ASCII digits to values, leave newlines intact
         uint64_t *inp64 = (uint64_t *)input;
-        for (int i = 0; i < (FSIZE >> 3); ++i)
-            inp64[i] &= UINT64_C(0x0f0f0f0f0f0f0f0f);
+        for (int i = 0; i < (FSIZE >> 3); ++i)         // 8 bytes per u64
+            inp64[i] &= UINT64_C(0x0f0f0f0f0f0f0f0f);  // every byte &= 15
         // Convert groups of 3 or 4 digits to numbers
         const char *c = input;
         for (int i = 0; i < N; ++i)
-            if (*(c + 4) == '\n') {  // 4-digit number +newline
-                data[i] = *c * 1000
-                    + *(c + 1) * 100
-                    + *(c + 2) * 10
-                    + *(c + 3);
-                c += 5;
-            } else {  // 3-digit number +newline
-                data[i] = *c * 100
-                    + *(c + 1) * 10
-                    + *(c + 2);
-                c += 4;
+            if (*(c + 4) == '\n') {                    // 4-digit number
+                data[i] = ((*c * 10 + *(c + 1)) * 10 + *(c + 2)) * 10 + *(c + 3);
+                c += 5;                                // also skip newline
+            } else {                                   // 3-digit number
+                data[i] = (*c * 10 + *(c + 1)) * 10 + *(c + 2);
+                c += 4;                                // also skip newline
             }
     }
     qsort(data, N, sizeof *data, sort_int_asc);
 
     // Part 1
-    printf("%d\n", twosum(data, data + (N - 1), SUM));  // 802011
+    printf("%d", twosum(data, data + (N - 1), SUM));  // 802011
 
     // Part 2
     const int *a = data, *b = data + 2;
@@ -102,7 +98,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         b++;
     int p2;
     for (; !(p2 = twosum(a + 1, b, SUM - *a)); ++a);
-    printf("%d\n", *a * p2);  // 248607374
+    printf(" %d\n", *a * p2);  // 248607374
 
 #ifdef TIMER
 }
