@@ -13,14 +13,14 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  2.33 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : 10.6  µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 0.85 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :    ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :    ? µs
  */
 
 #include <stdio.h>
-#include <stdlib.h>  // qsort
 #include <stdint.h>  // uint64_t
+#include <stdbool.h>
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
@@ -31,30 +31,8 @@
 #define SUM  2020  // from puzzle description
 
 static char input[FSIZE];
+static bool seen[SUM];
 static int data[N];
-
-static int sort_int_asc(const void *p, const void *q)
-{
-    const int a = *(const int *)p;
-    const int b = *(const int *)q;
-    if (a < b) return -1;
-    if (a > b) return +1;
-    return 0;
-}
-
-// Find product of two numbers between a and b incl. that sum to 2020
-static int twosum(const int *a, const int *b, const int sum)
-{
-    while (a < b) {
-        if (*a + *b == sum)
-            return *a * *b;
-        while (a < b && *a + *b > sum)
-            b--;
-        while (a < b && *a + *b < sum)
-            a++;
-    }
-    return 0;  // not found
-}
 
 int main(void)
 {
@@ -69,36 +47,51 @@ starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
-    // Parse and sort input
+    // Parse, index & sort input
     {
         // Convert ASCII digits to values, leave newlines intact
         uint64_t *inp64 = (uint64_t *)input;
         for (int i = 0; i < (FSIZE >> 3); ++i)         // 8 bytes per u64
             inp64[i] &= UINT64_C(0x0f0f0f0f0f0f0f0f);  // every byte &= 15
-        // Convert groups of 3 or 4 digits to numbers
+        // Convert groups of 3 or 4 digits to numbers, index into 'seen'
         const char *c = input;
         for (int i = 0; i < N; ++i)
             if (*(c + 4) == '\n') {                    // 4-digit number
-                data[i] = ((*c * 10 + *(c + 1)) * 10 + *(c + 2)) * 10 + *(c + 3);
+                seen[((*c * 10 + *(c + 1)) * 10 + *(c + 2)) * 10 + *(c + 3)] = true;
                 c += 5;                                // also skip newline
             } else {                                   // 3-digit number
-                data[i] = (*c * 10 + *(c + 1)) * 10 + *(c + 2);
+                seen[(*c * 10 + *(c + 1)) * 10 + *(c + 2)] = true;
                 c += 4;                                // also skip newline
             }
+        // Sorted list
+        for (int i = 0, j = 0; i < SUM; ++i)
+            if (seen[i])
+                data[j++] = i;
     }
-    qsort(data, N, sizeof *data, sort_int_asc);
 
     // Part 1
-    printf("%d", twosum(data, data + (N - 1), SUM));  // 802011
+    for (int i = 0; i < N; ++i) {
+        const int res = SUM - data[i];  // residu
+        if (seen[res]) {
+            printf("%d\n", data[i] * res);  // part 1: 802011
+            break;
+        }
+    }
 
     // Part 2
-    const int *a = data, *b = data + 2;
-    const int r = SUM - (*a + *(a + 1));
-    while (*b < r)
-        b++;
-    int p2;
-    for (; !(p2 = twosum(a + 1, b, SUM - *a)); ++a);
-    printf(" %d\n", *a * p2);  // 248607374
+    for (int i = 0; i < N - 2; ++i) {
+        const int res1 = SUM - data[i];
+        for (int j = i + 1; j < N - 1; ++j) {
+            const int res2 = res1 - data[j];
+            if (res2 < data[j + 1])  // impossible from here?
+                break;  // next i
+            if (seen[res2]) {
+                printf("%d\n", data[i] * data[j] * res2);  // part 2: 248607374
+                goto done;  // break(2)
+            }
+        }
+    }
+done:;
 
 #ifdef TIMER
 }
