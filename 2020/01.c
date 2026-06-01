@@ -8,10 +8,12 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 01.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 01.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n2
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  5.00 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  2.34 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : 18.4  µs
  */
@@ -62,7 +64,8 @@ int main(void)
     fclose(f);
 
 #ifdef TIMER
-    starttimer();
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
     // Parse and sort input
@@ -85,8 +88,8 @@ int main(void)
                     + *(c + 2);
                 c += 4;
             }
-        qsort(data, N, sizeof *data, sort_int_asc);
     }
+    qsort(data, N, sizeof *data, sort_int_asc);
 
     // Part 1
     printf("%d\n", twosum(data, data + (N - 1), SUM));  // 802011
@@ -101,6 +104,7 @@ int main(void)
     printf("%d\n", *a * p2);  // 248607374
 
 #ifdef TIMER
-    printf("Time: %.0f ns\n", stoptimer_ns());
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
 }
