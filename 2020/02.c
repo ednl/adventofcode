@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  7.82 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  7.00 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : 13.4  µs
  */
@@ -56,13 +56,14 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     for (const char *c = input; *c; ++c) {
         const int min = parseint(&c);
         const int max = parseint(&c);
-        const char ch = *c;
-        const char *pw = (c += 3);
+        const char letter = *c;
+        c += 3;  // actual start of pwd
+        const char *pwd = c - 1;  // start one back to use 1-based min/max
         int count = 0;
         while (*c != '\n')
-            count += ch == *c++;
+            count += letter == *c++;
         valid1 += min <= count && count <= max;
-        valid2 += (pw[min - 1] == ch) ^ (pw[max - 1] == ch);
+        valid2 += (pwd[min] == letter) ^ (pwd[max] == letter);
     }
     printf("%d %d\n", valid1, valid2);  // 500 313
 
