@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  7.00 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  4.31 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : 13.1  µs
  */
@@ -30,16 +30,6 @@
 
 static char input[FSIZE];
 
-// Read unsigned number with 1-2 digits
-static int parseint(const char **s)
-{
-    int x = *(*s)++ & 15;
-    if (**s >= '0')  // stop at dash/space
-        x = x * 10 + (*(*s)++ & 15);
-    (*s)++;  // skip dash/space
-    return x;
-}
-
 int main(void)
 {
     FILE *f = fopen(FNAME, "rb");
@@ -54,11 +44,29 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 
     int valid1 = 0, valid2 = 0;
     for (const char *c = input; *c; ++c) {
-        const int min = parseint(&c);
-        const int max = parseint(&c);
-        const char letter = *c;
-        c += 3;  // actual start of pwd
-        const char *pwd = c - 1;  // start one back to use 1-based min/max
+        int min, max;
+        char letter;
+        switch (*(c + 6)) {
+        case ' ':  // 2x 1-digit
+            min = *c & 15;
+            max = *(c + 2) & 15;
+            letter = *(c + 4);
+            c += 7;
+            break;
+        case ':':  // 1-digit + 2-digit
+            min = *c & 15;
+            max = (*(c + 2) & 15) * 10 + (*(c + 3) & 15);
+            letter = *(c + 5);
+            c += 8;
+            break;
+        default:  // 2x 2-digit
+            min = (*c & 15) * 10 + (*(c + 1) & 15);
+            max = (*(c + 3) & 15) * 10 + (*(c + 4) & 15);
+            letter = *(c + 6);
+            c += 9;
+            break;
+        }
+        const char *const pwd = c - 1;  // start one back to use 1-based min/max
         int count = 0;
         while (*c != '\n')
             count += letter == *c++;
