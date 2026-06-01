@@ -70,10 +70,11 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 
     // Parse and sort input
     {
+        // Convert ASCII digits to values
         uint64_t *inp64 = (uint64_t *)input;
         for (int i = 0; i < (FSIZE >> 3); ++i)
             inp64[i] &= UINT64_C(0x0f0f0f0f0f0f0f0f);
-
+        // Convert groups of 3 or 4 digits to numbers
         const char *c = input;
         for (int i = 0; i < N; ++i)
             if (*(c + 4) == '\n') {  // 4-digit number +newline
