@@ -34,7 +34,7 @@ int main(void)
 {
     FILE *f = fopen(FNAME, "rb");
     if (!f) return 1;
-    fread(input, 1, FSIZE, f);
+    fread(input, 1, FSIZE, f);  // read char-by-char to max size
     fclose(f);
 
 #ifdef TIMER
@@ -47,19 +47,19 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         int min, max;
         char letter;
         switch (*(c + 6)) {
-        case ' ':  // 2x 1-digit
+        case ' ':  // range is 2x 1-digit
             min = *c & 15;
             max = *(c + 2) & 15;
             letter = *(c + 4);
             c += 7;
             break;
-        case ':':  // 1-digit + 2-digit
+        case ':':  // range is 1-digit + 2-digit
             min = *c & 15;
             max = (*(c + 2) & 15) * 10 + (*(c + 3) & 15);
             letter = *(c + 5);
             c += 8;
             break;
-        default:  // 2x 2-digit
+        default:  // range is 2x 2-digit
             min = (*c & 15) * 10 + (*(c + 1) & 15);
             max = (*(c + 3) & 15) * 10 + (*(c + 4) & 15);
             letter = *(c + 6);

@@ -26,7 +26,7 @@
 #endif
 
 #define FNAME "../aocinput/2020-01-input.txt"
-#define FSIZE 992  // must be divisible by 8. Needed for my input: 990=>992
+#define FSIZE 992  // must be divisible by 8. Needed for my input: 990->992
 #define N     200  // numbers in input file
 #define SUM  2020  // from puzzle description
 
@@ -37,10 +37,11 @@ static int data[N];
 static void parse(void)
 {
     // Convert ASCII digits to values, leave newlines intact
-    uint64_t *inp64 = (uint64_t *)input;
+    uint64_t *inp64 = (uint64_t *)input;           // UB because of alignment, not a problem in practice
     for (int i = 0; i < (FSIZE >> 3); ++i)         // 8 bytes per u64
         inp64[i] &= UINT64_C(0x0f0f0f0f0f0f0f0f);  // every byte &= 15
     // Convert groups of 3 or 4 digits to numbers, index into 'seen'
+    // proper thing to do would be to make 'seen' dynamic size and/or hash table
     const char *c = input;
     for (int i = 0; i < N; ++i)
         if (*(c + 4) == '\n') {                    // 4-digit number
@@ -50,12 +51,18 @@ static void parse(void)
             seen[(*c * 10 + *(c + 1)) * 10 + *(c + 2)] = true;
             c += 4;                                // also skip newline
         }
-    // Assemble sorted list
+    // Collect sorted list
+    // proper thing to do would be to determine min/max
+    // while filling seen, then allocating data
     for (int i = 0, j = 0; i < SUM; ++i)
         if (seen[i])
             data[j++] = i;
 }
 
+// Find two numbers in data set that add to SUM
+// NB: doesn't check if numbers are the same (2n=SUM), but the
+// list is sorted so that would mean no other numbers add to SUM
+// Return product of numbers
 static int twosum(void)
 {
     for (int i = 0; i < N; ++i) {
@@ -66,6 +73,9 @@ static int twosum(void)
     return 0;
 }
 
+// Find three numbers in data set that add to SUM
+// NB: doesn't check if numbers are distinct
+// Return product of numbers
 static int threesum(void)
 {
     for (int i = 0; i < N - 2; ++i) {
@@ -86,7 +96,7 @@ int main(void)
     // Read input file
     FILE *f = fopen(FNAME, "rb");
     if (!f) return 1;
-    fread(input, 1, FSIZE, f);
+    fread(input, 1, FSIZE, f);  // read char-by-char to max size
     fclose(f);
 
 #ifdef TIMER

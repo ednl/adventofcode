@@ -44,7 +44,7 @@ int main(void)
 {
     FILE *f = fopen(FNAME, "rb");
     if (!f) return 1;
-    fread(map, sizeof map, 1, f);
+    fread(map, sizeof map, 1, f);  // read one block of fixed size
     fclose(f);
 
 #ifdef TIMER
