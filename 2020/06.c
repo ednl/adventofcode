@@ -13,7 +13,7 @@
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 11.5 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : 22.3 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 38.7 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 38.4 µs
  */
 
 #include <stdio.h>
@@ -33,8 +33,7 @@ int main(void)
 {
     FILE *f = fopen(FNAME, "rb");
     if (!f) return 1;
-    // Read char-by-char to unknown size, save size
-    const char *const end = input + fread(input, 1, FSIZE, f);
+    fread(input, 1, FSIZE, f);  // read 1 byte at a time to EOF or max size
     fclose(f);
 
 #ifdef TIMER
@@ -42,22 +41,25 @@ int main(void)
 #endif
 
     int any = 0, all = 0, people = 0;
-    for (const char *c = input; c != end; ) {
-        people++;  // start on non-empty line
+    for (const char *c = input; *c; ) {
+        people++;
         while (*c != '\n')
-            yes[*c++ - 'a']++;
-        c++;  // skip newline
-        if (c == end || *c == '\n') {
+            yes[*c++ - 'a']++;  // count letters ("yes to question x")
+        if (*++c == '\n') {  // two newlines? (= empty line)
+            // End of the group
             for (int i = 0; i < QUESTIONS; ++i) {
                 any += yes[i] != 0;
                 all += yes[i] == people;
             }
-            if (c != end) {
-                people = 0;
-                memset(yes, 0, sizeof yes);
-                c++;  // skip empty line
-            }
+            people = 0;
+            memset(yes, 0, sizeof yes);
+            c++;  // skip empty line
         }
+    }
+    // Last group
+    for (int i = 0; i < QUESTIONS; ++i) {
+        any += yes[i] != 0;
+        all += yes[i] == people;
     }
     printf("%d %d\n", any, all);  // 6587 3235
 
