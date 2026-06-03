@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  4.31 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  4.29 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : 13.1  µs
  */
@@ -48,20 +48,20 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         char letter;
         switch (*(c + 6)) {
         case ' ':  // range is 2x 1-digit
-            min = *c & 15;
-            max = *(c + 2) & 15;
+            min = *c - '0';
+            max = *(c + 2) - '0';
             letter = *(c + 4);
             c += 7;
             break;
         case ':':  // range is 1-digit + 2-digit
-            min = *c & 15;
-            max = (*(c + 2) & 15) * 10 + (*(c + 3) & 15);
+            min = *c - '0';
+            max = *(c + 2) * 10 + *(c + 3) - ('0' * 11);
             letter = *(c + 5);
             c += 8;
             break;
         default:  // range is 2x 2-digit
-            min = (*c & 15) * 10 + (*(c + 1) & 15);
-            max = (*(c + 3) & 15) * 10 + (*(c + 4) & 15);
+            min = *c * 10 + *(c + 1) - ('0' * 11);
+            max = *(c + 3) * 10 + *(c + 4) - ('0' * 11);
             letter = *(c + 6);
             c += 9;
             break;
