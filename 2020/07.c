@@ -11,9 +11,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  97 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  93 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :   ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : 237 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 235 µs
  */
 
 #include <stdio.h>
@@ -144,11 +144,9 @@ int main(void)
 
     // Part 1
     memset(hasmybag, -1, sizeof hasmybag);
-    for (int i = 0; i < BAGS; ++i)
-        hasmybag[i] = lookinside(i);
     int sum = 0;
     for (int i = 0; i < BAGS; ++i)
-        sum += hasmybag[i];
+        sum += lookinside(i);
     printf("%d\n", sum);  // 259
 
     // Part 2
