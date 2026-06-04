@@ -18,7 +18,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>  // qsort
-#include <string.h>  // memcpy, memset
+#include <string.h>  // memset
 #include <stdint.h>  // uint32_t, UINT32_C, uint8_t
 #ifdef TIMER
     #include "../startstoptimer.h"
@@ -26,50 +26,52 @@
 
 #define FNAME "../aocinput/2020-07-input.txt"
 #define FSIZE 48000  // needed for my input: 44374
-#define BAGS 594  // bags (lines in input file)
-#define CONT 4    // max number of different bags inside
+#define BAGS    594  // bags (= lines in input file)
+#define MAXINSIDE 4  // max number of different bags inside
 
 typedef struct bag {
-    uint32_t id;  // hashed name
-    uint32_t inside[CONT];
-    uint8_t  amount[CONT];
+    uint32_t key;  // hashed name
+    uint32_t inside[MAXINSIDE];
+    uint8_t  amount[MAXINSIDE];
 } Bag;
 
 static const char *mybag = "shiny gold";
-static uint32_t mybagindex;
+static uint32_t mybagindex;  // TBD at runtime
+
 static char input[FSIZE];
 static Bag bag[BAGS];
-static int hasmybag[BAGS];  // -1=unknown, 0=no, 1=yes
-static int contains[BAGS];  // -1=unknown, 0+=bags inside count
 
-static int cmp_id_asc(const void *p, const void *q)
+// Memoization
+static int hasmybag[BAGS];  // -1=unknown, 0=no, 1=yes
+static int bagcount[BAGS];  // -1=unknown, 0+=bags inside count
+
+static int cmp_key_asc(const void *p, const void *q)
 {
     const Bag *a = p;
     const Bag *b = q;
-    if (a->id < b->id) return -1;
-    if (a->id > b->id) return +1;
+    if (a->key < b->key) return -1;
+    if (a->key > b->key) return +1;
     return 0;
 }
 
-static uint32_t binsearch(const uint32_t id)
+static uint32_t binsearch(const uint32_t key)
 {
     uint32_t l = 0, r = BAGS - 1;
-    if (id == bag[l].id) return l;
-    if (id == bag[r].id) return r;
-    // Now always true: bag[l].id < id < bag[r].id
+    if (key == bag[l].key) return l;
+    if (key == bag[r].key) return r;
+    // Now always true: bag[l].key < key < bag[r].key
     while (r - l > 1) {  // adjacent means not found
         uint32_t m = ((l + 1) >> 1) + (r >> 1);  // avoid index overflow
-        if      (id > bag[m].id) l = m;
-        else if (id < bag[m].id) r = m;
+        if      (key > bag[m].key) l = m;
+        else if (key < bag[m].key) r = m;
         else return m;
     }
     return -1;  // should not happen for this data (famous last words)
 }
 
 // Fowler–Noll–Vo 32-bit hash function for null-terminated string, version 1a
-// https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function#FNV-1a_hash
-// https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function#FNV_hash_parameters
-static uint32_t fnv1a(const char *s)
+// https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function
+static uint32_t fnv1a_hash(const char *s)
 {
     uint32_t h = UINT32_C(0x811c9dc5);
     while (*s) {
@@ -79,27 +81,29 @@ static uint32_t fnv1a(const char *s)
     return h;
 }
 
-static int lookinside(const int index)
+// Bag at index has my bag: 1=yes, 0=no
+static int isinside(const int index)
 {
     if (hasmybag[index] != -1)
         return hasmybag[index];
-    for (int i = 0; i < CONT && bag[index].amount[i]; ++i)
+    for (int i = 0; i < MAXINSIDE && bag[index].amount[i]; ++i)
         if (bag[index].inside[i] == mybagindex)
             return (hasmybag[index] = 1);
-    for (int i = 0; i < CONT && bag[index].amount[i]; ++i)
-        if (lookinside(bag[index].inside[i]))
+    for (int i = 0; i < MAXINSIDE && bag[index].amount[i]; ++i)
+        if (isinside(bag[index].inside[i]))
             return (hasmybag[index] = 1);
     return (hasmybag[index] = 0);
 }
 
+// Count all bags inside this one recursively
 static int countinside(const int index)
 {
-    if (contains[index] != -1)
-        return contains[index];
+    if (bagcount[index] != -1)
+        return bagcount[index];
     int sum = 0;
-    for (int i = 0; i < CONT && bag[index].amount[i]; ++i)
+    for (int i = 0; i < MAXINSIDE && bag[index].amount[i]; ++i)
         sum += (countinside(bag[index].inside[i]) + 1) * bag[index].amount[i];
-    return (contains[index] = sum);
+    return (bagcount[index] = sum);
 }
 
 int main(void)
@@ -113,44 +117,45 @@ int main(void)
     starttimer();
 #endif
 
-    char *c = input;
+    // Parse
+    char *c = input;  // not const because bag names tokenized
     for (int n = 0; n < BAGS; ++n) {
         const char *s = c;              // save start of container name
         for (int i = 0; i < 2; i += *c++ == ' ');  // skip container name
         *(c - 1) = '\0';                // terminate container name
-        bag[n].id = fnv1a(s);           // hash container name
-        // memcpy(bag[n].name, s, c - s);  // save container name (incl. '\0')
+        bag[n].key = fnv1a_hash(s);     // hash container name
         c += 13;                        // skip "bags contain "
         if (*c != 'n')
-            for (int k = 0; k < CONT; ++k) {
-                bag[n].amount[k] = *c & 15;       // 1-digit number
-                s = (c += 2);                     // save start of content name
+            for (int k = 0; k < MAXINSIDE; ++k) {
+                bag[n].amount[k] = *c & 15;        // 1-digit number
+                s = (c += 2);                      // save start of content name
                 for (int i = 0; i < 2; i += *c++ == ' ');  // skip content name
-                *(c - 1) = '\0';                  // terminate content name
-                bag[n].inside[k] = fnv1a(s);      // hash content name
-                c += 4 + (bag[n].amount[k] > 1);  // skip "bag(s)(,|.)"
-                if (*c++ == '\n')                 // newline? (or else: space)
+                *(c - 1) = '\0';                   // terminate content name
+                bag[n].inside[k] = fnv1a_hash(s);  // hash content name
+                c += 4 + (bag[n].amount[k] > 1);   // skip "bag(s)(,|.)"
+                if (*c++ == '\n')                  // newline? (or space)
                     break;
             }
         else
             c += 15;  // skip "no other bags.\n"
     }
 
-    qsort(bag, BAGS, sizeof *bag, cmp_id_asc);
+    // Convert hash to index
+    qsort(bag, BAGS, sizeof *bag, cmp_key_asc);
     for (int i = 0; i < BAGS; ++i)
-        for (int j = 0; j < CONT && bag[i].amount[j]; ++j)
+        for (int j = 0; j < MAXINSIDE && bag[i].amount[j]; ++j)
             bag[i].inside[j] = binsearch(bag[i].inside[j]);
-    mybagindex = binsearch(fnv1a(mybag));
+    mybagindex = binsearch(fnv1a_hash(mybag));
 
     // Part 1
     memset(hasmybag, -1, sizeof hasmybag);
     int sum = 0;
     for (int i = 0; i < BAGS; ++i)
-        sum += lookinside(i);
+        sum += isinside(i);
     printf("%d\n", sum);  // 259
 
     // Part 2
-    memset(contains, -1, sizeof contains);
+    memset(bagcount, -1, sizeof bagcount);
     printf("%d\n", countinside(mybagindex));  // 45018
 
 #ifdef TIMER
