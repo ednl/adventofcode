@@ -5,9 +5,9 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *     cc -std=c17 -Wall -Wextra -pedantic 05alt.c
+ *     cc -std=c17 -Wall -Wextra -pedantic 05.c
  * Enable timer:
- *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 05alt.c
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 05.c
  * Test output with timer enabled:
  *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
@@ -61,9 +61,9 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     //   => min = max-PASS
     //   => min-1 = max-PASS-1 = max-(PASS+1)
     // Given that xorsum(1,n) = {n, 1, n+1, 0}[n % 4]
-    // and PASS+1 % 4 = 762 % 4 = 2, so the xorsums of max and max-(PASS+1)
+    // and (PASS+1) % 4 = 762 % 4 = 2, so the xorsums of max and max-(PASS+1)
     // are either max and max+1, or 1 and 0, so xoring with both is
-    // effectively the same as xoring with 1.
+    // effectively the same as just xoring with 1.
     printf("%u %u\n", max, sum ^ 1U);  // 861 633
 
 #ifdef TIMER
