@@ -84,14 +84,18 @@ static uint32_t fnv1a_hash(const char *s)
 // Bag at index has my bag: 1=yes, 0=no
 static int isinside(const int index)
 {
+    // Already determined?
     if (hasmybag[index] != -1)
         return hasmybag[index];
+    // Is it directly in this bag?
     for (int i = 0; i < MAXINSIDE && bag[index].amount[i]; ++i)
         if (bag[index].inside[i] == mybagindex)
             return (hasmybag[index] = 1);
+    // Is it recursively in this bag?
     for (int i = 0; i < MAXINSIDE && bag[index].amount[i]; ++i)
         if (isinside(bag[index].inside[i]))
             return (hasmybag[index] = 1);
+    // Not in this bag
     return (hasmybag[index] = 0);
 }
 
@@ -102,6 +106,7 @@ static int countinside(const int index)
         return bagcount[index];
     int sum = 0;
     for (int i = 0; i < MAXINSIDE && bag[index].amount[i]; ++i)
+        // +1 = the ones directly in this bag
         sum += (countinside(bag[index].inside[i]) + 1) * bag[index].amount[i];
     return (bagcount[index] = sum);
 }
