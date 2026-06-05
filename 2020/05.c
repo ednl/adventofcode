@@ -64,7 +64,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     // and PASS+1 % 4 = 762 % 4 = 2, so the xorsums of max and max-(PASS+1)
     // are either max and max+1, or 1 and 0, so xoring with both is
     // effectively the same as xoring with 1.
-    printf("%u %u\n", max, sum ^ 1);  // 861 633
+    printf("%u %u\n", max, sum ^ 1U);  // 861 633
 
 #ifdef TIMER
 }
