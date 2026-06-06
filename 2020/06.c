@@ -8,62 +8,64 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 06.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 06.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 11.5 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 22.3 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 38.4 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  5.66 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
  */
 
 #include <stdio.h>
-#include <string.h>  // memset
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
 #define FNAME "../aocinput/2020-06-input.txt"
-#define FSIZE 18432  // needed for my input: 17234
-#define QUESTIONS ('z' - 'a' + 1)
+#define FSIZE 20000  // needed for my input: 17234
+#define ALL ((1U << ('z' - 'a' + 1)) - 1U)  // set bit for every letter
 
 static char input[FSIZE];
-static char yes[QUESTIONS];  // histogram
 
 int main(void)
 {
     FILE *f = fopen(FNAME, "rb");
     if (!f) return 1;
-    fread(input, 1, FSIZE, f);  // read 1 byte at a time to EOF or max size
+    const char *const end = input + fread(input, 1, FSIZE, f);
     fclose(f);
 
 #ifdef TIMER
-    starttimer();
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
-    int any = 0, all = 0, people = 0;
-    for (const char *c = input; *c; ) {
-        people++;
+    int part1 = 0, part2 = 0;
+    unsigned any = 0, all = ALL;
+    for (const char *c = input;;) {
+        unsigned yes = 0;  // answers per person (= per line)
         while (*c != '\n')
-            yes[*c++ - 'a']++;  // count letters ("yes to question x")
-        if (*++c == '\n') {  // two newlines? (= empty line)
-            // End of the group
-            for (int i = 0; i < QUESTIONS; ++i) {
-                any += yes[i] != 0;
-                all += yes[i] == people;
-            }
-            people = 0;
-            memset(yes, 0, sizeof yes);
+            yes |= 1U << (*c++ - 'a');
+        any |= yes;  // union per group
+        all &= yes;  // intersection per group
+        if (++c == end)  // skip newline, test end
+            break;
+        if (*c == '\n') {  // end of the group?
             c++;  // skip empty line
+            part1 += __builtin_popcount(any);
+            part2 += __builtin_popcount(all);
+            any = 0;
+            all = ALL;
         }
     }
-    // Last group
-    for (int i = 0; i < QUESTIONS; ++i) {
-        any += yes[i] != 0;
-        all += yes[i] == people;
-    }
-    printf("%d %d\n", any, all);  // 6587 3235
+    // Don't forget the last group
+    part1 += __builtin_popcount(any);
+    part2 += __builtin_popcount(all);
+    printf("%d %d\n", part1, part2);  // 6587 3235
 
 #ifdef TIMER
-    printf("Time: %.0f ns\n", stoptimer_ns());
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
 }
