@@ -64,6 +64,10 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         unsigned yes = 0;  // answers per person (= per line)
         while (*c != '\n')
             yes |= bit[*c++];
+            // Alternative: automatic 32-bit mask, no need for `*c & 31`
+            // so possibly faster than LUT, but not on Arm where runtime
+            // was the same on M4, a little slower on Pi5
+            // yes |= 1U << *c++;
         any |= yes;  // union per group
         all &= yes;  // intersection per group
         if (*++c == '\n') {  // end of group?
