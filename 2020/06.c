@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  4.96 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  4.94 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :  7.43 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 14.1  µs
  */
@@ -26,23 +26,6 @@
 #define FNAME "../aocinput/2020-06-input.txt"
 #define FSIZE 20000  // needed for my input: 17234
 
-// Enable: yes |= bit[*c++];
-// Avoid : yes |= 1U << (*c++ - 'a');
-static const unsigned bit[] = {
-    ['a'] = 1U << ('a' - 'a'), ['b'] = 1U << ('b' - 'a'),
-    ['c'] = 1U << ('c' - 'a'), ['d'] = 1U << ('d' - 'a'),
-    ['e'] = 1U << ('e' - 'a'), ['f'] = 1U << ('f' - 'a'),
-    ['g'] = 1U << ('g' - 'a'), ['h'] = 1U << ('h' - 'a'),
-    ['i'] = 1U << ('i' - 'a'), ['j'] = 1U << ('j' - 'a'),
-    ['k'] = 1U << ('k' - 'a'), ['l'] = 1U << ('l' - 'a'),
-    ['m'] = 1U << ('m' - 'a'), ['n'] = 1U << ('n' - 'a'),
-    ['o'] = 1U << ('o' - 'a'), ['p'] = 1U << ('p' - 'a'),
-    ['q'] = 1U << ('q' - 'a'), ['r'] = 1U << ('r' - 'a'),
-    ['s'] = 1U << ('s' - 'a'), ['t'] = 1U << ('t' - 'a'),
-    ['u'] = 1U << ('u' - 'a'), ['v'] = 1U << ('v' - 'a'),
-    ['w'] = 1U << ('w' - 'a'), ['x'] = 1U << ('x' - 'a'),
-    ['y'] = 1U << ('y' - 'a'), ['z'] = 1U << ('z' - 'a'),
-};
 static char input[FSIZE];
 
 int main(void)
@@ -63,7 +46,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     for (const char *c = input; c != end; ) {
         unsigned yes = 0;  // answers per person (= per line)
         while (*c != '\n')
-            yes |= bit[*c++];
+            yes |= 1U << *c++;  // automatic 32-bit mask, no need for `*c & 31`
         any |= yes;  // union per group
         all &= yes;  // intersection per group
         if (*++c == '\n') {  // end of group?
