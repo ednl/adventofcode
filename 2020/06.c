@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  5.23 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  4.96 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : 14.1  µs
  */
@@ -25,8 +25,9 @@
 
 #define FNAME "../aocinput/2020-06-input.txt"
 #define FSIZE 20000  // needed for my input: 17234
-#define ALL ((1U << ('z' - 'a' + 1)) - 1U)  // set bit for every letter
 
+// Enable: yes |= bit[*c++];
+// Avoid : yes |= 1U << (*c++ - 'a');
 static const unsigned bit[] = {
     ['a'] = 1U << ('a' - 'a'), ['b'] = 1U << ('b' - 'a'),
     ['c'] = 1U << ('c' - 'a'), ['d'] = 1U << ('d' - 'a'),
@@ -48,7 +49,8 @@ int main(void)
 {
     FILE *f = fopen(FNAME, "rb");
     if (!f) return 1;
-    const char *const end = input + fread(input, 1, FSIZE, f);
+    char *end = input + fread(input, 1, FSIZE, f);
+    *end++ = '\n';  // end last group
     fclose(f);
 
 #ifdef TIMER
@@ -57,26 +59,21 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
     int part1 = 0, part2 = 0;
-    unsigned any = 0, all = ALL;
-    for (const char *c = input;;) {
+    unsigned any = 0, all = -1;
+    for (const char *c = input; c != end; ) {
         unsigned yes = 0;  // answers per person (= per line)
         while (*c != '\n')
             yes |= bit[*c++];
         any |= yes;  // union per group
         all &= yes;  // intersection per group
-        if (++c == end)  // skip newline, test end
-            break;
-        if (*c == '\n') {  // end of the group?
+        if (*++c == '\n') {  // end of group?
             c++;  // skip empty line
             part1 += __builtin_popcount(any);
             part2 += __builtin_popcount(all);
             any = 0;
-            all = ALL;
+            all = -1;
         }
     }
-    // Don't forget the last group
-    part1 += __builtin_popcount(any);
-    part2 += __builtin_popcount(all);
     printf("%d %d\n", part1, part2);  // 6587 3235
 
 #ifdef TIMER
