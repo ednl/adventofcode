@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  9.77 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : 13.76 µs
  *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
  */
@@ -33,6 +33,15 @@
 static char input[FSIZE];
 static int data[LEN];
 // static int pair[PRE][PRE];
+
+static int parseint(const char **s)
+{
+    int x = *(*s)++ & 15;
+    while (**s != '\n')
+        x = x * 10 + (*(*s)++ & 15);
+    (*s)++;  // skip newline
+    return x;
+}
 
 // Brute force
 static bool valid(const int k)
@@ -56,15 +65,6 @@ static bool valid(const int k)
 //     return false;
 // }
 
-static int parseint(const char **s)
-{
-    int x = *(*s)++;  // already masked
-    while (**s != '\n')
-        x = x * 10 + *(*s)++;
-    (*s)++;  // skip newline
-    return x;
-}
-
 int main(void)
 {
     FILE *f = fopen(FNAME, "rb");
@@ -78,9 +78,9 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
     // Parse i32
-    uint64_t *const m = (uint64_t *)input;
-    for (int i = 0; i < (FSIZE >> 3); ++i)
-        m[i] &= UINT64_C(0x0f0f0f0f0f0f0f0f);  // pre-mask all bytes, newline unaffected
+    // uint64_t *const m = (uint64_t *)input;
+    // for (int i = 0; i < (FSIZE >> 3); ++i)
+    //     m[i] &= UINT64_C(0x0f0f0f0f0f0f0f0f);  // pre-mask all bytes, newline unaffected
     const char *c = input;
     for (int i = 0; (data[i] = parseint(&c)) > 0; ++i);
 
