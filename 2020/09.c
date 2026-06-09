@@ -13,25 +13,25 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  9.77 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 13.76 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 33.1 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  9.76 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 13.8  µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 33.1  µs
  */
 
 #include <stdio.h>
-#include <stdint.h>
+#include <stdint.h>  // uint64_t, UINT64_C
 #include <stdbool.h>
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
 #define FNAME "../aocinput/2020-09-input.txt"
-#define FSIZE 8824
-#define LEN 1000
-#define PRE 25
+#define FSIZE 8824  // input file size in bytes
+#define LEN   1000  // lines in input file
+#define PRE   25    // window size part 1
 
 static char input[FSIZE];
-static int32_t data[LEN];
+static int data[LEN];
 
 // Parse masked digits of unsigned int, skip newline
 static unsigned parseint(const char **s)
@@ -68,7 +68,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 
     // Parse numbers until i32 overflow
     uint64_t *const m = (uint64_t *)input;
-    for (int i = 0; i < (FSIZE >> 3); ++i)
+    for (int i = 0; i < (FSIZE >> 3); ++i)  // FSIZE must be divisible by 8
         m[i] &= UINT64_C(0x0f0f0f0f0f0f0f0f);  // pre-mask all bytes, newline unaffected
     const char *c = input;
     for (int i = 0; (data[i] = parseint(&c)) > 0; ++i);
