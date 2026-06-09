@@ -1,13 +1,13 @@
 /**
  * Advent of Code 2020
- * Day 8: Handheld Halting
- * https://adventofcode.com/2020/day/8
+ * Day 9: Encoding Error
+ * https://adventofcode.com/2020/day/9
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *     cc -std=c17 -Wall -Wextra -pedantic -Wno-char-subscripts 08.c
+ *     cc -std=c17 -Wall -Wextra -pedantic -Wno-char-subscripts 09.c
  * Enable timer:
- *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 08.c
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 09.c
  * Test output with timer enabled:
  *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
@@ -15,7 +15,7 @@
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) :  9.77 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : 13.76 µs
- *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 33.1 µs
  */
 
 #include <stdio.h>
@@ -31,19 +31,18 @@
 #define PRE 25
 
 static char input[FSIZE];
-static int data[LEN];
-// static int pair[PRE][PRE];
+static int32_t data[LEN];
 
-static int parseint(const char **s)
+// Parse masked digits of unsigned int, skip newline
+static unsigned parseint(const char **s)
 {
-    int x = *(*s)++ & 15;
+    unsigned x = *(*s)++;  // already masked
     while (**s != '\n')
-        x = x * 10 + (*(*s)++ & 15);
+        x = x * 10 + *(*s)++;  // signed int overflow segfaults on RPi
     (*s)++;  // skip newline
     return x;
 }
 
-// Brute force
 static bool valid(const int k)
 {
     for (int i = k - PRE; i < k - 1; ++i) {
@@ -54,16 +53,6 @@ static bool valid(const int k)
     }
     return false;
 }
-
-// Pre-calculated pairwise sums instead of doing the same sums over & over
-// static bool valid(const int k)
-// {
-//     for (int i = 0; i < PRE - 1; ++i)
-//         for (int j = i + 1; j < PRE; ++j)
-//             if (pair[i][j] == data[k])
-//                 return true;
-//     return false;
-// }
 
 int main(void)
 {
@@ -77,32 +66,17 @@ starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
-    // Parse i32
-    // uint64_t *const m = (uint64_t *)input;
-    // for (int i = 0; i < (FSIZE >> 3); ++i)
-    //     m[i] &= UINT64_C(0x0f0f0f0f0f0f0f0f);  // pre-mask all bytes, newline unaffected
+    // Parse numbers until i32 overflow
+    uint64_t *const m = (uint64_t *)input;
+    for (int i = 0; i < (FSIZE >> 3); ++i)
+        m[i] &= UINT64_C(0x0f0f0f0f0f0f0f0f);  // pre-mask all bytes, newline unaffected
     const char *c = input;
     for (int i = 0; (data[i] = parseint(&c)) > 0; ++i);
 
     // Part 1
-    // Fill triangle circular buffer for first run
-    // for (int i = 0; i < PRE - 1; ++i)
-    //     for (int j = i + 1; j < PRE; ++j)
-    //         pair[i][j] = data[i] + data[j];
     int k = PRE;
-    // int upd = 0;
-    while (valid(k)) {
-        // Update triangle circular buffer
-        // const int64_t diff = data[k] - data[k - PRE];
-        // for (int i = 0; i < upd; ++i)
-        //     pair[i][upd] += diff;  // update col
-        // for (int j = upd + 1; j < PRE; ++j)
-        //     pair[upd][j] += diff;  // update row
-        // if (++upd == PRE)
-        //     upd = 0;
-        // Next k
+    while (valid(k))
         k++;
-    }
     printf("%d", data[k]);  // part 1: 15353384 (k=502)
 
     // Part 2
