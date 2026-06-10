@@ -5,7 +5,7 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *     cc -std=c17 -Wall -Wextra -pedantic -Wno-char-subscripts 10.c
+ *     cc -std=c17 -Wall -Wextra -pedantic 10.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 10.c
  * Test output with timer enabled:
@@ -15,7 +15,7 @@
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 0.48 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 0.69 µs
  */
 
 #include <stdio.h>
