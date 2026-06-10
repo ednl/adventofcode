@@ -72,7 +72,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     //        y = (M-N)/2
     //   x      = N - (M-N)/2
     const int gap3 = (maxjolts - gaps) >> 1;
-    printf("%d", (gaps - gap3) * gap3);  // pasrt 1: 2574
+    printf("%d", (gaps - gap3) * gap3);  // part 1: 2574
 
     // Part 2
     arrangements[0] = 1;  // charging outlet is fixed
