@@ -5,7 +5,7 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *     cc -std=c17 -Wall -Wextra -pedantic -Wno-char-subscripts 08.c
+ *     cc -std=c17 -Wall -Wextra -pedantic 08.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 08.c
  * Test output with timer enabled:
