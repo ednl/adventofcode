@@ -29,7 +29,7 @@
 
 #define FNAME "../aocinput/2020-10-input.txt"
 #define FSIZE 400  // needed for my input: 352
-#define JOLTS 200  // needed for my imput: 180+1+3 = 184
+#define JOLTS 200  // needed for my input: 180+3+1 = 184
 #define MAXGAP  3
 
 static char input[FSIZE];
