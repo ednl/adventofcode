@@ -33,7 +33,7 @@ static char input[FSIZE];
 static int parseint(const char **s)
 {
     int x = *(*s)++ & 15;
-    while (**s >= '0' && **s <= '9')
+    while (**s > ',')  // digits followed by comma or newline
         x = x * 10 + (*(*s)++ & 15);
     (*s)++;  // skip delim or newline
     return x;
