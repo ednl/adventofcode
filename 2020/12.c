@@ -13,9 +13,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 2.26 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : ?    µs
- *     Raspberry Pi 5 (2.4 GHz)      : 6.18 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 1.35 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
@@ -52,32 +52,6 @@ static const Vec dir[] = {
 static char input[FSIZE];
 static Nav nav[LEN];
 
-// Turn left 90 degrees (anti-clockwise)
-static void rotl(Vec *const v, const int angle)
-{
-    switch (angle) {
-        case  90: *v = (Vec){-v->y,  v->x}; break;
-        case 180: *v = (Vec){-v->x, -v->y}; break;
-        case 270: *v = (Vec){ v->y, -v->x}; break;
-    }
-}
-
-// Turn right 90 degrees (clockwise)
-static void rotr(Vec *const v, const int angle)
-{
-    switch (angle) {
-        case  90: *v = (Vec){ v->y, -v->x}; break;
-        case 180: *v = (Vec){-v->x, -v->y}; break;
-        case 270: *v = (Vec){-v->y,  v->x}; break;
-    }
-}
-
-static void sail(Vec *const u, const Vec v, const int mul)
-{
-    u->x += v.x * mul;
-    u->y += v.y * mul;
-}
-
 static int manh(const Vec v)
 {
     return abs(v.x) + abs(v.y);
@@ -102,35 +76,44 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         while (*c != '\n')
             x = x * 10 + (*c++ & 15);
         nav[n].val = x;
+        // switch (x) {
+        //     case 180: nav[n].cmd = 'T'; break;  // turn around
+        //     case 270: nav[n].cmd ^= 30; break;  // L<->R
+        // }
     }
 
-    Vec ship = {0};
+    Vec ship1 = {0}, ship2 = {0};
     Vec head = dir[E];
-    for (int i = 0; i < n; ++i)
-        switch (nav[i].cmd) {
-            case 'F': sail(&ship, head, nav[i].val); break;
-            case 'N': sail(&ship, dir[N], nav[i].val); break;
-            case 'S': sail(&ship, dir[S], nav[i].val); break;
-            case 'E': sail(&ship, dir[E], nav[i].val); break;
-            case 'W': sail(&ship, dir[W], nav[i].val); break;
-            case 'L': rotl(&head, nav[i].val); break;
-            case 'R': rotr(&head, nav[i].val); break;
-        }
-    printf("%d", manh(ship));  // part 1: 1032
-
-    ship = (Vec){0};
     Vec wayp = {10, 1};
     for (int i = 0; i < n; ++i)
         switch (nav[i].cmd) {
-            case 'F': sail(&ship, wayp, nav[i].val); break;
-            case 'N': sail(&wayp, dir[N], nav[i].val); break;
-            case 'S': sail(&wayp, dir[S], nav[i].val); break;
-            case 'E': sail(&wayp, dir[E], nav[i].val); break;
-            case 'W': sail(&wayp, dir[W], nav[i].val); break;
-            case 'L': rotl(&wayp, nav[i].val); break;
-            case 'R': rotr(&wayp, nav[i].val); break;
+            case 'F':
+                ship1.x += head.x * nav[i].val; ship1.y += head.y * nav[i].val;
+                ship2.x += wayp.x * nav[i].val; ship2.y += wayp.y * nav[i].val;
+                break;
+            case 'N': ship1.y += nav[i].val; wayp.y += nav[i].val; break;
+            case 'S': ship1.y -= nav[i].val; wayp.y -= nav[i].val; break;
+            case 'E': ship1.x += nav[i].val; wayp.x += nav[i].val; break;
+            case 'W': ship1.x -= nav[i].val; wayp.x -= nav[i].val; break;
+            case 'L':
+                switch (nav[i].val) {
+                    case  90: head = (Vec){-head.y,  head.x}; wayp = (Vec){-wayp.y,  wayp.x}; break;
+                    case 180: head = (Vec){-head.x, -head.y}; wayp = (Vec){-wayp.x, -wayp.y}; break;
+                    case 270: head = (Vec){ head.y, -head.x}; wayp = (Vec){ wayp.y, -wayp.x}; break;
+                }
+                // head = (Vec){-head.y, head.x}; wayp = (Vec){-wayp.y, wayp.x};
+                break;
+            case 'R':
+                switch (nav[i].val) {
+                    case  90: head = (Vec){ head.y, -head.x}; wayp = (Vec){ wayp.y, -wayp.x}; break;
+                    case 180: head = (Vec){-head.x, -head.y}; wayp = (Vec){-wayp.x, -wayp.y}; break;
+                    case 270: head = (Vec){-head.y,  head.x}; wayp = (Vec){-wayp.y,  wayp.x}; break;
+                }
+                // head = (Vec){head.y, -head.x}; wayp = (Vec){wayp.y, -wayp.x};
+                break;
+            // case 'T': head = (Vec){-head.x, -head.y}; wayp = (Vec){-wayp.x, -wayp.y}; break;
         }
-    printf(" %d\n", manh(ship));  // part 2: 156735
+    printf("%d %d\n", manh(ship1), manh(ship2));  // 1032 156735
 
 #ifdef TIMER
 }
