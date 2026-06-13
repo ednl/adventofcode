@@ -20,7 +20,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>  // abs
-#include <stdint.h>  // uint8_t
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
