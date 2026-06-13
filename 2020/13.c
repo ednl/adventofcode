@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  184 ns
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  183 ns
  *     Mac Mini 2020 (M1 3.2 GHz)    :    ? ns
  *     Raspberry Pi 5 (2.4 GHz)      : 1300 ns
  */
@@ -59,9 +59,10 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 
     const char *c = input;
     const int mytime = parseint(&c);  // "earliest timestamp you could depart on a bus"
-    int mybus = 0, minwait = 1000;
-    int64_t t = 0, dt = 1;
-    for (int time = 0; c != end; ++time)
+    int mybus = parseint(&c);  // assume line 2 starts with bus ID
+    int minwait = depart(mytime, mybus);
+    int64_t t = 0, dt = mybus;
+    for (int time = 1; c != end; ++time)
         if (*c != 'x') {
             const int bus = parseint(&c);
             // Part 1
@@ -70,7 +71,8 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
                 minwait = wait1;
                 mybus = bus;
             }
-            // Part 2: https://en.wikipedia.org/wiki/Chinese_remainder_theorem#Search_by_sieving
+            // Part 2
+            // https://en.wikipedia.org/wiki/Chinese_remainder_theorem#Search_by_sieving
             const int wait2 = depart(time, bus);
             while (t % bus != wait2)
                 t += dt;
