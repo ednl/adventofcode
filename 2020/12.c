@@ -77,7 +77,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         nav[n].val = x;
         // switch (x) {
         //     case 180: nav[n].cmd = 'T'; break;  // turn around
-        //     case 270: nav[n].cmd ^= 30; break;  // L<->R
+        //     case 270: nav[n].cmd ^= 'L' ^ 'R'; break;  // L<->R
         // }
     }
 
