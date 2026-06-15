@@ -11,7 +11,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  90 ms
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  88 ms (LARGE=0x18000)
  *     Mac Mini 2020 (M1 3.2 GHz)    :   ? ms
  *     Raspberry Pi 5 (2.4 GHz)      : 418 ms
  *
@@ -57,7 +57,7 @@
 #define TURN1 2020U
 #define TURN2 (30U * 1000 * 1000)
 #define SEEN  (TURN2 >> 6)  // divide by 64
-#define LARGE 0x20000U  // numbers above: mostly (but not all) seen = 0x or 1x
+#define LARGE 0x18000U  // numbers above: mostly (but not all) seen = 0x or 1x
 
 static char input[FSIZE];
 static unsigned spoken[TURN2];
@@ -114,9 +114,10 @@ int main(void)
         last = *c++ & 15;
         if (*c >= '0')
             last = last * 10 + (*c++ & 15);
-        if (last)
+        if (last) {
             spoken[last] = ++size;
-        else
+            // seen[0] |= UINT64_C(1) << last;  // assume all numbers in input < 64
+        } else
             zero = ++size;
     }
 
