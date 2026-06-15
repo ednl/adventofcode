@@ -13,7 +13,7 @@
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) :  90 ms
  *     Mac Mini 2020 (M1 3.2 GHz)    :   ? ms
- *     Raspberry Pi 5 (2.4 GHz)      :   ? ms
+ *     Raspberry Pi 5 (2.4 GHz)      : 418 ms
  *
  * Speedup with bitfield 'seen' from
  * https://github.com/maneatingape/advent-of-code-rust/blob/main/src/year2020/day15.rs
@@ -109,7 +109,7 @@ int main(void)
 #endif
 
     // Parse and init
-    unsigned size = 0, last;
+    unsigned size = 0, last = 0;
     for (const char *c = input; c != end; ++c) {
         last = *c++ & 15;
         if (*c >= '0')
