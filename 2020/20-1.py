@@ -15,6 +15,7 @@ def rotl(e):
 def fhor(e):
     return [rev(e[0]), e[3], rev(e[2]), e[1]]
 
+tiles = []
 edges = {}
 with open('../aocinput/2020-20-input.txt') as f:
     tiledata = f.read().replace('#', '1').replace('.', '0').strip().split('\n\n')

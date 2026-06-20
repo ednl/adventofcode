@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.lib.function_base import place
+# from numpy.lib.function_base import place
 
 ids = []
 tiles = np.zeros((1,10,10), dtype=np.uint8)  #stub
@@ -23,7 +23,7 @@ tiles = tiles[1:,:,:]  # delete stub
 
 # place = np.zeros((1,1))
 # place[0,0] = ids[0]
-# img = 
+# img =
 
 monster = (np.array([list(s) for s in [
     '                  # ',
