@@ -37,8 +37,8 @@ def shunt(infix):
     return res[0]
 
 # Part 1
-print('1:', sum(map(shunt, data)))
+print('1:', sum(map(shunt, data)))  # 280014646144
 
 # Part 2
 op['+']['p'] = 2
-print('2:', sum(map(shunt, data)))
+print('2:', sum(map(shunt, data)))  # 9966990988262
