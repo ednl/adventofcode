@@ -1,4 +1,9 @@
+from time import monotonic_ns
+t0 = monotonic_ns()
+
 import re
+
+t1 = monotonic_ns()
 
 rules = {}  # parsed rules from the input
 cache = {}  # inferred regex for each rule
@@ -54,9 +59,13 @@ def pattern(n):
     cache[n] = a
     return a
 
+t2 = monotonic_ns()
+
 # Part 1
 rulezero = pattern(0)
-print(sum([bool(re.fullmatch(rulezero, message)) for message in data]))
+print(sum([bool(re.fullmatch(rulezero, message)) for message in data]))  # 115
+
+t3 = monotonic_ns()
 
 # Part 2
 # My rule  0  = 8 11
@@ -77,4 +86,12 @@ for message in data:
     if fm:
         if len(fm.group(1)) // len(fm.group(2)) > len(fm.group(3)) // len(fm.group(4)):
             matches += 1
-print(matches)
+print(matches)  # 237
+
+t4 = monotonic_ns()
+print()
+print('Import     : {:5.1f} ms'.format((t1 - t0) / 1_000_000))
+print('Read+parse : {:5.1f} ms'.format((t2 - t1) / 1_000_000))
+print('Part 1     : {:5.1f} ms'.format((t3 - t2) / 1_000_000))
+print('Part 2     : {:5.1f} ms'.format((t4 - t3) / 1_000_000))
+print('No import  : {:5.1f} ms'.format((t4 - t1) / 1_000_000))
