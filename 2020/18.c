@@ -15,7 +15,7 @@
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 14.2 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 76.4 µs
  */
 
 #include <stdio.h>
@@ -37,12 +37,12 @@ typedef struct term {
 } Term;
 
 static const Term mark = {0};
-static const Term init = {.val = 0, .op = '+'};
+static const Term init = {.op = '+'};
 
 static char input[FSIZE];
 static Term stack1[STACK1];
 static Term stack2[STACK2];
-static int slen1, slen2;
+static int len1, len2;
 
 int main(void)
 {
@@ -56,60 +56,75 @@ starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
-    u64 sum1 = 0, sum2 = 0;
-    Term term1 = init, term2 = init;
+    u64 part1 = 0, part2 = 0;
+    Term x1 = init, x2 = init;
     for (const char *c = input; c != end; ++c)
         switch (*c) {  // cases ordered by value was fastest for me
             case '\n':
-                sum1 += term1.val;
-                term1 = init;
-                while (slen2) {  // clean up stack with multiplications
-                    const u64 tmp = term2.val;
-                    term2 = stack2[--slen2];
-                    if (term2.op == '+') term2.val += tmp; else term2.val *= tmp;
+                part1 += x1.val;
+                x1 = init;
+                while (len2) {  // clean up stack with multiplications
+                    const u64 tmp = x2.val;
+                    x2 = stack2[--len2];
+                    if (x2.op == '+')
+                        x2.val += tmp;
+                    else
+                        x2.val *= tmp;
                 }
-                sum2 += term2.val;
-                term2 = init;
+                part2 += x2.val;
+                x2 = init;
                 break;
             case ' ':  // skip
                 break;
             case '(':  // push
-                stack1[slen1++] = term1;
-                term1 = init;
-                stack2[slen2++] = mark;  // first add marker (op=0)
-                stack2[slen2++] = term2;
-                term2 = init;
+                stack1[len1++] = x1;
+                x1 = init;
+                stack2[len2++] = mark;  // first add marker (op=0)
+                stack2[len2++] = x2;
+                x2 = init;
                 break;
             case ')':  // pop
                 {
-                    const u64 tmp = term1.val;
-                    term1 = stack1[--slen1];
-                    if (term1.op == '+') term1.val += tmp; else term1.val *= tmp;
+                    const u64 tmp = x1.val;
+                    x1 = stack1[--len1];
+                    if (x1.op == '+')
+                        x1.val += tmp;
+                    else
+                        x1.val *= tmp;
                 }
-                while (stack2[--slen2].op) {  // remove marker last
-                    const u64 tmp = term2.val;
-                    term2 = stack2[slen2];
-                    if (term2.op == '+') term2.val += tmp; else term2.val *= tmp;
+                while (stack2[--len2].op) {  // remove marker last
+                    const u64 tmp = x2.val;
+                    x2 = stack2[len2];
+                    if (x2.op == '+')
+                        x2.val += tmp;
+                    else
+                        x2.val *= tmp;
                 }
                 break;
-            case '*':  // mul, push for part 2
-                term1.op = term2.op = '*';
-                stack2[slen2++] = term2;
-                term2 = init;
+            case '*':  // mul, +push for part 2
+                x1.op = x2.op = '*';
+                stack2[len2++] = x2;
+                x2 = init;
                 c++;  // operator always +space, so c+=2
                 break;
             case '+':  // add
-                term1.op = term2.op = '+';
+                x1.op = x2.op = '+';
                 c++;  // operator always +space, so c+=2
                 break;
-            default:
+            default:  // ascii numerical digit
                 {
                     const u64 tmp = *c & 15;
-                    if (term1.op == '+') term1.val += tmp; else term1.val *= tmp;
-                    if (term2.op == '+') term2.val += tmp; else term2.val *= tmp;
+                    if (x1.op == '+')
+                        x1.val += tmp;
+                    else
+                        x1.val *= tmp;
+                    if (x2.op == '+')
+                        x2.val += tmp;
+                    else
+                        x2.val *= tmp;
                 }
         }
-    printf("%"PRIu64" %"PRIu64"\n", sum1, sum2);  // 280014646144 9966990988262
+    printf("%"PRIu64" %"PRIu64"\n", part1, part2);  // 280014646144 9966990988262
 
 #ifdef TIMER
 }
