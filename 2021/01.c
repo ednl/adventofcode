@@ -1,6 +1,6 @@
 /**
  * Advent of Code 2021
- * Day 1:
+ * Day 1: Sonar Sweep
  * https://adventofcode.com/2021/day/1
  * By: E. Dronkert https://github.com/ednl
  *
@@ -20,7 +20,9 @@
 
 #include <stdio.h>
 #include <stdint.h>  // uint32_t
-#include "../startstoptimer.h"
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
 #define FNAME "../aocinput/2021-01-input.txt"
 #define FSIZE 10000  // needed for my input: 9690
