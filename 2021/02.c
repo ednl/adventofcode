@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 0.60 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 0.58 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
@@ -41,33 +41,26 @@ starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
-    unsigned fwd = 0, dp1 = 0, dp2 = 0, aim = 0;
+    unsigned fwd = 0, aim = 0, dep = 0, x;
     const char *c = input;
     for (int i = 0; i < N; ++i)
         switch (*c) {
-            case 'd': {  // down
-                const unsigned x = *(c + 5) & 15;
-                dp1 += x;  // part 1
-                aim += x;  // part 2
+            case 'd':  // down
+                aim += *(c + 5) & 15;  // part 1+2
                 c += 7;
                 break;
-            }
-            case 'f': {  // forward
-                const unsigned x = *(c + 8) & 15;
+            case 'f':  // forward
+                x = *(c + 8) & 15;
                 fwd += x;        // part 1+2
-                dp2 += x * aim;  // part 2
+                dep += x * aim;  // part 2
                 c += 10;
                 break;
-            }
-            case 'u': {  // up
-                const unsigned x = *(c + 3) & 15;
-                dp1 -= x;  // part 1
-                aim -= x;  // part 2
+            case 'u':  // up
+                aim -= *(c + 3) & 15;  // part 1+2
                 c += 5;
                 break;
-            }
         }
-    printf("%d %d\n", fwd * dp1, fwd * dp2);  // part 1: 2150351, part 2: 1842742223
+    printf("%d %d\n", fwd * aim, fwd * dep);  // part 1: 2150351, part 2: 1842742223
 
 #ifdef TIMER
 }
