@@ -38,6 +38,14 @@
 
 static char input[FSIZE];
 
+static uint64_t sum(const uint64_t *const arr)
+{
+    uint64_t x = 0;
+    for (int i = 0; i < LIFE; ++i)
+        x += arr[i];
+    return x;
+}
+
 int main(void)
 {
     FILE *f = fopen(FNAME, "rb");
@@ -51,40 +59,32 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
     // Histogram of fish population count per age mod 9
-    uint64_t age[LIFE] = {0};
+    uint64_t fish[LIFE] = {0};
 
     // Parse
     for (const char *c = input; c != end; c += 8) {
-        uint64_t data;
-        memcpy(&data, c, 8);  // safe way instead of UB from pointer alignment
-        age[data       & 0xf]++;
-        age[data >> 16 & 0xf]++;
-        age[data >> 32 & 0xf]++;
-        age[data >> 48 & 0xf]++;
+        uint64_t chunk;
+        memcpy(&chunk, c, 8);  // safe way instead of UB from pointer alignment
+        fish[chunk       & 0xf]++;
+        fish[chunk >> 16 & 0xf]++;
+        fish[chunk >> 32 & 0xf]++;
+        fish[chunk >> 48 & 0xf]++;
     }
 
+    // Part 1
     int day = 0, i = 0, j = CYCLE;
-    {
-        // Faster if mod isn't very fast
-        // for (; day < DAYS1; ++day, ++i == LIFE && (i = 0), ++j == LIFE && (j = 0))
-        //     age[j] += age[i];  // start new spawn cycle
-        // Faster if mod is very fast (like on Apple M-series)
-        for (; day < DAYS1; ++day)
-            // Leaving current bin age[i] untouched = each fishie produces one kiddo
-            age[j++ % LIFE] += age[i++ % LIFE];  // start new spawn cycle
-        uint64_t sum = 0;  // population
-        for (int k = 0; k < LIFE; ++k)
-            sum += age[k];
-        printf("%"PRIu64" ", sum);  // 374927
-    }
-    {
-        for (; day < DAYS2; ++day)
-            age[j++ % LIFE] += age[i++ % LIFE];
-        uint64_t sum = 0;
-        for (int k = 0; k < LIFE; ++k)
-            sum += age[k];
-        printf("%"PRIu64"\n", sum);  // 1687617803407
-    }
+    // Faster if mod isn't very fast
+    // for (; day < DAYS1; ++day, ++i == LIFE && (i = 0), ++j == LIFE && (j = 0))
+    //     age[j] += age[i];
+    // Faster if mod is very fast (like on Apple M-series)
+    for (; day < DAYS1; ++day)
+        fish[j++ % LIFE] += fish[i++ % LIFE];
+    printf("%"PRIu64" ", sum(fish));  // 374927
+
+    // Part 2
+    for (; day < DAYS2; ++day)
+        fish[j++ % LIFE] += fish[i++ % LIFE];
+    printf("%"PRIu64"\n", sum(fish));  // 1687617803407
 
 #ifdef TIMER
 }
