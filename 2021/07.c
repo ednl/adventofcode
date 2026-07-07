@@ -38,7 +38,6 @@ int main(void)
 {
     FILE *f = fopen(FNAME, "rb");
     if (!f) return 1;
-    // const char *const end = input + fread(input, 1, FSIZE, f);
     fread(input, 1, FSIZE, f);
     fclose(f);
 
