@@ -13,14 +13,14 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 379 ns
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 377 ns
  *     Mac Mini 2020 (M1 3.2 GHz)    : 525 ns
  *     Raspberry Pi 5 (2.4 GHz)      : 518 ns
  */
 
 #include <stdio.h>
 #include <string.h>    // memcpy
-#include <stdint.h>    // uint64_t
+#include <stdint.h>    // uint64_t, UINT64_C
 #include <inttypes.h>  // PRIu64
 #ifdef TIMER
     #include "../startstoptimer.h"
@@ -31,9 +31,7 @@
 #define FSIZE (FISH * 2)  // CSV +newline
 #define M 5  // max fish age
 
-typedef uint64_t u64;
-
-// state conversion matrix s:
+// state conversion matrix:
 //   0 1 0 0 0 0 0 0 0
 //   0 0 1 0 0 0 0 0 0
 //   0 0 0 1 0 0 0 0 0
@@ -43,20 +41,27 @@ typedef uint64_t u64;
 //   1 0 0 0 0 0 0 1 0
 //   0 0 0 0 0 0 0 0 1
 //   1 0 0 0 0 0 0 0 0
-static const u64 a[M + 1] = {0, 1401, 1191, 1154, 1034, 950};  // colsum(s^80)
-static const u64 b[M + 1] = {  // colsum(s^256)
-    0, UINT64_C(6206821033), UINT64_C(5617089148),
-    UINT64_C(5217223242), UINT64_C(4726100874), UINT64_C(4368232009),
-};
+// Sums of columns 1..5 of state^80
+#define A1 1401U
+#define A2 1191U
+#define A3 1154U
+#define A4 1034U
+#define A5  950U
+// Sums of columns 1..5 of state^256
+#define B1 UINT64_C(6206821033)
+#define B2 UINT64_C(5617089148)
+#define B3 UINT64_C(5217223242)
+#define B4 UINT64_C(4726100874)
+#define B5 UINT64_C(4368232009)
 
 static char input[FSIZE];
 
 int main(void)
 {
-    FILE *fp = fopen(FNAME, "rb");
-    if (!fp) return 1;
-    const char *const end = input + fread(input, 1, FSIZE, fp);
-    fclose(fp);
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) return 1;
+    const char *const end = input + fread(input, 1, FSIZE, f);
+    fclose(f);
 
 #ifdef TIMER
 starttimer();
@@ -64,22 +69,22 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
     // Histogram of fish population count per age mod 9
-    u64 f[M + 1] = {0};  // only use index 1..5
+    uint8_t fish[M + 1] = {0};  // only use index 1..5
 
     // Parse
     for (const char *c = input; c != end; c += 8) {
-        u64 data;
-        memcpy(&data, c, 8);  // safe way instead of UB from pointer alignment
-        f[data       & 0xf]++;
-        f[data >> 16 & 0xf]++;
-        f[data >> 32 & 0xf]++;
-        f[data >> 48 & 0xf]++;
+        uint64_t chunk;
+        memcpy(&chunk, c, 8);  // safe way instead of UB from pointer alignment
+        fish[chunk       & 0xf]++;
+        fish[chunk >> 16 & 0xf]++;
+        fish[chunk >> 32 & 0xf]++;
+        fish[chunk >> 48 & 0xf]++;
     }
 
     // Closed form solution
-    printf("%"PRIu64" %"PRIu64"\n",
-        a[1] * f[1] + a[2] * f[2] + a[3] * f[3] + a[4] * f[4] + a[5] * f[5],   // 374927
-        b[1] * f[1] + b[2] * f[2] + b[3] * f[3] + b[4] * f[4] + b[5] * f[5]);  // 1687617803407
+    printf("%u %"PRIu64"\n",
+        A1 * fish[1] + A2 * fish[2] + A3 * fish[3] + A4 * fish[4] + A5 * fish[5],   // 374927
+        B1 * fish[1] + B2 * fish[2] + B3 * fish[3] + B4 * fish[4] + B5 * fish[5]);  // 1687617803407
 
 #ifdef TIMER
 }
