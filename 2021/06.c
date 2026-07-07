@@ -27,13 +27,10 @@
 #endif
 
 #define FNAME "../aocinput/2021-06-input.txt"
-#define FISH  300  // 300 numbers in input file
-#define FSIZE (FISH * 2)  // CSV +newline
-#define LIFE  9
+#define FSIZE 600  // 300 single-digit numbers as CSV +newline
+#define LIFE  9    // lanternfish life cycle
 #define DAYS1 80   // part 1
 #define DAYS2 256  // part 2
-#define LOOP1 (DAYS1 / LIFE)  // 80 div 9 = 8
-#define LOOP2 ((DAYS2 - DAYS1) / LIFE)  // (256 - 80) div 9 = 19
 
 static char input[FSIZE];
 
@@ -71,7 +68,8 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     }
 
     // Part 1
-    for (int k = 0; k < LOOP1; ++k) {  // 80 div 9 = 8
+    // Full loops: 80 div 9 = 8
+    for (int i = 0; i < DAYS1 / LIFE; ++i) {
         fish[7] += fish[0];  // spawn every 7 days
         fish[8] += fish[1];
         fish[0] += fish[2];  // add 2 days to the first spawn cycle
@@ -82,7 +80,8 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         fish[5] += fish[7];
         fish[6] += fish[8];
     }
-    fish[7] += fish[0];  // incomplete loop: 80 mod 9 = 8
+    // Partial loop: 80 mod 9 = 8
+    fish[7] += fish[0];
     fish[8] += fish[1];
     fish[0] += fish[2];
     fish[1] += fish[3];
@@ -93,7 +92,8 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     printf("%"PRIu64" ", sum(fish));  // part 1: 374927
 
     // Part 2
-    for (int k = 0; k < LOOP2; ++k) {  // (256 - 80) div 9 = 19
+    // Full loops: (256 - 80) div 9 = 19
+    for (int i = 0; i < (DAYS2 - DAYS1) / LIFE; ++i) {
         fish[6] += fish[8];  // continue where part 1 stopped
         fish[7] += fish[0];
         fish[8] += fish[1];
@@ -104,7 +104,8 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         fish[4] += fish[6];
         fish[5] += fish[7];
     }
-    fish[6] += fish[8];  // incomplete loop: (256 - 80) mod 9 = 5
+    // Partial loop: (256 - 80) mod 9 = 5
+    fish[6] += fish[8];
     fish[7] += fish[0];
     fish[8] += fish[1];
     fish[0] += fish[2];
