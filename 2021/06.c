@@ -13,8 +13,8 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 0.54 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 0.78 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 0.405 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
@@ -27,14 +27,13 @@
 #endif
 
 #define FNAME "../aocinput/2021-06-input.txt"
-#define FISH 300  // 300 numbers in input file
+#define FISH  300  // 300 numbers in input file
 #define FSIZE (FISH * 2)  // CSV +newline
-
-#define CYCLE   7  // spawn every 7 days
-#define DELAY   2  // add 2 days to the first spawn cycle
-#define LIFE (CYCLE + DELAY)  // the whole circle of life
-#define DAYS1  80  // part 1
+#define LIFE  9
+#define DAYS1 80   // part 1
 #define DAYS2 256  // part 2
+#define LOOP1 (DAYS1 / LIFE)  // 80 div 9 = 8
+#define LOOP2 ((DAYS2 - DAYS1) / LIFE)  // (256 - 80) div 9 = 19
 
 static char input[FSIZE];
 
@@ -72,18 +71,44 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     }
 
     // Part 1
-    int day = 0, i = 0, j = CYCLE;
-    // Faster if mod isn't very fast
-    // for (; day < DAYS1; ++day, ++i == LIFE && (i = 0), ++j == LIFE && (j = 0))
-    //     age[j] += age[i];
-    // Faster if mod is very fast (like on Apple M-series)
-    for (; day < DAYS1; ++day)
-        fish[j++ % LIFE] += fish[i++ % LIFE];
+    for (int k = 0; k < LOOP1; ++k) {  // 80 div 9 = 8
+        fish[7] += fish[0];  // spawn every 7 days
+        fish[8] += fish[1];
+        fish[0] += fish[2];  // add 2 days to the first spawn cycle
+        fish[1] += fish[3];
+        fish[2] += fish[4];
+        fish[3] += fish[5];
+        fish[4] += fish[6];
+        fish[5] += fish[7];
+        fish[6] += fish[8];
+    }
+    fish[7] += fish[0];
+    fish[8] += fish[1];
+    fish[0] += fish[2];
+    fish[1] += fish[3];
+    fish[2] += fish[4];
+    fish[3] += fish[5];
+    fish[4] += fish[6];
+    fish[5] += fish[7];  // 80 mod 9 = 8
     printf("%"PRIu64" ", sum(fish));  // 374927
 
     // Part 2
-    for (; day < DAYS2; ++day)
-        fish[j++ % LIFE] += fish[i++ % LIFE];
+    for (int k = 0; k < LOOP2; ++k) {  // (256 - 80) div 9 = 19
+        fish[6] += fish[8];  // continue where part 1 stopped
+        fish[7] += fish[0];
+        fish[8] += fish[1];
+        fish[0] += fish[2];
+        fish[1] += fish[3];
+        fish[2] += fish[4];
+        fish[3] += fish[5];
+        fish[4] += fish[6];
+        fish[5] += fish[7];
+    }
+    fish[6] += fish[8];
+    fish[7] += fish[0];
+    fish[8] += fish[1];
+    fish[0] += fish[2];
+    fish[1] += fish[3];  // (256 - 80) mod 9 = 5
     printf("%"PRIu64"\n", sum(fish));  // 1687617803407
 
 #ifdef TIMER
