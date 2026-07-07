@@ -65,7 +65,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 
     // Linear cost => take median
     int i = 0;
-    for (int count = 0; count < 500; ++i)
+    for (int count = 0; count < (N >> 1); ++i)
         count += crab[i];
     const int median = i - 1;  // pos 500 and 501 are identical, so overshot by 1
 
