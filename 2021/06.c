@@ -13,9 +13,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 0.405 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 405 ns
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 567 ns
+ *     Raspberry Pi 5 (2.4 GHz)      : 597 ns
  */
 
 #include <stdio.h>
@@ -82,15 +82,15 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         fish[5] += fish[7];
         fish[6] += fish[8];
     }
-    fish[7] += fish[0];
+    fish[7] += fish[0];  // incomplete loop: 80 mod 9 = 8
     fish[8] += fish[1];
     fish[0] += fish[2];
     fish[1] += fish[3];
     fish[2] += fish[4];
     fish[3] += fish[5];
     fish[4] += fish[6];
-    fish[5] += fish[7];  // 80 mod 9 = 8
-    printf("%"PRIu64" ", sum(fish));  // 374927
+    fish[5] += fish[7];
+    printf("%"PRIu64" ", sum(fish));  // part 1: 374927
 
     // Part 2
     for (int k = 0; k < LOOP2; ++k) {  // (256 - 80) div 9 = 19
@@ -104,12 +104,12 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         fish[4] += fish[6];
         fish[5] += fish[7];
     }
-    fish[6] += fish[8];
+    fish[6] += fish[8];  // incomplete loop: (256 - 80) mod 9 = 5
     fish[7] += fish[0];
     fish[8] += fish[1];
     fish[0] += fish[2];
-    fish[1] += fish[3];  // (256 - 80) mod 9 = 5
-    printf("%"PRIu64"\n", sum(fish));  // 1687617803407
+    fish[1] += fish[3];
+    printf("%"PRIu64"\n", sum(fish));  // part 2: 1687617803407
 
 #ifdef TIMER
 }
