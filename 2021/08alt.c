@@ -51,7 +51,7 @@
 #define N 200  // lines in input file
 #define FSIZE (N * (61 + 4 * 8))  // max file size = 18600 (needed for my input: 16562)
 
-// Unique sum per digit of segment occurrences across all 10 digits
+// Index is unique sum per digit of segment occurrences across all 10 digits
 static const char digit[] = {
     [42] = 0,
     [17] = 1,
@@ -94,7 +94,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
             for (; *c >= 'a'; ++len)
                 sum += hist[*c++ & 7];  // retrieve occurrence for 'a'=index 1, 'b'=index 2, etc.
             output = output * 10 + digit[sum];
-            part1 += len < 5 || len > 6;
+            part1 += len < 5 || len > 6;  // count output digits with unique number of lit segments
             c++;  // skip space or newline
         }
         part2 += output;
