@@ -13,9 +13,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  22.4 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
- *     Raspberry Pi 5 (2.4 GHz)      :     ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 22.3 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 38.2 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 96.5 µs
  */
 
 #include <stdio.h>
@@ -67,20 +67,19 @@ starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
-    memset(height, '9', N + 3);  // first row + first col of 2nd row
-    for (int i = 1; i <= N; ++i) {
-        memcpy(&height[i][1], input[i - 1], N);  // input data
-        memset(&height[i][N + 1], '9', 2);  // last col of row i + first col of row i+1
-    }
-    memset(&height[N][N + 1], '9', N + 3);  // last col of 2nd to last row + last row
+    // None shall pass
+    memset(height, '9', sizeof height);
+    for (int i = 0; i < N; ++i)
+        memcpy(&height[i + 1][1], input[i], N);
 
+    // Parts 1 & 2 combined
     int risk = 0, count = 0;
     for (int i = 1; i <= N; ++i)
         for (int j = 1; j <= N; ++j)
             if (height[i][j] < '9') {
                 char low = height[i][j];
-                basin[count++] = fillbasin(i, j, &low);
-                risk += low - '0' + 1;
+                basin[count++] = fillbasin(i, j, &low);  // part 2
+                risk += low - '0' + 1;  // part 1
             }
     topn(basin, 3, count, sizeof *basin, descending);
     printf("%d %d\n", risk, basin[0] * basin[1] * basin[2]);  // 506 931200
