@@ -8,95 +8,119 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 10.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 10.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 225 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 366 µs
- *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  2.94 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  5.91 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 10.7  µs
  */
 
 #include <stdio.h>
-#include <stdlib.h>    // qsort
-#include <stdint.h>    // int64_t
+#include <stdint.h>  // int64_t
 #include <inttypes.h>  // PRId64
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
-#define STACKSIZE 16  // 15 for my input
-#define INCSIZE   48  // 47 for my input
-static int stack[STACKSIZE] = {0};
-static int64_t incomplete[INCSIZE] = {0};
+#define FNAME "../aocinput/2021-10-input.txt"
+#define FSIZE 10000  // needed for my input: 9371
+#define SSIZE  16    // needed for my input: 15
+#define INCOMP 48    // needed for my input: 47
 
-// Sort i64 array in ascending order
-static int asc(const void *a, const void *b)
+static char input[FSIZE];
+static const char match[] = {
+    [')'] = '(',
+    [']'] = '[',
+    ['}'] = '{',
+    ['>'] = '<',
+};
+static const int16_t illegal[] = {
+    [')'] = 3,
+    [']'] = 57,
+    ['}'] = 1197,
+    ['>'] = 25137,
+};
+static const char complete[] = {
+    ['('] = 1,
+    ['['] = 2,
+    ['{'] = 3,
+    ['<'] = 4,
+};
+static char stack[SSIZE];
+static int64_t incomp[INCOMP];
+
+static void swap(const int i, const int j)
 {
-    const int64_t p = *(const int64_t *)a;
-    const int64_t q = *(const int64_t *)b;
-    return (q < p) - (p < q);
+    const int64_t tmp = incomp[i];
+    incomp[i] = incomp[j];
+    incomp[j] = tmp;
+}
+
+// https://en.wikipedia.org/wiki/Quickselect
+static int partition(const int l, const int r, const int pi)
+{
+    const int64_t pv = incomp[pi];
+    swap(pi, r);
+    int si = l;
+    for (int i = l; i < r; ++i)
+        if (incomp[i] <= pv)
+            swap(si++, i);
+    swap(r, si);
+    return si;
+}
+
+// https://en.wikipedia.org/wiki/Quickselect
+static int64_t qselect(const int l, const int r, const int k)
+{
+    if (l == r)
+        return incomp[l];
+    const int pi = partition(l, r, l);
+    if (k == pi)
+        return incomp[k];
+    if (k < pi)
+        return qselect(l, pi - 1, k);
+    return qselect(pi + 1, r, k);
 }
 
 int main(void)
 {
-    int c, id, score = 0, syntaxerror = 0;
-    size_t sp = 0, ip = 0;
-    FILE *f = fopen("../aocinput/2021-10-input.txt", "r");
+    FILE *f = fopen(FNAME, "rb");
     if (!f) return 1;
-
-#ifdef TIMER
-    // Timer includes reading from disk
-    starttimer();
-#endif
-    while (!feof(f)) {
-        switch ((c = fgetc(f))) {
-            case '(' : id = 0x01; break;
-            case '[' : id = 0x02; break;
-            case '{' : id = 0x03; break;
-            case '<' : id = 0x04; break;
-            case ')' : id = 0x10; score = 3; break;
-            case ']' : id = 0x20; score = 57; break;
-            case '}' : id = 0x30; score = 1197; break;
-            case '>' : id = 0x40; score = 25137; break;
-            case '\n': id = 0xff; break;
-            default  : id = 0x00; break;
-        }
-
-        if (id == 0xff) {                             // newline?
-            if (sp) {                                 // incomplete?
-                if (ip != INCSIZE) {                  // room on the stack?
-                    int64_t i = 0;                    // determine incomplete score
-                    while (sp)
-                        i = i * 5 + stack[--sp];      // pop opening bracket (value 1-4)
-                    incomplete[ip++] = i;             // save incomplete score
-                } else {
-                    fprintf(stderr, "Incomplete-score stack overflow");
-                    return 1;
-                }
-            }
-        } else if (id & 0x0f) {                       // opening bracket?
-            if (sp != STACKSIZE) {                    // room on the stack?
-                stack[sp++] = id;                     // push opening bracket (value 1-4)
-            } else {
-                fprintf(stderr, "Bracket stack overflow");
-                return 2;
-            }
-        } else if (id & 0xf0) {                       // closing bracket?
-            if (!sp || stack[--sp] != id >> 4) {      // empty stack or no match?
-                syntaxerror += score;                 // count corruption!!
-                while (c != '\n' && !feof(f))         // discard rest of line
-                    c = fgetc(f);
-                sp = 0;                               // start a new line
-            }
-        }
-    }
+    const char *const end = input + fread(input, 1, FSIZE, f);
     fclose(f);
-    qsort(incomplete, ip, sizeof *incomplete, asc);
 
-    printf("Part 1: %d\n", syntaxerror);              // 413733
-    printf("Part 2: %"PRId64"\n", incomplete[ip/2]);  // 3354640192
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
-    return 0;
+
+    int part1 = 0, count = 0;
+    for (const char *c = input; c != end; ++c) {
+        int sp = 0;
+        for (; *c != '\n'; ++c) {
+            const char m = match[*c];
+            if (m) {  // closing bracket?
+                if (m != stack[--sp]) {  // unmatched?
+                    part1 += illegal[*c];
+                    for (; *c != '\n'; ++c);  // skip to EOL
+                    goto nextline;
+                }
+            } else
+                stack[sp++] = *c;  // opening bracket
+        }
+        int64_t score = 0;
+        while (sp)
+            score = score * 5 + complete[stack[--sp]];
+        incomp[count++] = score;
+    nextline:;
+    }
+    printf("%d %"PRId64"\n", part1, qselect(0, count - 1, count / 2));  // 413733 3354640192
+
+#ifdef TIMER
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
+#endif
 }
