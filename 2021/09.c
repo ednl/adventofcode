@@ -14,8 +14,8 @@
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 22.4 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 38.2 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 96.5 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 33.2 µs
+ *     Raspberry Pi 5 (2.4 GHz)      :    ? µs
  */
 
 #include <stdio.h>
@@ -29,21 +29,21 @@
 #define N 100  // grid dimensions
 #define M 256  // max number of basins
 
-static char input[N][N + 1];       // input grid NxN + newline
-static char height[N + 2][N + 2];  // extend grid to simplify edge cases
+static char input[N][N + 1];       // input grid NxN + newlines
+static char height[N + 2][N + 1];  // border but reuse newlines as no-go
 static int basin[M];               // size of each basin found
 
 // Floodfill the basin, keep track of minimum, return basin size
-static int fillbasin(const int x, const int y, int *low)
+static int fillbasin(const int x, const int y, int *map)
 {
-    *low |= 1 << (height[x][y] & 15);  // find lowest point
+    *map |= 1 << (height[x][y] & 15);  // elevation map
     height[x][y] = '9';  // mark as done
-    int size = 1;
-    if (height[x][y + 1] < '9') size += fillbasin(x, y + 1, low);
-    if (height[x + 1][y] < '9') size += fillbasin(x + 1, y, low);
-    if (height[x][y - 1] < '9') size += fillbasin(x, y - 1, low);
-    if (height[x - 1][y] < '9') size += fillbasin(x - 1, y, low);
-    return size;
+    int area = 1;
+    if ((height[x][y + 1] & 15) < 9) area += fillbasin(x, y + 1, map);
+    if ((height[x + 1][y] & 15) < 9) area += fillbasin(x + 1, y, map);
+    if ((height[x][y - 1] & 15) < 9) area += fillbasin(x, y - 1, map);
+    if ((height[x - 1][y] & 15) < 9) area += fillbasin(x - 1, y, map);
+    return area;
 }
 
 // Sort int array in descending order
@@ -67,22 +67,17 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
     // None shall pass
-    // On some arch, e.g. with very fast memory access,
-    // a single memset() of 'height' will be slightly faster
-    memset(height, '9', N + 3);  // first row + first col of 2nd row
-    for (int i = 1; i <= N; ++i) {
-        memcpy(&height[i][1], input[i - 1], N);  // input data
-        memset(&height[i][N + 1], '9', 2);  // last col of row i + first col of row i+1
-    }
-    memset(&height[N][N + 1], '9', N + 3);  // last col of 2nd to last row + last row
+    memset(height, '9', N + 2);  // first row + first col of 2nd row
+    memcpy(&height[1][1], input, sizeof input);  // input data
+    memset(height[N + 1], '9', N + 1);  // last row
 
     int risk = 0, count = 0;
     for (int i = 1; i <= N; ++i)
         for (int j = 1; j <= N; ++j)
             if (height[i][j] < '9') {
-                int low = 0;
-                basin[count++] = fillbasin(i, j, &low);  // part 2
-                risk += 1 + __builtin_ctz(low);  // part 1
+                int map = 0;
+                basin[count++] = fillbasin(i, j, &map);  // part 2
+                risk += 1 + __builtin_ctz(map);  // part 1
             }
     topn(basin, 3, count, sizeof *basin, descending);  // part 2
     printf("%d %d\n", risk, basin[0] * basin[1] * basin[2]);  // 506 931200
