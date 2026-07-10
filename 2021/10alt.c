@@ -13,9 +13,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 2.94 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  2.94 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  5.91 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 10.7  µs
  */
 
 #include <stdio.h>
