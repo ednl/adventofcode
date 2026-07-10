@@ -34,10 +34,9 @@ static char height[N + 2][N + 2];  // extend grid to simplify edge cases
 static int basin[M];               // size of each basin found
 
 // Floodfill the basin, keep track of minimum, return basin size
-static int fillbasin(const int x, const int y, char *low)
+static int fillbasin(const int x, const int y, int *low)
 {
-    if (height[x][y] < *low)
-        *low = height[x][y];  // find lowest point
+    *low |= 1 << (height[x][y] & 15);  // find lowest point
     height[x][y] = '9';  // mark as done
     int size = 1;
     if (height[x][y + 1] < '9') size += fillbasin(x, y + 1, low);
@@ -77,9 +76,9 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     for (int i = 1; i <= N; ++i)
         for (int j = 1; j <= N; ++j)
             if (height[i][j] < '9') {
-                char low = height[i][j];
+                int low = 0;
                 basin[count++] = fillbasin(i, j, &low);  // part 2
-                risk += low - '0' + 1;  // part 1
+                risk += 1 + __builtin_ctz(low);  // part 1
             }
     topn(basin, 3, count, sizeof *basin, descending);
     printf("%d %d\n", risk, basin[0] * basin[1] * basin[2]);  // 506 931200
