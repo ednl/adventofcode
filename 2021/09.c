@@ -67,9 +67,9 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
     // None shall pass
-    memset(height, '9', N + 2);  // first row + first col of 2nd row
+    memset(&height[0][0], '9', N + 2);  // first row + first col of 2nd row
     memcpy(&height[1][1], input, sizeof input);  // input data
-    memset(height[N + 1], '9', N + 1);  // last row
+    memset(&height[N + 1][0], '9', N + 1);  // last row
 
     int risk = 0, count = 0;
     for (int i = 1; i <= N; ++i)
