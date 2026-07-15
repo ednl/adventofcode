@@ -1,5 +1,22 @@
-// AoC 2021 Day 14: Extended Polymerization
-// https://adventofcode.com/2021/day/14
+/**
+ * Advent of Code 2021
+ * Day 14: Extended Polymerization
+ * https://adventofcode.com/2021/day/14
+ * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *     cc -std=c17 -Wall -Wextra -pedantic 14.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 14.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n7
+ * Get minimum runtime from timer output in bash:
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) : ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 9.97 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ */
 
 // Solution idea: treat every transformation rule as replacing 1 pair of elements
 // with 2 pairs of elements. E.g. a rule given as AB->C becomes: AB->(AC,CB). So,
@@ -13,11 +30,16 @@
 // guaranteed and one pair will always be split in two.
 
 #include <stdio.h>
-#include <stdlib.h>    // atoi
 #include <stdint.h>    // uint64_t
 #include <limits.h>    // UINT64_MAX
 #include <inttypes.h>  // PRIu64
-#include "../startstoptimer.h"
+#include <string.h>    // memcpy, memset
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
+
+#define FNAME "../aocinput/2021-14-input.txt"
+#define FSIZE 1024  // needed for my input: 822
 
 #define STEPS1 10  // take so many growth steps, part 1
 #define STEPS2 40  // take so many growth steps, part 2
@@ -29,14 +51,15 @@
 // "left" then points to the rule for pair AC, "right" to pair CB.
 // "count" is how many pairs of AB there are now in the polymer, "next" how many next.
 // (Counts can't be updated in place because every pair transforms at the same time.)
-typedef struct Rule {
-    struct Rule *left, *right;  // pointers to replacement pairs (NULL = no replacement)
+typedef struct rule {
+    struct rule *left, *right;  // pointers to replacement pairs (NULL = no replacement)
     uint64_t count, next;       // how many of this pair are there now and next round
     char pair[3], ins;          // pair (=2 elements) to replace, 1 element to insert
 } Rule;
 
-static Rule rule[RULES] = {0};   // all transformation rules
+static char input[FSIZE];
 static char polymer[PSIZE + 1];  // must be same size as in input file, +1 for \0
+static Rule rule[RULES];         // all transformation rules
 
 // Get index 0-25 from element A-Z.
 static int ix(const char c)
@@ -62,33 +85,31 @@ static Rule *findrule_s(const char *s)
 }
 
 // Read the input file, initialise the pair count and left/right pointers.
-static void parse(const char *inp)
-{
-    FILE *f = fopen(inp, "r");
-    fscanf(f, "%s ", polymer);
-    for (int i = 0; i < RULES && fscanf(f, "%2s -> %c", rule[i].pair, &rule[i].ins) == 2; ++i);
-    fclose(f);
+// static void parse(const char *inp)
+// {
+//     FILE *f = fopen(inp, "r");
+//     fscanf(f, "%s ", polymer);
+//     for (int i = 0; i < RULES && fscanf(f, "%2s -> %c", rule[i].pair, &rule[i].ins) == 2; ++i);
+//     fclose(f);
 
-    // Count elements by pairs in initial polymer; the first and
-    // last elements will be the only ones not counted double.
-    findrule_s(polymer)->count++;          // first pair
-    for (int i = 1; i < PSIZE - 1; ++i)
-        findrule_s(&polymer[i])->count++;  // next overlapping pairs
+//     // Count elements by pairs in initial polymer; the first and
+//     // last elements will be the only ones not counted double.
+//     for (int i = 0; i < PSIZE - 1; ++i)
+//         findrule_s(&polymer[i])->count++;  // next overlapping pairs
 
-    // Save links to replacement pairs
-    for (int i = 0; i < RULES; ++i) {
-        rule[i].left  = findrule_c(rule[i].pair[0], rule[i].ins    );
-        rule[i].right = findrule_c(rule[i].ins    , rule[i].pair[1]);
-    }
-}
+//     // Save links to replacement pairs
+//     for (int i = 0; i < RULES; ++i) {
+//         rule[i].left  = findrule_c(rule[i].pair[0], rule[i].ins    );
+//         rule[i].right = findrule_c(rule[i].ins    , rule[i].pair[1]);
+//     }
+// }
 
 // Grow the polymer by a number of steps where every pair transforms
 // into two other pairs.
 // First calculate all new counts, then set them as current counts.
 static void grow(const int cycles)
 {
-    static int cycle = 0;
-    for (; cycle < cycles; ++cycle) {
+    for (int k = 0; k < cycles; ++k) {
         for (int i = 0; i < RULES; ++i) {
             rule[i].left->next  += rule[i].count;
             rule[i].right->next += rule[i].count;
@@ -129,12 +150,42 @@ static uint64_t range(void)
 
 int main(void)
 {
-    starttimer();
-    parse("../aocinput/2021-14-input.txt");
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) return 1;
+    fread(input, 1, FSIZE, f);
+    fclose(f);
+
+#ifdef TIMER
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
+    memset(rule, 0, sizeof rule);
+#endif
+
+    // Parse
+    memcpy(polymer, input, PSIZE);
+    const char *c = input + PSIZE + 2;
+    for (int i = 0; i < RULES; c += 8, ++i) {
+        memcpy(rule[i].pair, c, 2);
+        rule[i].ins = *(c + 6);
+    }
+    // Count elements by pairs in initial polymer; the first and
+    // last elements will be the only ones not counted double.
+    for (int i = 0; i < PSIZE - 1; ++i)
+        findrule_s(&polymer[i])->count++;  // next overlapping pairs
+
+    // Save links to replacement pairs
+    for (int i = 0; i < RULES; ++i) {
+        rule[i].left  = findrule_c(rule[i].pair[0], rule[i].ins    );
+        rule[i].right = findrule_c(rule[i].ins    , rule[i].pair[1]);
+    }
+
     grow(STEPS1);
-    printf("Part 1: %"PRIu64"\n", range());  // 2194
-    grow(STEPS2);
-    printf("Part 2: %"PRIu64"\n", range());  // 2360298895777
-    printf("%.0f µs\n", stoptimer_us());
-    return 0;
+    printf("%"PRIu64" ", range());  // 2194
+    grow(STEPS2 - STEPS1);
+    printf("%"PRIu64"\n", range());  // 2360298895777
+
+#ifdef TIMER
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
+#endif
 }
