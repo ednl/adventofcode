@@ -13,8 +13,8 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : ? µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 9.97 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 2.40 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
@@ -30,121 +30,70 @@
 // guaranteed and one pair will always be split in two.
 
 #include <stdio.h>
-#include <stdint.h>    // uint64_t
-#include <limits.h>    // UINT64_MAX
-#include <inttypes.h>  // PRIu64
 #include <string.h>    // memcpy, memset
+#include <stdint.h>    // uint64_t
+#include <inttypes.h>  // PRIu64
+#include <limits.h>    // INT64_MAX
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
 #define FNAME "../aocinput/2021-14-input.txt"
 #define FSIZE 1024  // needed for my input: 822
-
-#define STEPS1 10  // take so many growth steps, part 1
-#define STEPS2 40  // take so many growth steps, part 2
-#define PSIZE  20  // original polymer length = 20 in my input
-#define RULES 100  // number of pair replacement rules in my input
-#define ELMS ('Z' - 'A' + 1)  // number of elements = letters in the alphabet
-
-// Representation of rule AB->C where pair=AB, ins=C.
-// "left" then points to the rule for pair AC, "right" to pair CB.
-// "count" is how many pairs of AB there are now in the polymer, "next" how many next.
-// (Counts can't be updated in place because every pair transforms at the same time.)
-typedef struct rule {
-    struct rule *left, *right;  // pointers to replacement pairs (NULL = no replacement)
-    uint64_t count, next;       // how many of this pair are there now and next round
-    char pair[3], ins;          // pair (=2 elements) to replace, 1 element to insert
-} Rule;
+#define RULES 100
+#define ALPH (('Z' & 31) + 1)  // 'A'=1,..,'Z'=26 => length=26+1
+#define INISIZE 20  // length of polymer on line 1 of input file
+#define GROW1 10  // growth cycles part 1
+#define GROW2 40  // growth cycles part 2
 
 static char input[FSIZE];
-static char polymer[PSIZE + 1];  // must be same size as in input file, +1 for \0
-static Rule rule[RULES];         // all transformation rules
+static uint8_t node[RULES][2];    // 2-letter nodes (values: 1..26)
+static uint8_t insert[RULES];     // letter to insert (value: 1..26)
+static uint8_t rule[ALPH][ALPH];  // rule index 0..99 per 2-letter node
+static uint8_t lhs[RULES];        // node index 0..99 for LHS transformation
+static uint8_t rhs[RULES];        // node index 0..99 for RHS transformation
+static uint64_t count[RULES];     // node count
+static uint64_t tmp[RULES];       // skratch area for updating all counts simultaneously
 
-// Get index 0-25 from element A-Z.
-static int ix(const char c)
+// Swap pointers (not values)
+static void swap(uint64_t *restrict *p, uint64_t *restrict *q)
 {
-    return (int)(c - 'A');
+    uint64_t *const tmp = *p;
+    *p = *q;
+    *q = tmp;
 }
 
-// Find the transformed pair rules for every pair in the rule set
-// to initialise the left/right pointers.
-static Rule *findrule_c(const char a, const char b)
+// Number of cycles must be even
+static uint64_t grow(const int cycles)
 {
-    for (int i = 0; i < RULES; ++i)
-        if (rule[i].pair[0] == a && rule[i].pair[1] == b)
-            return &rule[i];
-    return NULL;  // should never get here
-}
-
-// Find the corresponding rule for every element pair in the given polymer
-// to initialise its count.
-static Rule *findrule_s(const char *s)
-{
-    return findrule_c(s[0], s[1]);
-}
-
-// Read the input file, initialise the pair count and left/right pointers.
-// static void parse(const char *inp)
-// {
-//     FILE *f = fopen(inp, "r");
-//     fscanf(f, "%s ", polymer);
-//     for (int i = 0; i < RULES && fscanf(f, "%2s -> %c", rule[i].pair, &rule[i].ins) == 2; ++i);
-//     fclose(f);
-
-//     // Count elements by pairs in initial polymer; the first and
-//     // last elements will be the only ones not counted double.
-//     for (int i = 0; i < PSIZE - 1; ++i)
-//         findrule_s(&polymer[i])->count++;  // next overlapping pairs
-
-//     // Save links to replacement pairs
-//     for (int i = 0; i < RULES; ++i) {
-//         rule[i].left  = findrule_c(rule[i].pair[0], rule[i].ins    );
-//         rule[i].right = findrule_c(rule[i].ins    , rule[i].pair[1]);
-//     }
-// }
-
-// Grow the polymer by a number of steps where every pair transforms
-// into two other pairs.
-// First calculate all new counts, then set them as current counts.
-static void grow(const int cycles)
-{
-    for (int k = 0; k < cycles; ++k) {
+    uint64_t *cur = count, *next = tmp;
+    for (int cycle = 0; cycle < cycles; ++cycle) {
+        // Must start at zero
+        memset(next, 0, sizeof count);
+        // Split nodes
         for (int i = 0; i < RULES; ++i) {
-            rule[i].left->next  += rule[i].count;
-            rule[i].right->next += rule[i].count;
+            next[lhs[i]] += cur[i];
+            next[rhs[i]] += cur[i];
         }
-        for (int i = 0; i < RULES; ++i) {
-            rule[i].count = rule[i].next;
-            rule[i].next = 0;  // always reset for next growth cycle!
-        }
+        // Update counts
+        swap(&cur, &next);
     }
-}
-
-// Execute a number of growth cycles, then count every element.
-// Return the range of element counts as requested by the puzzle.
-static uint64_t range(void)
-{
-    // Count individual elements from pairs and add
-    // the two original elements from head and tail,
-    // the only ones not counted double so far.
-    uint64_t hist[ELMS] = {0};  // histogram of elements
-    hist[ix(polymer[0])] = 1;
-    hist[ix(polymer[PSIZE - 1])]++;  // can be the same as element 0, hence ++
+    uint64_t hist[ALPH] = {0};
+    // Add two original elements from head and tail
+    // = only ones not counted double so far
+    hist[input[0] & 31] = 1;
+    hist[input[INISIZE - 1] & 31]++;
     for (int i = 0; i < RULES; ++i) {
-        hist[ix(rule[i].pair[0])] += rule[i].count;
-        hist[ix(rule[i].pair[1])] += rule[i].count;
+        hist[node[i][0]] += cur[i];
+        hist[node[i][1]] += cur[i];
     }
-
-    // Determine minimum (non-zero) and maximum
-    uint64_t min = UINT64_MAX, max = 0;
-    for (int i = 0; i < ELMS; ++i)
+    uint64_t min = INT64_MAX;
+    uint64_t max = 0;
+    for (int i = 'A' & 31; i < ALPH; ++i)
         if (hist[i]) {
             if (hist[i] < min) min = hist[i];
             if (hist[i] > max) max = hist[i];
         }
-
-    // Return range, divide by 2 to undo the double counting
     return (max - min) >> 1;
 }
 
@@ -158,31 +107,30 @@ int main(void)
 #ifdef TIMER
 starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
-    memset(rule, 0, sizeof rule);
+    memset(count, 0, sizeof count);
 #endif
 
     // Parse
-    memcpy(polymer, input, PSIZE);
-    const char *c = input + PSIZE + 2;
+    const char *c = input + INISIZE + 2;
     for (int i = 0; i < RULES; c += 8, ++i) {
-        memcpy(rule[i].pair, c, 2);
-        rule[i].ins = *(c + 6);
+        uint64_t data;
+        memcpy(&data, c, sizeof data);
+        data &= UINT64_C(0x001f000000001f1f);  // assumes little-endian
+        memcpy(node[i], &data, 2);
+        rule[data & 255][data >> 8 & 255] = i;
+        insert[i] = data >> 48;
     }
-    // Count elements by pairs in initial polymer; the first and
-    // last elements will be the only ones not counted double.
-    for (int i = 0; i < PSIZE - 1; ++i)
-        findrule_s(&polymer[i])->count++;  // next overlapping pairs
-
-    // Save links to replacement pairs
-    for (int i = 0; i < RULES; ++i) {
-        rule[i].left  = findrule_c(rule[i].pair[0], rule[i].ins    );
-        rule[i].right = findrule_c(rule[i].ins    , rule[i].pair[1]);
+    // Find LHS/RHS node indices
+    for (int i = 0 ; i < RULES; ++i) {
+        lhs[i] = rule[node[i][0]][ insert[i]];
+        rhs[i] = rule[ insert[i]][node[i][1]];
     }
+    // Count every overlapping pair from original polymer
+    // This means every element is counted double, except head & tail
+    for (c = input; c < input + INISIZE - 1; ++c)
+        count[rule[*c & 31][*(c + 1) & 31]]++;
 
-    grow(STEPS1);
-    printf("%"PRIu64" ", range());  // 2194
-    grow(STEPS2 - STEPS1);
-    printf("%"PRIu64"\n", range());  // 2360298895777
+    printf("%"PRIu64" %"PRIu64"\n", grow(GROW1), grow(GROW2 - GROW1));  // 2194 2360298895777
 
 #ifdef TIMER
 }
