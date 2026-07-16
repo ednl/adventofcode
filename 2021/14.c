@@ -73,7 +73,7 @@ static uint64_t grow(const int cycles)
         cur = nxt;
         nxt = tmp;
     }
-    // Count individual elements
+    // Make histogram of individual elements
     uint64_t hist[ALPH] = {0};
     // Original head and tail were only ones not counted double
     hist[input[0] & 31] = 1;
