@@ -68,22 +68,22 @@ static uint64_t grow(const int cycles)
             nxt[lhs[i]] += cur[i];
             nxt[rhs[i]] += cur[i];
         }
-        // Update counts
+        // Swap pointers = update all counts simultaneously
         uint64_t *tmp = cur;
         cur = nxt;
         nxt = tmp;
     }
     // Make histogram of individual elements
     uint64_t hist[ALPH] = {0};
-    // Original head and tail were only ones not counted double
+    // Original head and tail were not counted double at init
     hist[input[0] & 31] = 1;
-    hist[input[POLYMER - 1] & 31]++;
-    // Add node counts to both elements
+    hist[input[POLYMER - 1] & 31]++;  // might be same (is in my input!)
+    // Add node counts to both elements of each node
     for (int i = 0; i < RULES; ++i) {
         hist[node[i][0]] += cur[i];
         hist[node[i][1]] += cur[i];
     }
-    // Assignment: find diff between min and max element counts
+    // Puzzle question: find diff between min and max element counts
     uint64_t min = INT64_MAX;
     uint64_t max = 0;
     for (int i = 'A' & 31; i < ALPH; ++i)
@@ -96,9 +96,9 @@ static uint64_t grow(const int cycles)
 
 int main(void)
 {
-    FILE *f = fopen(FNAME, "rb");
+    FILE *f = fopen(FNAME, "rb");  // fread() requires binary mode
     if (!f) return 1;
-    fread(input, 1, FSIZE, f);
+    fread(input, 1, FSIZE, f);  // read single bytes until EOF or size=FSIZE
     fclose(f);
 
 #ifdef TIMER
@@ -108,26 +108,29 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
     // Parse
-    const char *c = input + POLYMER + 2;
+    const char *c = input + POLYMER + 2;  // skip polymer + blank line, start at first rule
     for (int i = 0; i < RULES; c += 8, ++i) {
         uint64_t data;
-        memcpy(&data, c, sizeof data);  // rule lines are 8 chars long
-        data &= UINT64_C(0x001f000000001f1f);  // assumes little-endian
-        memcpy(node[i], &data, 2);
-        rule[data & 255][data >> 8 & 255] = i;  // assumes little-endian
-        insert[i] = data >> 48;
+        memcpy(&data, c, sizeof data);  // lines with rules are 8 chars long
+        data &= UINT64_C(0x001f000000001f1f);  // 'A'=1,'B'=2,etc. (assumes little-endian)
+        memcpy(node[i], &data, 2);  // save node name
+        rule[data & 255][data >> 8 & 255] = i;  // save rule index for lookup in 2D array (assumes little-endian)
+        insert[i] = data >> 48;  // split node with this letter in the middle
     }
     // Find LHS/RHS node indices
+    // avoid hash tables, just use index directly stored in 2D array
     for (int i = 0 ; i < RULES; ++i) {
         lhs[i] = rule[node[i][0]][insert[i]];
         rhs[i] = rule[insert[i]][node[i][1]];
     }
     // Count every overlapping pair from original polymer
-    // This means every element is counted double, except head & tail
+    // This means that to start, every element is counted double except head & tail
     for (c = input; c < input + POLYMER - 1; ++c)
         count[rule[*c & 31][*(c + 1) & 31]]++;
     // Solution
-    printf("%"PRIu64" %"PRIu64"\n", grow(GROW1), grow(GROW2 - GROW1));  // 2194 2360298895777
+    printf("%"PRIu64" %"PRIu64"\n",
+        grow(GROW1),           // part 1: 2194
+        grow(GROW2 - GROW1));  // part 2: 2360298895777
 
 #ifdef TIMER
 }
