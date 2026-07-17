@@ -14,8 +14,8 @@
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 1.93 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 2.91 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 6.82 µs
  */
 
 #include <stdio.h>
@@ -127,7 +127,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     index = versionsum = 0;
 #endif
 
-    // Assume current arch is little-endian
+    // Assume current arch is little-endian, e.g.:
     // '1' = bitstream 0001 = 4 bytes 0,0,0,1 = int 0x01000000
     uint32_t *nib = (uint32_t *)bit;
     for (int i = 0; i < HEX; nib++, ++i)
