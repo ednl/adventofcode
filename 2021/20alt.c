@@ -1,14 +1,14 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdint.h>
 #include <stdbool.h>
 
-// static const char *input = "../aocinput/2021-20-example.txt";  // DIM 5
-static const char *input = "../aocinput/2021-20-input.txt";  // DIM 100
+#define FNAME "../aocinput/2021-20-input.txt"
+#define BITS 512
 #define DIM  100
 #define SIZE 256
-#define BITS 512
+#define FSIZE (DIM * (DIM + 1) + BITS + 2)  // 10614
 
-typedef struct {
+typedef struct pos {
     int dr, dc;
 } Pos;
 static const Pos kernel[9] = {
@@ -17,29 +17,14 @@ static const Pos kernel[9] = {
     { 1,-1},{ 1,0},{ 1,1},
 };
 
-static bool filter[BITS] = {0};
-static bool img[2][SIZE][SIZE] = {0};  // current and next image
+static char input[FSIZE];
+static bool filter[BITS];
+static bool img[2][SIZE][SIZE];  // current and next image
 static int cur = 0, zero = (SIZE - DIM) >> 1, lim = (SIZE + DIM) >> 1;
 
-static void read(void)
+static void evolve(const int nextgen)
 {
-    FILE *f = fopen(input, "r");
-    for (int i = 0; i < BITS; ++i)
-        filter[i] = fgetc(f) == '#';
-    fgetc(f); fgetc(f);
-    for (int i = zero; i < lim; ++i) {
-        for (int j = zero; j < lim; ++j)
-            img[0][i][j] = fgetc(f) == '#';
-        fgetc(f);  // newline
-    }
-    fclose(f);
-}
-
-static void evolve(int nextgen)
-{
-    static int gen = 0;
-    while (gen < nextgen) {
-        ++gen;
+    for (int gen = 1; gen <= nextgen; ++gen) {
         const int next = gen & 1;
         const int zero2 = zero - 1;
         const int lim2 = lim + 1;
@@ -73,10 +58,32 @@ static int lit(void)
 
 int main(void)
 {
-    read();
+    FILE *f = fopen(FNAME, "rb");  // fread() requires binary mode
+    if (!f) return 1;
+    fread(input, FSIZE, 1, f);  // read whole file as one single block of size=FSIZE
+    fclose(f);
+
+#ifdef TIMER
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
+#endif
+
+    // Parse
+    const char *c = input;
+    for (int i = 0; i < BITS; ++i)
+        filter[i] = *c++ == '#';
+    c += 2;
+    for (int i = zero; i < lim; ++c, ++i)
+        for (int j = zero; j < lim; ++j)
+            img[0][i][j] = *c++ == '#';
+
     evolve(2);
     printf("Part 1: %d\n", lit());  // 5229
-    evolve(50);
+    evolve(48);
     printf("Part 2: %d\n", lit());  // 17009
-    return 0;
+
+#ifdef TIMER
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
+#endif
 }
