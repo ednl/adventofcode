@@ -12,24 +12,27 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 24.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 24.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 13 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 20 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 22 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :   ? ns
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 416 ns
+ *     Raspberry Pi 5 (2.4 GHz)      :   ? ns
  */
 
 #include <stdio.h>
-#include <stdlib.h>
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
 #define FNAME "../aocinput/2021-24-input.txt"
+#define FSIZE 2048  // needed for my input: 2044
 #define N 14
 #define M (N >> 1)
 
+static char input[FSIZE];
 static int rule[N];
 static int index[M];
 static int value[M];
@@ -73,33 +76,55 @@ char min[N + 1];  // part 2
 // Part 1: 93997999296912 (largest)
 // Part 2: 81111379141811 (smallest)
 
+static int parseint(const char **s)
+{
+    const int sign = **s == '-' ? (*s)++, -1 : 1;
+    int x = *(*s)++ & 15;
+    while (**s >= '0')
+        x = x * 10 + (*(*s)++ & 15);
+    (*s)++;  // skip newline
+    return x * sign;
+}
+
 int main(void)
 {
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) return 1;
+    const char *const end = input + fread(input, 1, FSIZE, f);  // read single bytes until FSIZE or EOF
+    fclose(f);
+
 #ifdef TIMER
-    starttimer();
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
-    FILE *f = fopen(FNAME, "r");
-    if (!f)
-        return 1;
-    char buf[16];  // very short lines in input file
-    for (int i = 0, add = 0; i < N && fgets(buf, sizeof buf, f); )
-        if (buf[0] == 'i')  // new digit
-            add = 0;        // counter reset
-        else if (add < 4 && buf[0] == 'a' && (buf[4] == 'x' || buf[4] == 'y') && buf[6] < 'w') {
+    const char *c = input;
+    for (int i = 0, add = 0; i < N && c < end; ) {
+        if (*c == 'i') {  // new digit
+            add = 0;      // counter reset
+            c += 6;       // skip "inp w" +newline
+            continue;
+        } else if (add < 4 && *c == 'a' && (*(c + 4) == 'x' || *(c + 4) == 'y') && *(c + 6) < 'w') {
             // For every digit (under "inp w") there are 4 lines "add [xy] [0-9-]+".
             // If the first is negative, put it in the rules.
             // Otherwise, put the 4th in the rules.
-            if ((add == 0 && buf[6] == '-') || add == 3) {
-                rule[i++] = atoi(&buf[6]);
+            if ((add == 0 && *(c + 6) == '-') || add == 3) {
+                c += 6;
+                rule[i++] = parseint(&c);
                 continue;
             }
             ++add;
         }
-    fclose(f);
+        for (c += 7; *c != '\n'; ++c);  // shortest line after "inp w" is "add x y" or "mul x y" (etc), both 7 letters
+        c++;  // skip newline
+    }
 
     // My input:
     // rule[] = {2, 13, 13, -13, 15, -13, -7, 5, 16, 1, -4, -9, -13, -9};
+    // for (int i = 0; i < N; ++i)
+    //     printf(" %d", rule[i]);
+    // putchar('\n');
+    // return 0;
 
     for (int i = 0, sp = 0; i < N; ++i) {
         if (rule[i] > 0) {
@@ -122,10 +147,10 @@ int main(void)
             }
         }
     }
-    printf("Part 1: %s\n", max);  // 93997999296912
-    printf("Part 2: %s\n", min);  // 81111379141811
+    printf("%.*s %.*s\n", N, max, N, min);  // 93997999296912 81111379141811
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
 }
