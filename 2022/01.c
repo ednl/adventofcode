@@ -25,7 +25,7 @@
 #endif
 
 #define FNAME "../aocinput/2022-01-input.txt"
-#define FSIZE (8192 + 4096)  // needed for my input: 10516
+#define FSIZE (8192 + 4096)  // needed for my input: 10516 (+1 as zero byte EOF marker)
 
 static char input[FSIZE];
 static int top[3];
@@ -41,21 +41,23 @@ static int parseint(const char **s)
 
 int main(void)
 {
-    FILE *f = fopen(FNAME, "rb");
+    FILE *f = fopen(FNAME, "rb");  // fread requires binary mode
     if (!f) return 1;
-    fread(input, 1, FSIZE, f);
+    fread(input, 1, FSIZE, f);  // read single bytes until EOF or FSIZE
     fclose(f);
 
 #ifdef TIMER
 starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
-    memset(top, 0, sizeof top);
+    memset(top, 0, sizeof top);  // reset before every run or max will be repeated
 #endif
 
-    for (const char *c = input; *c; c++) {
+    for (const char *c = input; *c; c++) {  // size of 'input' must be greater than input file size
         int cal = 0;
-        while (*c & '0')
+        while (*c & '0')  // first char on line is digit, '\n' or '\0'
             cal += parseint(&c);
+
+        // Sort into top 3
         if (cal > top[0]) {
             memmove(&top[1], &top[0], 2 * sizeof *top);
             top[0] = cal;
