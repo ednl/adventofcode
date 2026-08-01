@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  2.36 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  2.31 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : 10.4  µs
  */
@@ -58,14 +58,18 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
             cal += parseint(&c);
 
         // Sort into top 3
-        if (cal > top[0]) {
-            memmove(&top[1], &top[0], 2 * sizeof *top);
-            top[0] = cal;
-        } else if (cal > top[1]) {
-            top[2] = top[1];
-            top[1] = cal;
-        } else if (cal > top[2])
-            top[2] = cal;
+        if (cal > top[2]) {
+            if (cal > top[1]) {
+                if (cal > top[0]) {
+                    memmove(&top[1], &top[0], 2 * sizeof *top);
+                    top[0] = cal;
+                } else {
+                    top[2] = top[1];
+                    top[1] = cal;
+                }
+            } else
+                top[2] = cal;
+        }
     }
     printf("%d %d\n", top[0], top[0] + top[1] + top[2]);  // 69795 208437
 
