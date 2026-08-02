@@ -43,10 +43,14 @@
 //   --, AY, BY, CY,
 //   --, AZ, BZ, CZ,
 //   --, --, --, --
+
+// Part 1: X = rock, Y = paper, Z = scissors
 static const int score1[16] = {
     0, ROCK + DRAW, ROCK + LOSS, ROCK + WIN ,
     0, PAPR + WIN , PAPR + DRAW, PAPR + LOSS,
     0, SCIS + LOSS, SCIS + WIN , SCIS + DRAW};
+
+// Part 2: X = loss, Y = draw, Z = win
 static const int score2[16] = {
     0, SCIS + LOSS, ROCK + LOSS, PAPR + LOSS,
     0, ROCK + DRAW, PAPR + DRAW, SCIS + DRAW,
@@ -56,9 +60,9 @@ static uint32_t data[LINES];
 
 int main(void)
 {
-    FILE *f = fopen(FNAME, "rb");
+    FILE *f = fopen(FNAME, "rb");  // fread requires binary mode
     if (!f) return 1;
-    fread(data, sizeof *data, LINES, f);
+    fread(data, sizeof data, 1, f);  // read whole file as 1 block
     fclose(f);
 
 #ifdef TIMER
@@ -68,9 +72,10 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 
     int sum1 = 0, sum2 = 0;
     for (int i = 0; i < LINES; ++i) {
+        // A=1/B=2/C=3 + X=0/Y=4/Z=8
         const uint32_t hash = (data[i] & 0x3U) | (data[i] >> 14 & 0xCU);
-        sum1 += score1[hash];
-        sum2 += score2[hash];
+        sum1 += score1[hash];  // part 1
+        sum2 += score2[hash];  // part 2
     }
     printf("%d %d\n", sum1, sum2);  // 11767 13886
 
