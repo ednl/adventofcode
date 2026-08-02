@@ -38,20 +38,19 @@
 // so "A X" with newline = 4 bytes = [0x41, 0x20, 0x58, 0x0a] = 0x0a582041 (little-endian)
 // Bits 17 and 16 are: 00 (X), 01 (Y) or 10 (Z)
 // Bits  1 and  0 are: 01 (A), 10 (B) or 11 (C)
-// Make 4-bit index (values 0-15) from bits 17,16,1,0:
+// Make 4-bit index (values 0-11 used) from bits 17,16,1,0:
 //   --, AX, BX, CX,
 //   --, AY, BY, CY,
 //   --, AZ, BZ, CZ,
-//   --, --, --, --
 
 // Part 1: X = rock, Y = paper, Z = scissors
-static const int score1[16] = {
+static const int score1[] = {
     0, ROCK + DRAW, ROCK + LOSS, ROCK + WIN ,
     0, PAPR + WIN , PAPR + DRAW, PAPR + LOSS,
     0, SCIS + LOSS, SCIS + WIN , SCIS + DRAW};
 
 // Part 2: X = loss, Y = draw, Z = win
-static const int score2[16] = {
+static const int score2[] = {
     0, SCIS + LOSS, ROCK + LOSS, PAPR + LOSS,
     0, ROCK + DRAW, PAPR + DRAW, SCIS + DRAW,
     0, PAPR + WIN , SCIS + WIN , ROCK + WIN };
