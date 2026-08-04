@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  3.22 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  2.92 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : 10.4  µs
  */
@@ -38,20 +38,20 @@ typedef struct stack {
 static char input[FSIZE];
 static Stack stack1[STACKS], stack2[STACKS];
 
-static void move1(Stack *dst, Stack *src, int count)
+static void move1(Stack *const restrict dst, Stack *const restrict src, int count)
 {
     while (count--)
         dst->data[dst->sp++] = src->data[--src->sp];
 }
 
-static void move2(Stack *restrict dst, Stack *restrict src, const int count)
+static void move2(Stack *const restrict dst, Stack *const restrict src, const int count)
 {
     src->sp -= count;
     memcpy(&dst->data[dst->sp], &src->data[src->sp], count);
     dst->sp += count;
 }
 
-static void sol(const Stack *st)
+static void sol(const Stack *const st)
 {
     for (int i = 1; i < STACKS; ++i)
         putchar(st[i].data[st[i].sp - 1]);
