@@ -3,89 +3,104 @@
  * Day 5: Supply Stacks
  * https://adventofcode.com/2022/day/5
  * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *     cc -std=c17 -Wall -Wextra -pedantic 05.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 05.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
+ * Get minimum runtime from timer output in bash:
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 3.22 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :    ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :    ? µs
  */
 
-#include <stdio.h>   // fopen, fclose, fgets, fscanf, printf
+#include <stdio.h>
+#include <string.h>  // memcpy, memset
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
-#define LINECOUNT   (8)  // crates are stacked 8 high in initial config
-#define LINEWIDTH  (40)  // 35 chars + \n + \0 + safety margin
-#define COLOFFSET   (1)  // first crate ID is at char pos 1
-#define COLWIDTH    (4)  // stacks are 4 chars apart
-#define STACKCOUNT  (9)  // there are 9 stacks (columns) of crates
-#define STACKSIZE  (64)  // maximum stack size = LINECOUNT * STACKCOUNT - empty spots
-#define MOVES     (512)  // 501 crate move instructions in input file + safety margin
+#define FNAME "../aocinput/2022-05-input.txt"
+#define FSIZE (8192 + 2048)  // needed for my input: 9921
+#define STACKS 10  // stack in input file numbered 1..9 (0 unused)
+#define HEIGHT 8   // initial max stack height in input file
+#define SSIZE  64  // max crates per stack 9x8 - empty spots
 
-static char ini[LINECOUNT][LINEWIDTH];
-static char stack[STACKCOUNT][STACKSIZE];
-static int sp[STACKCOUNT];
-static struct Move {
-    int crates, src, dst;
-} move[MOVES];
+typedef struct stack {
+    int sp;
+    char data[SSIZE];
+} Stack;
 
-// Read input file, return number of crate moving instructions
-static int read(void)
+static char input[FSIZE];
+static Stack stack1[STACKS], stack2[STACKS];
+
+static void move1(Stack *dst, Stack *src, int count)
 {
-    FILE *f = fopen("../aocinput/2022-05-input.txt", "r");
-    // Read initial configuration
-    for (int i = 0; i < LINECOUNT; ++i)
-        fgets(ini[i], LINEWIDTH, f);
-    // Skip 2 lines (but do not reuse ini[])
-    char buf[LINEWIDTH];
-    fgets(buf, LINEWIDTH, f);
-    fgets(buf, LINEWIDTH, f);
-    // Count & save crate moving instructions
-    int i = 0, a, b, c;
-    while (i < MOVES && fscanf(f, "move %d from %d to %d ", &a, &b, &c) == 3)
-        move[i++] = (struct Move){a, --b, --c};  // zero based stacks array
-    fclose(f);
-    return i;
+    while (count--)
+        dst->data[dst->sp++] = src->data[--src->sp];
 }
 
-// Parse initial config to stacks
-static void reset(void)
+static void move2(Stack *restrict dst, Stack *restrict src, const int count)
 {
-    for (int i = 0; i < STACKCOUNT; ++i) {
-        sp[i] = 0;
-        int col = COLOFFSET + COLWIDTH * i;
-        for (int j = LINECOUNT; j > 0; --j) {  // stacks start at the bottom
-            char c = ini[j - 1][col];
-            if (c == ' ')  // stop when nothing more in this column
-                break;
-            stack[i][sp[i]++] = c;  // add to stack
-        }
-    }
+    src->sp -= count;
+    memcpy(&dst->data[dst->sp], &src->data[src->sp], count);
+    dst->sp += count;
 }
 
-// Print crate IDs from top of each stack
-static void result(int part)
+static void sol(const Stack *st)
 {
-    printf("Part %d: ", part);
-    for (int i = 0; i < STACKCOUNT; ++i)
-        printf("%c", stack[i][sp[i] - 1]);
-    printf("\n");
+    for (int i = 1; i < STACKS; ++i)
+        putchar(st[i].data[st[i].sp - 1]);
 }
 
 int main(void)
 {
-    int moves = read();
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) return 1;
+    fread(input, 1, FSIZE, f);
+    fclose(f);
 
-    // Part 1: move crates one by one, from top of stack to top of stack
-    reset();
-    for (int m = 0; m < moves; ++m) {
-        int n = move[m].crates, i = move[m].src, j = move[m].dst;
-        while (n--)
-            stack[j][sp[j]++] = stack[i][--sp[i]];
-    }
-    result(1);
+#ifdef TIMER
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
+    memset(stack1, 0, sizeof stack1);
+#endif
 
-    // Part 2: move n crates at a time from stack to stack
-    reset();
-    for (int m = 0; m < moves; ++m) {
-        int n = move[m].crates, i = move[m].src, j = move[m].dst;
-        int k = sp[i] -= n;  // start from n crates down on source stack i
-        while (n--)
-            stack[j][sp[j]++] = stack[i][k++];
+    for (int i = 1; i < STACKS; ++i) {
+        const char *c = input + 4 * (STACKS - 1) * (HEIGHT - 1) + 1 + (i - 1) * 4;
+        for (int j = 0; *c != ' ' && j < HEIGHT; c -= 4 * (STACKS - 1), ++j)
+            stack1[i].data[stack1[i].sp++] = *c;
     }
-    result(2);
-    return 0;
+    memcpy(stack2, stack1, sizeof stack1);
+
+    for (const char *c = input + 4 * (STACKS - 1) * (HEIGHT + 1) + 1; *c; ) {
+        int src, dst, count;
+        if (*(c + 6) == ' ') {
+            count = *(c + 5) & 15;
+            src = *(c + 12) & 15;
+            dst = *(c + 17) & 15;
+            c += 19;
+        } else {
+            count = *(c + 5) * 10 + *(c + 6) - 11 * '0';
+            src = *(c + 13) & 15;
+            dst = *(c + 18) & 15;
+            c += 20;
+        }
+        move1(&stack1[dst], &stack1[src], count);
+        move2(&stack2[dst], &stack2[src], count);
+    }
+
+    sol(stack1);  // PSNRGBTFT
+    putchar(' ');
+    sol(stack2);  // BNTZFPMMW
+    putchar('\n');
+
+#ifdef TIMER
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
+#endif
 }
