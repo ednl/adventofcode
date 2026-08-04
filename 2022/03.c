@@ -13,9 +13,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 3.41 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  3.41 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 16.0  µs
  */
 
 #include <stdio.h>
@@ -34,7 +34,7 @@ static char input[FSIZE];
 static int len[N];  // line lengths
 
 // Check presence of letters in string
-// "priority": a=1..z=26,A=27..Z=52
+// Bit index ("priority"): a=1..z=26,A=27..Z=52
 static u64 itemize(const char **s, const int len)
 {
     u64 items = 0;
@@ -56,9 +56,10 @@ starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
+    // Find all newlines
     const char *c = input;
     for (int i = 0; i < N; ++i) {
-        const char *n = c + M;
+        const char *n = c + M;  // newline search starts here
         for (; *n != '\n'; ++n);
         len[i] = (n - c) >> 1;  // half line length
         c = n + 1;  // skip newline
