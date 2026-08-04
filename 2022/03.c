@@ -3,65 +3,83 @@
  * Day 3: Rucksack Reorganization
  * https://adventofcode.com/2022/day/3
  * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *     cc -std=c17 -Wall -Wextra -pedantic 03.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 03.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
+ * Get minimum runtime from timer output in bash:
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 3.41 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
-#include <stdio.h>   // fopen, fclose, getline, printf
-#include <stdlib.h>  // free
-#include <stdint.h>  // uint64_t
+#include <stdio.h>
+#include <stdint.h>  // uint64_t, UINT64_C
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
-// Priority of item type
-static int prio(const char item)
-{
-    if (item >= 'a' && item <= 'z')
-        return item - 'a' + 1;   // [a..z] => [1..26]
-    if (item >= 'A' && item <= 'Z')
-        return item - 'A' + 27;  // [A..Z] => [27..58]
-    return 0;  // error
-}
+#define FNAME "../aocinput/2022-03-input.txt"
+#define FSIZE (8192 + 2048)  // needed for my input: 9954
+#define N 300  // lines in input file
+#define M 16   // minimum line length
 
-// Set bit for each item in compartment (error=0, 'a'=1, 'b'=2, ..., 'A'=27, 'B'=28, ...)
-static uint64_t index(const char *compartment, const ssize_t size)
-{
-    if (compartment == NULL || size <= 0)
-        return 0;  // error
-    uint64_t mask = 0;
-    const char *item = compartment, *end = compartment + size;
-    while (item != end)
-        mask |= (1ull << prio(*item++));  // set bit in the correct index for this item type
-    return mask;
-}
+typedef uint64_t u64;
+static char input[FSIZE];
+static int len[N];  // line lengths
 
-// Get highest priority item type from index (0=error, 1='a', 2='b', ..., 27='A', 28='B', ...)
-static int firstitem(uint64_t index)
+// Check presence of letters in string
+// "priority": a=1..z=26,A=27..Z=52
+static u64 itemize(const char **s, const int len)
 {
-    int prio = 0;  // bit index where LSB=0
-    while (index >>= 1)  // does not differentiate between index=0 and index=1 but both are errors
-        prio++;
-    return prio;
+    u64 items = 0;
+    const char *const end = *s + len;
+    for (; *s != end; (*s)++)
+        items |= UINT64_C(1) << ((**s & 31) + ((**s & 32) ? 0 : 26));
+    return items;
 }
 
 int main(void)
 {
-    FILE *f = fopen("../aocinput/2022-03-input.txt", "r");
-    char *buf = NULL;
-    size_t bufsz;
-    ssize_t len;
-    int i = 0, part1 = 0, part2 = 0;
-    uint64_t badge = (uint64_t)-1;  // badge has all item types initially
-    while ((len = getline(&buf, &bufsz, f)) > 1) {
-        ssize_t half = len / 2;     // buf includes '\n' so len should be odd, but int div truncates
-        uint64_t comp1 = index(buf, half);         // all item types in first compartment
-        uint64_t comp2 = index(buf + half, half);  // all item types in second compartment
-        part1 += firstitem(comp1 & comp2);         // item type that is in both compartments
-        badge &= (comp1 | comp2);   // item types that are in either compartment of all rucksacks
-        if (++i == 3) {             // badge is for every group of three rucksacks
-            part2 += firstitem(badge);
-            badge = (uint64_t)-1;   // re-init
-            i = 0;
-        }
-    }
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) return 1;
+    fread(input, 1, FSIZE, f);
     fclose(f);
-    free(buf);
-    printf("%d\n%d\n", part1, part2);  // 7701 2644
-    return 0;
+
+#ifdef TIMER
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
+#endif
+
+    const char *c = input;
+    for (int i = 0; i < N; ++i) {
+        const char *n = c + M;
+        for (; *n != '\n'; ++n);
+        len[i] = (n - c) >> 1;  // half line length
+        c = n + 1;  // skip newline
+    }
+
+    c = input;
+    int sum1 = 0, sum2 = 0;
+    for (int i = 0; i < N; ) {
+        u64 badge = -1;  // start with all items present
+        for (int k = 0; k < 3; ++c, ++i, ++k) {  // batch of 3 rucksacks (lines)
+            const u64 comp1 = itemize(&c, len[i]);
+            const u64 comp2 = itemize(&c, len[i]);
+            sum1 += __builtin_ctzll(comp1 & comp2);  // count trailing zeroes
+            badge &= (comp1 | comp2);
+        }
+        sum2 += __builtin_ctzll(badge);
+    }
+    printf("%d %d\n", sum1, sum2);  // 7701 2644
+
+#ifdef TIMER
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
+#endif
 }
