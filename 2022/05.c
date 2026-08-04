@@ -13,9 +13,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 3.22 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :    ? µs
- *     Raspberry Pi 5 (2.4 GHz)      :    ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  3.22 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 10.4  µs
  */
 
 #include <stdio.h>
@@ -28,7 +28,7 @@
 #define FSIZE (8192 + 2048)  // needed for my input: 9921
 #define STACKS 10  // stack in input file numbered 1..9 (0 unused)
 #define HEIGHT 8   // initial max stack height in input file
-#define SSIZE  64  // max crates per stack 9x8 - empty spots
+#define SSIZE  64  // max crates per stack = 9 x 8 - empty spots
 
 typedef struct stack {
     int sp;
