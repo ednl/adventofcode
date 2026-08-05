@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  2.87 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  2.85 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : 10.4  µs
  */
@@ -68,7 +68,6 @@ int main(void)
 #ifdef TIMER
 starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
-    memset(stack1, 0, sizeof stack1);
 #endif
 
     const char (*table)[COLS] = (char (*)[COLS])input;  // overlay variable for easy access, cast to avoid warning
@@ -77,11 +76,11 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         int empty = 0;
         while (table[empty][col] == ' ')
             ++empty;
-        stack1[i].sp = HEIGHT - empty;  // parts 1 & 2 start with the same stacks
+        stack1[i].sp = HEIGHT - empty;
         for (int j = 0; j < HEIGHT - empty; ++j)
             stack1[i].data[j] = table[HEIGHT - 1 - j][col];
     }
-    memcpy(stack2, stack1, sizeof stack1);
+    memcpy(stack2, stack1, sizeof stack1);  // parts 1 & 2 start with the same stacks
 
     for (const char *c = input + 4 * (STACKS - 1) * (HEIGHT + 1) + 1; *c; ) {
         int src, dst, count;
