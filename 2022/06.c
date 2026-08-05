@@ -1,76 +1,67 @@
 /**
  * Advent of Code 2022
- * Day 6: Tuning Trouble
+ * Day 6: Tuning Trouble, alternative implementation
  * https://adventofcode.com/2022/day/6
  * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *     cc -std=c17 -Wall -Wextra -pedantic 06.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 06.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
+ * Get minimum runtime from timer output in bash:
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 2.44 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :    ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :    ? µs
  */
 
-#include <stdio.h>   // fopen, fclose, getline, printf
-#include <stdlib.h>  // free
-#include <unistd.h>  // isatty, fileno
+#include <stdio.h>
+#include <stdint.h>
+#ifdef TIMER
+    #include <string.h>  // memset
+    #include "../startstoptimer.h"
+#endif
 
-// Read from stdin if input is piped or redirected, otherwise from file
-// Returns: signal size = length of first line (without line delimiter \n)
-static int input(char **buf)
+#define FNAME "../aocinput/2022-06-input.txt"
+#define FSIZE 4096
+#define BINS (('z' & 31) + 1)  // room for 'z' & 31
+
+static char input[FSIZE];
+static uint8_t bin[BINS];  // frequency bins
+static int prev, mark;  // global, in order to reset between timing runs
+
+static int find(const int len)
 {
-    size_t bufsz;
-    ssize_t len;
-    if (isatty(fileno(stdin))) {
-        FILE *f = fopen("../aocinput/2022-06-input.txt", "r");
-        if (!f)
-            return 0;
-        len = getline(buf, &bufsz, f);
-        fclose(f);
-    } else {
-        len = getline(buf, &bufsz, stdin);
-    }
-    return len > 1 ? (int)(len - 1) : 0;
-}
-
-// Look at substring with char index from [start - 1] to [start - len]
-// Returns: how many chars to skip ahead for next check
-// E.g. for len == 4:
-//   if last 2 chars are the same then skip ahead len - 1 = 3
-//   else if any of the last 3 chars are the same, then skip ahead len - 2 = 2
-//   else if any of the last 4 chars are the same, then skip ahead len - 3 = 1
-//   else start-of-message marker is found (skip=0)
-static int skip(const char *signal, const int len, const int start)
-{
-    for (int i = 2; i <= len; ++i) {
-        char c = signal[start - i];  // compare to char at index [start - 2] to [start - len]
-        for (int k = 1; k < i; ++k)  // zero-based, so last char index in window = [start - 1]
-            if (signal[start - k] == c)
-                return len + 1 - i;
-    }
-    return 0;  // found start-of-message
-}
-
-// Find start-of-message = index of next char after header of length len with no duplicate chars
-static int find(const char *signal, const int size, const int len)
-{
-    static int prev = 0;      // value of len on previous function call
-    static int start = 0;     // start-of-message index value
-
-    if (signal == NULL || size == 0 || len == 0 || size < len)
-        return 0;             // error
-    if (prev == 0 || prev > len || start < len)
-        start = len;          // reset to first possible start-of-message
-    else
-        start += len - prev;  // next possible start-of-message
-    prev = len;               // remember len for next function call
-
-    int i;
-    while (start < size && (i = skip(signal, len, start)))  // loop until skip==0
-        start += i;
-    return start < size ? start : 0;  // 0=not found
+    int dup = 0;                                  // duplicates counter
+    for (int i = 0; i < len - prev; ++i, ++mark)  // extend window to new length
+        dup += ++bin[input[mark] & 31] == 2;      // 1->2 : duplicate added
+    prev = len;                                   // remember len for next function call
+    for (; dup; ++mark)                           // loop until no more duplicates (for sane input)
+        dup += (++bin[input[mark] & 31] == 2) - (--bin[input[mark - len] & 31] == 1);
+    return mark;                                  // start-of-message marker
 }
 
 int main(void)
 {
-    char *signal = NULL;
-    int N = input(&signal);
-    printf("Part 1: %d\n", find(signal, N,  4));  // 1542
-    printf("Part 2: %d\n", find(signal, N, 14));  // 3153
-    free(signal);
-    return 0;
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) return 1;
+    fread(input, FSIZE, 1, f);
+    fclose(f);
+
+#ifdef TIMER
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
+    memset(bin, 0, sizeof bin);
+    prev = mark = 0;
+#endif
+
+    printf("%d %d\n", find(4), find(14));  // 1542 3153
+
+#ifdef TIMER
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
+#endif
 }
