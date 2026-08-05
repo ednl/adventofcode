@@ -19,7 +19,7 @@
  */
 
 #include <stdio.h>
-#include <string.h>  // memset, memcpy
+#include <string.h>  // memcpy
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
