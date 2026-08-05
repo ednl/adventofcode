@@ -19,8 +19,8 @@
  */
 
 #include <stdio.h>
+#include <string.h>  // memset, memcpy
 #ifdef TIMER
-    #include <string.h>  // memset
     #include "../startstoptimer.h"
 #endif
 
@@ -28,7 +28,7 @@
 #define FSIZE (8192 + 2048)  // needed for my input: 9921
 #define STACKS 10  // stacks in input file numbered 1..9 (0 unused)
 #define HEIGHT 8   // initial max stack height in input file, needed for my input: 8
-#define SSIZE  64  // max crates per stack = 9 x 8 - empty spots, needed for my input: 56
+#define SSIZE  60  // max crates per stack = 9 x 8 - empty spots, needed for my input: 56 (effectively: 49)
 #define COLS ((STACKS - 1) * 4)  // line length of table at start of input file = 9 stacks (1-based), 4 chars per crate
 
 typedef struct stack {
@@ -77,10 +77,11 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         int empty = 0;
         while (table[empty][col] == ' ')
             ++empty;
-        stack1[i].sp = stack2[i].sp = HEIGHT - empty;  // parts 1 & 2 start with the same stacks
+        stack1[i].sp = HEIGHT - empty;  // parts 1 & 2 start with the same stacks
         for (int j = 0; j < HEIGHT - empty; ++j)
-            stack1[i].data[j] = stack2[i].data[j] = table[HEIGHT - 1 - j][col];
+            stack1[i].data[j] = table[HEIGHT - 1 - j][col];
     }
+    memcpy(stack2, stack1, sizeof stack1);
 
     for (const char *c = input + 4 * (STACKS - 1) * (HEIGHT + 1) + 1; *c; ) {
         int src, dst, count;
