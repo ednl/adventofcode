@@ -13,13 +13,12 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  2.44 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : 10.4  µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 1.51 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :    ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :    ? µs
  */
 
 #include <stdio.h>
-#include <stdint.h>
 #ifdef TIMER
     #include <string.h>  // memset
     #include "../startstoptimer.h"
@@ -27,22 +26,11 @@
 
 #define FNAME "../aocinput/2022-06-input.txt"
 #define FSIZE 4096
-#define BINS (('z' & 31) + 1)  // room for 'z' & 31
+#define LEN1  4
+#define LEN2 14
 
 static char input[FSIZE];
-static uint8_t bin[BINS];  // frequency bins
-static int prev, mark;  // global, in order to reset between timing runs
-
-static int find(const int len)
-{
-    int dup = 0;                                  // duplicates counter
-    for (int i = 0; i < len - prev; ++i, ++mark)  // extend window to new length
-        dup += ++bin[input[mark] & 31] == 2;      // 1->2 : duplicate added
-    prev = len;                                   // remember len for next function call
-    for (; dup; ++mark)                           // loop until no more duplicates (for sane input)
-        dup += (++bin[input[mark] & 31] == 2) - (--bin[input[mark - len] & 31] == 1);
-    return mark;                                  // start-of-message marker
-}
+static int seen['z' + 1];
 
 int main(void)
 {
@@ -54,11 +42,24 @@ int main(void)
 #ifdef TIMER
 starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
-    memset(bin, 0, sizeof bin);
-    prev = mark = 0;
+    memset(&seen['a'], 0, sizeof *seen * ('z' - 'a' + 1));
 #endif
 
-    printf("%d %d\n", find(4), find(14));  // 1542 3153
+    int i = 0, j = 0;
+    while (j - i < LEN1) {
+        int *const k = &seen[(int)input[j]];
+        if (*k >= i)
+            i = *k + 1;
+        *k = j++;
+    }
+    printf("%d ", j);  // 1542
+    while (j - i < LEN2) {
+        int *const k = &seen[(int)input[j]];
+        if (*k >= i)
+            i = *k + 1;
+        *k = j++;
+    }
+    printf("%d\n", j);  // 3153
 
 #ifdef TIMER
 }
