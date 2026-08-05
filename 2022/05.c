@@ -72,7 +72,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 
     for (int i = 1; i < STACKS; ++i) {
         const char *c = input + 4 * (STACKS - 1) * (HEIGHT - 1) + 1 + (i - 1) * 4;
-        for (int j = 0; *c != ' ' && j < HEIGHT; c -= 4 * (STACKS - 1), ++j)
+        for (int j = 0; j < HEIGHT && *c != ' '; c -= 4 * (STACKS - 1), ++j)
             stack1[i].data[stack1[i].sp++] = *c;
     }
     memcpy(stack2, stack1, sizeof stack1);
