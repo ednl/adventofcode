@@ -15,7 +15,7 @@
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 2.35 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :    ? µs
- *     Raspberry Pi 5 (2.4 GHz)      :    ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 6.42 µs
  */
 
 #include <stdio.h>
@@ -38,7 +38,7 @@
     #define DEPTH 15  // directory recursion depth (needed for my input: 12)
     #define DIRS 255  // max number of subdirs (needed for my input: 189)
 #endif
-#define MAX1       (100 * 1000)  // part 1: max dir size to include in used
+#define MAX1       (100 * 1000)  // part 1: max dir size to consider
 #define DISK (70 * 1000 * 1000)  // total disk size
 #define NEED (30 * 1000 * 1000)  // part 2: free space needed
 
@@ -105,36 +105,36 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     // "$ ls"     : ignore
     // "dir abc"  : ignore
     // "123 x.y"  : add size
-    int used = 0;
+    int cursize = 0;
     for (const char *c = input; *c; ) {
-        if (*c == '$') {                     // command?
-            if (c[2] == 'c') {               // change directory?
-                if (c[5] == '.') {           // go up?
-                    push(&dirsize, used);    // end of directory, save final size
-                    used += pop(&working);   // add size of parent (= add to size of parent)
-                    c += 8;                  // skip "$ cd .." +newline
-                } else {                     // go down
-                    push(&working, used);    // save current dir size
-                    used = 0;                // reset size for subdir
-                    skipline(&c, 5 + NAME);  // skip "$ cd abc" and more +newline
+        if (*c == '$') {                       // command?
+            if (c[2] == 'c') {                 // change directory?
+                if (c[5] == '.') {             // go up?
+                    push(&dirsize, cursize);   // end of directory, save final size
+                    cursize += pop(&working);  // add size of parent (= add to size of parent)
+                    c += 8;                    // skip "$ cd .." +newline
+                } else {                       // go down
+                    push(&working, cursize);   // save current dir size
+                    cursize = 0;               // reset size for subdir
+                    skipline(&c, 5 + NAME);    // skip "$ cd abc" and more +newline
                 }
-            } else                           // list directory
-                c += 5;                      // skip "$ ls" +newline
-        } else if (*c != 'd') {              // file entry?
-            used += parseint(&c);            // add+skip size
-            skipline(&c, 1 + NAME);          // skip " abc" and more +newline
-        } else                               // directory entry?
-            skipline(&c, 4 + NAME);          // skip "dir abc" and more +newline
+            } else                             // list directory
+                c += 5;                        // skip "$ ls" +newline
+        } else if (*c != 'd') {                // file entry?
+            cursize += parseint(&c);           // add+skip size
+            skipline(&c, 1 + NAME);            // skip " abc" and more +newline
+        } else                                 // directory entry?
+            skipline(&c, 4 + NAME);            // skip "dir abc" and more +newline
     }
 
     // Clean up stack of working directory sizes
     for (int x; popchk(&working, &x); ) {
-        push(&dirsize, used);  // save current size as final dir size
-        used += x;             // add current and parent sizes
+        push(&dirsize, cursize);  // save current size as final dir size
+        cursize += x;             // add current and parent sizes
     }
 
-    // Directory size to delete to get at least NEED free space
-    const int minsize = used - DISK + NEED;
+    // Part 2: directory size to delete to get at least NEED free space
+    const int minsize = cursize - DISK + NEED;
 
     int part1 = 0, part2 = DISK;
     for (int x; popchk(&dirsize, &x); ) {
