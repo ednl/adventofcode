@@ -3,6 +3,8 @@
  * Day 8: Treetop Tree House
  * https://adventofcode.com/2022/day/8
  * By: E. Dronkert https://github.com/ednl
+ *
+ * m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  */
 
 #include <stdio.h>    // fopen, fclose, fgetc, printf
@@ -25,7 +27,6 @@ static void look(int x0, int y0, int dx, int dy)
 
 int main(void)
 {
-    starttimer();
     FILE *f = fopen("../aocinput/2022-08-input.txt", "r");
     for (int i = 0; i < N; ++i) {
         for (int j = 0; j < N; ++j)
@@ -34,6 +35,7 @@ int main(void)
     }
     fclose(f);
 
+    starttimer();
     // Part 1: look in from the outside, check visibility of every tree
     for (int i = 1; i < N - 1; ++i) {
         look(    i,     0,  0,  1);

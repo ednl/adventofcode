@@ -89,9 +89,9 @@ static void skipline(const char **s, const int minchars)
 
 int main(void)
 {
-    FILE *f = fopen(FNAME, "rb");
+    FILE *f = fopen(FNAME, "rb");  // fread requires binary mode
     if (!f) return 1;
-    fread(input, FSIZE, 1, f);
+    fread(input, 1, FSIZE, f);  // read single bytes until EOF or FSIZE
     fclose(f);
 
 #ifdef TIMER
