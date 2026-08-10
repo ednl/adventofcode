@@ -14,7 +14,7 @@
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 0.52 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :    ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 0.74 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 1.72 µs
  */
 
@@ -32,7 +32,7 @@
 #define M ((W >> 1) - 1)  // one less than half because first div then inc
 
 static char input[FSIZE];
-static char crt[H][W + 1];  // +newline
+static char tube[H][W + 1];  // +newline
 
 static int parseint(const char **s)
 {
@@ -56,15 +56,15 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
     int x = 1, cycle = 0, signal = 0;
-    memset(crt, ' ', sizeof crt);
+    memset(tube, ' ', sizeof tube);
     for (int i = 0; i < H; ++i)
-        crt[i][W] = '\n';
+        tube[i][W] = '\n';
     for (const char *c = input; *c; ) {
-        const div_t pos = div(cycle++, 40);
-        if (pos.rem == M)  // value 19 means 20th cycle
+        const div_t beam = div(cycle++, 40);
+        if (beam.rem == M)  // value 19 means 20th cycle
             signal += cycle * x;
-        if (abs(x - pos.rem) < 2)  // beam hits 3px wide sprite?
-            crt[pos.quot][pos.rem] = '#';
+        if (abs(x - beam.rem) < 2)  // beam hits 3px wide sprite?
+            tube[beam.quot][beam.rem] = '#';
         switch (*c) {
             case 'a': /* fall-through */
             case 'n': c += 5;                 break;
@@ -73,7 +73,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         }
     }
     printf("%d\n", signal);  // 15020
-    fwrite(crt, sizeof crt, 1, stdout);  // EFUGLPAP
+    fwrite(tube, sizeof tube, 1, stdout);  // EFUGLPAP
 
 #ifdef TIMER
 }
