@@ -15,7 +15,7 @@
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 0.52 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :    ? µs
- *     Raspberry Pi 5 (2.4 GHz)      :    ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 1.72 µs
  */
 
 #include <stdio.h>
@@ -29,7 +29,7 @@
 #define FSIZE 1024  // needed for my input: 965
 #define H 6
 #define W 40
-#define M ((W >> 1) - 1)  // one less because first div/mod, then ++
+#define M ((W >> 1) - 1)  // one less than half because first div then inc
 
 static char input[FSIZE];
 static char crt[H][W + 1];  // +newline
