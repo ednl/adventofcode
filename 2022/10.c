@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 0.26 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 0.25 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : 0.44 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 1.03 µs
  */
@@ -31,7 +31,7 @@
 #define MID (WIDTH >> 1)
 
 static char input[FSIZE];
-static char tube[WIDTH * HEIGHT + 1];  // +1 because cycle is 1-based
+static char tube[WIDTH * HEIGHT];
 
 static int parseint(const char **s)
 {
@@ -54,29 +54,33 @@ starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
-    int x = 1, cycle = 0, beam = 0, trip = MID, signal = 0;
+    int x = 1, cycle = 0, beam = 0, signal = 0;
     memset(tube, ' ', sizeof tube);
     for (const char *c = input; *c; ) {
+        if ((unsigned)(++beam - x) < 3)  // beam hits 3px-wide sprite?
+            tube[cycle] = '#';  // part 2
         cycle++;
-        if (cycle == trip) {  // midpoint?
+        if (beam == MID)
             signal += cycle * x;  // part 1
-            trip += WIDTH;
-        }
-        beam++;
-        if (beam - x >= 0 && beam - x < 3)  // beam hits 3px-wide sprite?
-            tube[cycle] = '#';
-        if (beam == WIDTH)
+        else if (beam == WIDTH)
             beam = 0;
-        switch (*c) {
-            case 'a': /* fall-through */
-            case 'n': c += 5;                 break;
-            case '-': c++; x -= parseint(&c); break;
-            default :      x += parseint(&c); break;
-        }
+        if (*c & 64)  // 'a' or 'n'
+            c += 5;  // skip opcode
+        else if (*c == '-') {  // negative int
+            c++;
+            x -= parseint(&c);
+         } else  // positive int
+            x += parseint(&c);
     }
     printf("%d\n", signal);  // 15020
-    tube[WIDTH] = tube[WIDTH * 2] = tube[WIDTH * 3] = tube[WIDTH * 4] = tube[WIDTH * 5] = tube[WIDTH * 6] = '\n';
-    fwrite(tube + 1, sizeof tube - 1, 1, stdout);  // EFUGLPAP
+    tube[WIDTH - 1]
+        = tube[WIDTH * 2 - 1]
+        = tube[WIDTH * 3 - 1]
+        = tube[WIDTH * 4 - 1]
+        = tube[WIDTH * 5 - 1]
+        = tube[WIDTH * 6 - 1]
+        = '\n';
+    fwrite(tube, sizeof tube, 1, stdout);  // EFUGLPAP
 
 #ifdef TIMER
 }
