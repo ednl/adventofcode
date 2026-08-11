@@ -57,7 +57,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     int x = 1, cycle = 0, beam = 0, signal = 0;
     memset(tube, ' ', sizeof tube);
     for (const char *c = input; *c; ) {
-        if ((unsigned)(++beam - x) < 3)  // beam hits 3px-wide sprite?
+        if ((unsigned)(++beam - x) < 3U)  // beam hits 3px-wide sprite?
             tube[cycle] = '#';  // part 2
         cycle++;
         if (beam == MID)
