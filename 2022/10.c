@@ -13,13 +13,12 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 0.52 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 0.74 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 1.72 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 0.26 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
-#include <stdlib.h>  // abs
 #include <string.h>  // memset
 #ifdef TIMER
     #include "../startstoptimer.h"
@@ -27,12 +26,12 @@
 
 #define FNAME "../aocinput/2022-10-input.txt"
 #define FSIZE 1024  // needed for my input: 965
-#define H 6
-#define W 40
-#define M ((W >> 1) - 1)  // one less than half because first div then inc
+#define WIDTH   40
+#define HEIGHT   6
+#define MID (WIDTH >> 1)
 
 static char input[FSIZE];
-static char tube[H][W + 1];  // +newline
+static char tube[WIDTH * HEIGHT + 1];  // +1 because cycle is 1-based
 
 static int parseint(const char **s)
 {
@@ -55,16 +54,19 @@ starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
-    int x = 1, cycle = 0, signal = 0;
+    int x = 1, cycle = 0, beam = 0, trip = MID, signal = 0;
     memset(tube, ' ', sizeof tube);
-    for (int i = 0; i < H; ++i)
-        tube[i][W] = '\n';
     for (const char *c = input; *c; ) {
-        const div_t beam = div(cycle++, 40);
-        if (beam.rem == M)  // value 19 means 20th cycle
-            signal += cycle * x;
-        if (abs(x - beam.rem) < 2)  // beam hits 3px wide sprite?
-            tube[beam.quot][beam.rem] = '#';
+        cycle++;
+        if (cycle == trip) {  // midpoint?
+            signal += cycle * x;  // part 1
+            trip += WIDTH;
+        }
+        beam++;
+        if (beam - x >= 0 && beam - x < 3)  // beam hits 3px-wide sprite?
+            tube[cycle] = '#';
+        if (beam == WIDTH)
+            beam = 0;
         switch (*c) {
             case 'a': /* fall-through */
             case 'n': c += 5;                 break;
@@ -73,7 +75,8 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         }
     }
     printf("%d\n", signal);  // 15020
-    fwrite(tube, sizeof tube, 1, stdout);  // EFUGLPAP
+    tube[WIDTH] = tube[WIDTH * 2] = tube[WIDTH * 3] = tube[WIDTH * 4] = tube[WIDTH * 5] = tube[WIDTH * 6] = '\n';
+    fwrite(tube + 1, sizeof tube - 1, 1, stdout);  // EFUGLPAP
 
 #ifdef TIMER
 }
