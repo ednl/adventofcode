@@ -58,19 +58,22 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     memset(tube, ' ', sizeof tube);
     for (const char *c = input; *c; ) {
         if ((unsigned)(++beam - x) < 3U)  // beam hits 3px-wide sprite?
-            tube[cycle] = '#';  // part 2
+            tube[cycle] = '#';            // part 2
+
         cycle++;
         if (beam == MID)
-            signal += cycle * x;  // part 1
+            signal += cycle * x;          // part 1
         else if (beam == WIDTH)
             beam = 0;
-        if (*c & 64)  // 'a' or 'n'
-            c += 5;  // skip opcode
-        else if (*c == '-') {  // negative int
+
+        if (*c & 64)                      // 'a' or 'n'
+            c += 5;                       // skip opcode
+        else if (*c != '-')               // positive int
+            x += parseint(&c);
+        else {                            // negative int
             c++;
             x -= parseint(&c);
-         } else  // positive int
-            x += parseint(&c);
+        }
     }
     printf("%d\n", signal);  // 15020
     tube[WIDTH - 1]
