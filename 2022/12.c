@@ -81,7 +81,6 @@ static void findSE(Vec *const restrict start, Vec *const restrict end)
             if (found == 2)
                 return;
         }
-    *start = *end = (Vec){0};
 }
 
 // Going down by 1 step max (level or up also allowed)
@@ -125,18 +124,20 @@ int main(void)
 #ifdef TIMER
 starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
+    // Reset tracking data at start of timing loop
     qhead = qtail = qlen = 0;
     memset(dist, 0, sizeof dist);
 #endif
 
-    Vec start, end;
+    Vec start = {0}, end = {0};
     findSE(&start, &end);
     int part2 = 0;
     const int part1 = flood(end, start, &part2);
     printf("%d %d\n", part1, part2);  // 504 500
 
 #ifdef TIMER
-    alt[start.y][start.x] = 'S';  // reset input file
+    // Reset input file for next timing loop
+    alt[start.y][start.x] = 'S';
     alt[end.y][end.x] = 'E';
 }
 fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
