@@ -35,27 +35,33 @@ typedef struct {
     int16_t x, y;
 } Vec;
 
+typedef struct queue {
+    int len, head, tail;
+    Vec q[QSIZE];
+} Queue;
+
 static const Vec dir[4] = {{-1,0},{0,1},{0,-1},{1,0}};
+static char altitude[ROWS][COLS + 1];  // altitude map +newline
+static int16_t distance[ROWS][COLS];   // distance travelled
+static Queue queue;
 
-static Vec queue[QSIZE];
-static int qhead, qtail, qlen;
-
-static char alt[ROWS][COLS + 1];  // altitude map +newline
-static int16_t dist[ROWS][COLS];  // distance travelled
-
-static void enqueue(const Vec pos)
+// Assumes queue never full
+static void enq(Queue *const q, const Vec pos)
 {
-    queue[qhead++] = pos;
-    qhead &= (QSIZE - 1);
-    qlen++;
+    q->q[q->head++] = pos;
+    q->head &= (QSIZE - 1);
+    q->len++;
 }
 
-static Vec dequeue(void)
+static bool deq(Queue *const restrict q, Vec *const restrict v)
 {
-    qlen--;
-    const int i = qtail++;
-    qtail &= (QSIZE - 1);
-    return queue[i];
+    if (q->len > 0) {
+        q->len--;
+        *v = q->q[q->tail++];
+        q->tail &= (QSIZE - 1);
+        return true;
+    }
+    return false;
 }
 
 static bool isequal(const Vec a, const Vec b)
@@ -72,11 +78,11 @@ static void findSE(Vec *const restrict start, Vec *const restrict end)
 {
     for (int i = 0, found = 0; i < ROWS; ++i)
         for (int j = 0; j < COLS; ++j) {
-            if (alt[i][j] & 32)  // lowercase?
+            if (altitude[i][j] & 32)  // lowercase?
                 continue;
-            switch (alt[i][j]) {
-                case 'S': *start = (Vec){j, i}; alt[i][j] = 'a'; found++; break;
-                case 'E':   *end = (Vec){j, i}; alt[i][j] = 'z'; found++; break;
+            switch (altitude[i][j]) {
+                case 'S': *start = (Vec){j, i}; altitude[i][j] = 'a'; found++; break;
+                case 'E':   *end = (Vec){j, i}; altitude[i][j] = 'z'; found++; break;
             }
             if (found == 2)
                 return;
@@ -86,31 +92,29 @@ static void findSE(Vec *const restrict start, Vec *const restrict end)
 // Going down by 1 step max (level or up also allowed)
 static bool reachable(const Vec v, const char base)
 {
-    if (v.x < 0 || v.y < 0 || v.x >= COLS || v.y >= ROWS || dist[v.y][v.x])
+    if (v.x < 0 || v.y < 0 || v.x >= COLS || v.y >= ROWS || distance[v.y][v.x])
         return false;  // off-grid or visited
-    return alt[v.y][v.x] > base - 2;  // descent <= 1
+    return altitude[v.y][v.x] > base - 2;  // descent <= 1
 }
 
-static int flood(const Vec start, const Vec goal, int *const dist2a)
+static int flood(Vec cur, const Vec goal, int *const dist2a)
 {
-    dist[start.y][start.x] = 1;
-    enqueue(start);
-    while (qlen) {
-        Vec v = dequeue();
-        const char a = alt[v.y][v.x];
-        const int d = dist[v.y][v.x];
-        if (a == 'a' && !*dist2a)
-            *dist2a = d - 1;
-        if (isequal(v, goal))  // found shortest path
-            return d - 1;
+    distance[cur.y][cur.x] = 1;  // unseen=0 so start at 1
+    do {
+        const char alt = altitude[cur.y][cur.x];
+        const int dist = distance[cur.y][cur.x];
+        if (alt == 'a' && !*dist2a)  // first 'a'?
+            *dist2a = dist - 1;  // unseen=0 so all distances are 1 too high
+        if (isequal(cur, goal))  // found shortest path to goal
+            return dist - 1;
         for (size_t i = 0; i < sizeof dir / sizeof *dir; ++i) {
-            const Vec w = add(v, dir[i]);
-            if (reachable(w, a)) {
-                dist[w.y][w.x] = d + 1;
-                enqueue(w);
+            const Vec next = add(cur, dir[i]);
+            if (reachable(next, alt)) {
+                distance[next.y][next.x] = dist + 1;  // next is one step further than cur
+                enq(&queue, next);
             }
         }
-    }
+    } while (deq(&queue, &cur));
     return 0;
 }
 
@@ -118,15 +122,15 @@ int main(void)
 {
     FILE *f = fopen(FNAME, "rb");
     if (!f) return 1;
-    fread(alt, sizeof alt, 1, f);
+    fread(altitude, sizeof altitude, 1, f);
     fclose(f);
 
 #ifdef TIMER
 starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     // Reset tracking data at start of timing loop
-    qhead = qtail = qlen = 0;
-    memset(dist, 0, sizeof dist);
+    queue.len = queue.head = queue.tail = 0;
+    memset(distance, 0, sizeof distance);
 #endif
 
     Vec start = {0}, end = {0};
@@ -137,8 +141,8 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 
 #ifdef TIMER
     // Reset input file for next timing loop
-    alt[start.y][start.x] = 'S';
-    alt[end.y][end.x] = 'E';
+    altitude[start.y][start.x] = 'S';
+    altitude[end.y][end.x] = 'E';
 }
 fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
