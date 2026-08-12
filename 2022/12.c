@@ -3,56 +3,58 @@
  * Day 12: Hill Climbing Algorithm
  * https://adventofcode.com/2022/day/12
  * By: E. Dronkert https://github.com/ednl
+ *
+ * Compile:
+ *     cc -std=c17 -Wall -Wextra -pedantic 12.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 12.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n7
+ * Get minimum runtime from timer output in bash:
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 15.3 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
-#include <stdio.h>    // fopen, fclose, fgetc, printf
-#include <stdbool.h>  // bool
-#include "../startstoptimer.h"
-
-#define EXAMPLE 0
-#if EXAMPLE == 1
-#define NAME "../aocinput/2022-12-example.txt"
-#define ROWS (5)  // lines in example file
-#define COLS (8)  // line width in example file
-#else
-#define NAME "../aocinput/2022-12-input.txt"
-#define ROWS  (41)   // lines in input file
-#define COLS  (159)  // line width in input file
+#include <stdio.h>
+#include <stdint.h>  // int16_t
+#include <stdbool.h>
+#ifdef TIMER
+    #include <string.h>  // memset
+    #include "../startstoptimer.h"
 #endif
-#define QSIZE (ROWS * COLS)
+
+#define FNAME "../aocinput/2022-12-input.txt"
+#define ROWS  41   // lines in input file
+#define COLS  159  // line width in input file (without newline)
+#define QSIZE 64   // must be power of 2 (needed for my input: 42)
 
 typedef struct {
-    int x, y;
+    int16_t x, y;
 } Vec;
 
-static const Vec dir[4] = {{1,0},{0,1},{-1,0},{0,-1}};
-static const Vec error = {-1,-1};
+static const Vec dir[4] = {{-1,0},{0,1},{0,-1},{1,0}};
 
 static Vec queue[QSIZE];
 static int qhead, qtail, qlen;
 
-static char map[ROWS][COLS];
-static bool explored[ROWS][COLS];
-static Vec backtrack[ROWS][COLS];
+static char alt[ROWS][COLS + 1];  // altitude map +newline
+static int16_t dist[ROWS][COLS];  // distance travelled
 
 static void enqueue(const Vec pos)
 {
-    if (qlen == QSIZE)
-        return;
     queue[qhead++] = pos;
-    if (qhead == QSIZE)
-        qhead = 0;
+    qhead &= (QSIZE - 1);
     qlen++;
 }
 
 static Vec dequeue(void)
 {
-    if (qlen == 0)
-        return error;
     qlen--;
-    const int i = qtail;
-    if (++qtail == QSIZE)
-        qtail = 0;
+    const int i = qtail++;
+    qtail &= (QSIZE - 1);
     return queue[i];
 }
 
@@ -66,84 +68,77 @@ static Vec add(const Vec a, const Vec b)
     return (Vec){a.x + b.x, a.y + b.y};
 }
 
-static char elevation(const Vec pos)
+static void findSE(Vec *const restrict start, Vec *const restrict end)
 {
-    const char h = map[pos.y][pos.x];
-    if (h == 'S') return 'a';
-    if (h == 'E') return 'z';
-    return h;
-}
-
-static bool reachable(const Vec pos, char base, bool ispart2)
-{
-    if (pos.x < 0 || pos.y < 0 || pos.x >= COLS || pos.y >= ROWS)
-        return false;
-    if (explored[pos.y][pos.x])
-        return false;
-    // M1/x86: char=signed, ARM: char=unsigned
-    // so, no sure way of comparing climb = elev - base to +/-2
-    const char elev = elevation(pos);
-    return ispart2 ? elev > base - 2 : elev < base + 2;
-}
-
-static int bfs(const Vec start, const Vec goal)
-{
-    const bool ispart2 = isequal(goal, error);
-    // Reset
-    qtail = qhead = qlen = 0;  // empty queue
-    for (int i = 0; i < ROWS; ++i)
+    for (int i = 0, found = 0; i < ROWS; ++i)
         for (int j = 0; j < COLS; ++j) {
-            explored[i][j] = false;
-            backtrack[i][j] = error;
-        }
-    // Init
-    explored[start.y][start.x] = true;
-    enqueue(start);
-    // Search
-    while (qlen) {
-        Vec curpos = dequeue();
-        const char curelev = elevation(curpos);
-        if (ispart2 ? curelev == 'a' : isequal(curpos, goal)) {  // found shortest path
-            int steps = 0;
-            while (!isequal(curpos, start)) {
-                const Vec nextpos = backtrack[curpos.y][curpos.x];
-                if (isequal(nextpos, curpos) || isequal(nextpos, error))  // avoid potential deadlock
-                    return -1;
-                curpos = nextpos;
-                ++steps;
+            if (alt[i][j] & 32)  // lowercase?
+                continue;
+            switch (alt[i][j]) {
+                case 'S': *start = (Vec){j, i}; alt[i][j] = 'a'; found++; break;
+                case 'E':   *end = (Vec){j, i}; alt[i][j] = 'z'; found++; break;
             }
-            return steps;
+            if (found == 2)
+                return;
         }
-        for (size_t i = 0; i < sizeof(dir) / sizeof(*dir); ++i) {
-            const Vec nextpos = add(curpos, dir[i]);
-            if (reachable(nextpos, curelev, ispart2)) {
-                explored[nextpos.y][nextpos.x] = true;  // label nextpos as explored
-                backtrack[nextpos.y][nextpos.x] = curpos;  // set curpos as parent of nextpos
-                enqueue(nextpos);
+    *start = *end = (Vec){0};
+}
+
+// Going down by 1 step max (level or up also allowed)
+static bool reachable(const Vec v, const char base)
+{
+    if (v.x < 0 || v.y < 0 || v.x >= COLS || v.y >= ROWS || dist[v.y][v.x])
+        return false;  // off-grid or visited
+    return alt[v.y][v.x] > base - 2;  // descent <= 1
+}
+
+static int flood(const Vec start, const Vec goal, int *const dist2a)
+{
+    dist[start.y][start.x] = 1;
+    enqueue(start);
+    while (qlen) {
+        Vec v = dequeue();
+        const char a = alt[v.y][v.x];
+        const int d = dist[v.y][v.x];
+        if (a == 'a' && !*dist2a)
+            *dist2a = d - 1;
+        if (isequal(v, goal))  // found shortest path
+            return d - 1;
+        for (size_t i = 0; i < sizeof dir / sizeof *dir; ++i) {
+            const Vec w = add(v, dir[i]);
+            if (reachable(w, a)) {
+                dist[w.y][w.x] = d + 1;
+                enqueue(w);
             }
         }
     }
-    return -1;
+    return 0;
 }
 
 int main(void)
 {
-    starttimer();
-    Vec start = error, end = error;
-    FILE *f = fopen(NAME, "r");
-    for (int i = 0; i < ROWS; ++i) {
-        for (int j = 0; j < COLS; ++j) {
-            int c = fgetc(f);
-            map[i][j] = (char)c;
-            if (c == 'S')
-                start = (Vec){.x=j, .y=i};
-            else if (c == 'E')
-                end = (Vec){.x=j, .y=i};
-        }
-        fgetc(f);  // newline
-    }
-    printf("Part 1: %d\n", bfs(start, end));  // example=31, input=504
-    printf("Part 2: %d\n", bfs(end, error));  // example=29, input=500
-    printf("Time: %.0f us\n", stoptimer_us());  // fastest: Mac Mini M1 = 251 us, Raspberry Pi 4 = 791 us
-    return 0;
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) return 1;
+    fread(alt, sizeof alt, 1, f);
+    fclose(f);
+
+#ifdef TIMER
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
+    qhead = qtail = qlen = 0;
+    memset(dist, 0, sizeof dist);
+#endif
+
+    Vec start, end;
+    findSE(&start, &end);
+    int part2 = 0;
+    const int part1 = flood(end, start, &part2);
+    printf("%d %d\n", part1, part2);  // 504 500
+
+#ifdef TIMER
+    alt[start.y][start.x] = 'S';  // reset input file
+    alt[end.y][end.x] = 'E';
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
+#endif
 }
