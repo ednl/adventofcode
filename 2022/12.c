@@ -13,136 +13,116 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 15.3 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 23.6 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 82.2 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 8.47 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
+#include <string.h>  // memset
 #include <stdint.h>  // int16_t
 #include <stdbool.h>
 #ifdef TIMER
-    #include <string.h>  // memset
     #include "../startstoptimer.h"
 #endif
 
+// Custom input parameters
 #define FNAME "../aocinput/2022-12-input.txt"
-#define ROWS  41   // lines in input file
-#define COLS  159  // line width in input file (without newline)
-#define QSIZE 64   // must be power of 2 (needed for my input: 42)
+#define R  41       // rows in input
+#define C 159       // cols in input (without newlines)
 
-typedef struct {
-    int16_t x, y;
-} Vec;
+// Derived values
+#define PR (R + 2)  // padded rows
+#define PC (C + 1)  // padded cols
+#define END ((PR - 1) * PC - 1)  // index in 'alt' of last newline in input
+
+// Assumptions about input!
+#define S ((PR >> 1) * PC)  // index in 'alt' of letter S (start of middle line)
+#define QSIZE 64    // must be power of 2 (needed for my input: 42)
 
 typedef struct queue {
-    int len, head, tail;
-    Vec q[QSIZE];
+    int head, tail;
+    int data[QSIZE];
 } Queue;
 
-static const Vec dir[4] = {{-1,0},{0,1},{0,-1},{1,0}};
-static char altitude[ROWS][COLS + 1];  // altitude map +newline
-static int16_t distance[ROWS][COLS];   // distance travelled
+static const int step[] = {-1, PC, -PC, 1};
+static char alt[PR * PC];
+static int16_t dist[PR * PC];  // shorter data type for faster reset
 static Queue queue;
 
 // Assume queue is never full
-static void enq(Queue *const q, const Vec pos)
+static void enq(const int val)
 {
-    q->q[q->head++] = pos;
-    q->head &= (QSIZE - 1);
-    q->len++;
+    queue.data[queue.head++] = val;
+    queue.head &= (QSIZE - 1);
 }
 
-static bool deq(Queue *const restrict q, Vec *const restrict v)
+// Assume queue is never full (or else head==tail)
+static bool deq(int *const val)
 {
-    if (q->len) {
-        q->len--;
-        *v = q->q[q->tail++];
-        q->tail &= (QSIZE - 1);
+    if (queue.head != queue.tail) {
+        *val = queue.data[queue.tail++];
+        queue.tail &= (QSIZE - 1);
         return true;
     }
     return false;
-}
-
-static bool isequal(const Vec a, const Vec b)
-{
-    return a.x == b.x && a.y == b.y;
-}
-
-static Vec add(const Vec a, const Vec b)
-{
-    return (Vec){a.x + b.x, a.y + b.y};
-}
-
-static void findSE(Vec *const restrict start, Vec *const restrict end)
-{
-    for (int i = ROWS >> 1, found = 0; i < ROWS; ++i)
-        for (int j = 0; j < COLS; ++j) {
-            if (altitude[i][j] & 32)  // lowercase?
-                continue;
-            switch (altitude[i][j]) {
-                case 'S': *start = (Vec){j, i}; altitude[i][j] = 'a'; found++; break;
-                case 'E':   *end = (Vec){j, i}; altitude[i][j] = 'z'; found++; break;
-            }
-            if (found == 2)
-                return;
-        }
-}
-
-// Going down by 1 step max (level or up also allowed)
-static bool reachable(const Vec v, const char base)
-{
-    if (v.x < 0 || v.y < 0 || v.x >= COLS || v.y >= ROWS || distance[v.y][v.x])
-        return false;  // off-grid or visited
-    return altitude[v.y][v.x] > base - 2;  // descent <= 1
-}
-
-static int flood(Vec cur, const Vec goal, int *const dist2a)
-{
-    distance[cur.y][cur.x] = 1;  // unseen=0 so start at 1
-    do {
-        const char alt = altitude[cur.y][cur.x];
-        const int dist = distance[cur.y][cur.x];
-        if (alt == 'a' && !*dist2a)  // first 'a'?
-            *dist2a = dist - 1;  // unseen=0 so all distances are 1 too high
-        if (isequal(cur, goal))  // found shortest path to goal
-            return dist - 1;
-        for (size_t i = 0; i < sizeof dir / sizeof *dir; ++i) {
-            const Vec next = add(cur, dir[i]);
-            if (reachable(next, alt)) {
-                distance[next.y][next.x] = dist + 1;  // next is one step further than cur
-                enq(&queue, next);
-            }
-        }
-    } while (deq(&queue, &cur));
-    return 0;
 }
 
 int main(void)
 {
     FILE *f = fopen(FNAME, "rb");
     if (!f) return 1;
-    fread(altitude, sizeof altitude, 1, f);
+    fread(&alt[PC], R * PC, 1, f);  // read input as 1 chunk partway into alt
     fclose(f);
 
 #ifdef TIMER
 starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
-    // Reset tracking data at start of timing loop
-    queue.len = queue.head = queue.tail = 0;
-    memset(distance, 0, sizeof distance);
+    // Reset BFS data at start of timing loop
+    queue.head = queue.tail = 0;
+    memset(dist, 0, sizeof dist);
 #endif
 
-    Vec start = {0}, end = {0};
-    findSE(&start, &end);
-    int part2 = 0;
-    const int part1 = flood(end, start, &part2);
-    printf("%d %d\n", part1, part2);  // 504 500
+    // Add border
+    memset(alt, '#', PC);
+    memset(&alt[END], '#', PC + 1);
+    for (int i = 2 * PC - 1; i < END; i += PC)
+        alt[i] = '#';
+
+    // Find 'E'
+    int cur = S + PC - 2;  // last index in the same row as S
+    for (; alt[cur] != 'E'; cur--);
+#ifdef TIMER
+    const int posE = cur;  // save position to reset later
+#endif
+
+    alt[S] = 'a';
+    alt[cur] = 'z';
+    dist[cur] = 1;  // unseen: dist=0, so start at 1
+    int firsta = 0;
+    do {
+        const char nextalt = alt[cur] - 1;
+        const int nextdist = dist[cur] + 1;
+        for (int i = 0; i < 4; ++i) {
+            const int next = cur + step[i];
+            if (alt[next] >= nextalt && !dist[next]) {
+                dist[next] = nextdist;
+                if (alt[next] == 'a' && !firsta)  // first 'a'?
+                    firsta = nextdist;  // part 2
+                if (next == S)  // goal? (= index in 'alt' of letter S)
+                    goto done;  // part 1
+                enq(next);
+            }
+        }
+    } while (deq(&cur));
+done:
+    // unseen: dist=0, so all distances are 1 too high
+    printf("%d %d\n", dist[S] - 1, firsta - 1);  // 504 500
 
 #ifdef TIMER
     // Reset input file for next timing loop
-    altitude[start.y][start.x] = 'S';
-    altitude[end.y][end.x] = 'E';
+    // no need to reset 'S' because index is fixed
+    alt[posE] = 'E';
 }
 fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
