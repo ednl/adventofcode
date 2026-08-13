@@ -45,7 +45,7 @@ static char altitude[ROWS][COLS + 1];  // altitude map +newline
 static int16_t distance[ROWS][COLS];   // distance travelled
 static Queue queue;
 
-// Assumes queue never full
+// Assume queue is never full
 static void enq(Queue *const q, const Vec pos)
 {
     q->q[q->head++] = pos;
@@ -55,7 +55,7 @@ static void enq(Queue *const q, const Vec pos)
 
 static bool deq(Queue *const restrict q, Vec *const restrict v)
 {
-    if (q->len > 0) {
+    if (q->len) {
         q->len--;
         *v = q->q[q->tail++];
         q->tail &= (QSIZE - 1);
@@ -76,7 +76,7 @@ static Vec add(const Vec a, const Vec b)
 
 static void findSE(Vec *const restrict start, Vec *const restrict end)
 {
-    for (int i = 0, found = 0; i < ROWS; ++i)
+    for (int i = ROWS >> 1, found = 0; i < ROWS; ++i)
         for (int j = 0; j < COLS; ++j) {
             if (altitude[i][j] & 32)  // lowercase?
                 continue;
