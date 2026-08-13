@@ -47,7 +47,7 @@ typedef struct queue {
 
 static const int step[] = {-1, PC, -PC, 1};
 static char alt[PR * PC];
-static int16_t dist[PR * PC];  // shorter data type for faster reset
+static uint8_t dist[PR * PC];  // shorter data type for faster reset
 static Queue queue;
 
 // Assume queue is never full
@@ -99,10 +99,10 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     alt[S] = 'a';
     alt[cur] = 'z';
     dist[cur] = 1;  // unseen: dist=0, so start at 1
-    int firsta = 0;
+    uint8_t firsta = 0;
     do {
         const char nextalt = alt[cur] - 1;
-        const int nextdist = dist[cur] + 1;
+        const uint8_t nextdist = dist[cur] + 1;
         for (int i = 0; i < 4; ++i) {
             const int next = cur + step[i];
             if (alt[next] >= nextalt && !dist[next]) {
@@ -117,7 +117,8 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     } while (deq(&cur));
 done:
     // unseen: dist=0, so all distances are 1 too high
-    printf("%d %d\n", dist[S] - 1, firsta - 1);  // 504 500
+    // and +256 for 1x overflow of uint8_t
+    printf("%d %d\n", dist[S] + 255, firsta + 255);  // 504 500
 
 #ifdef TIMER
     // Reset input file for next timing loop
