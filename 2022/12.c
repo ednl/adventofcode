@@ -13,9 +13,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  8.47 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 12.2  µs
- *     Raspberry Pi 5 (2.4 GHz)      : 39.5  µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  8.5 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 12.2 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 39.5 µs
  */
 
 #include <stdio.h>
@@ -47,7 +47,7 @@ typedef struct queue {
 
 static const int step[] = {-1, PC, -PC, 1};
 static char alt[PR * PC];
-static uint8_t dist[PR * PC];  // shorter data type for faster reset
+static uint16_t dist[PR * PC];  // shorter data type for faster reset
 static Queue queue;
 
 // Assume queue is never full
@@ -99,13 +99,13 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     alt[S] = 'a';
     alt[cur] = 'z';
     dist[cur] = 1;  // unseen: dist=0, so start at 1
-    uint8_t firsta = 0;
+    uint16_t firsta = 0;
     do {
         const char nextalt = alt[cur] - 1;
-        const uint8_t nextdist = dist[cur] + 1;
+        const uint16_t nextdist = dist[cur] + 1;
         for (int i = 0; i < 4; ++i) {
             const int next = cur + step[i];
-            if (alt[next] >= nextalt && !dist[next]) {
+            if (alt[next] >= nextalt && !dist[next]) {  // descent<=1 (level or climb is fine) and not seen?
                 dist[next] = nextdist;
                 if (alt[next] == 'a' && !firsta)  // first 'a'?
                     firsta = nextdist;  // part 2
@@ -117,8 +117,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     } while (deq(&cur));
 done:
     // unseen: dist=0, so all distances are 1 too high
-    // and +256 for 1x overflow of uint8_t
-    printf("%d %d\n", dist[S] + 255, firsta + 255);  // 504 500
+    printf("%d %d\n", dist[S] - 1, firsta - 1);  // 504 500
 
 #ifdef TIMER
     // Reset input file for next timing loop
