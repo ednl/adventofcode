@@ -108,7 +108,7 @@ static void makegrid(Cave *const c)
 static void show(void)
 {
     printf("\n");
-    int i = 0, j = index(inlet);
+    int i = 0, j = gridindex(inlet);
     for (int y = 0; y < cave.dim.y; ++y) {
         for (int x = 0; x < cave.dim.x; ++x, ++i)
             printf("%c", cave.grid[i] == SAND ? 'o' : (cave.grid[i] == ROCK ? '#' : (i == j ? '+' : '.')));
