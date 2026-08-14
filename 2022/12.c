@@ -81,13 +81,8 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     // Reset BFS data at start of timing loop
     queue.head = queue.tail = 0;
     memset(dist, 0, sizeof dist);
+    // memset(dist + PC, 0, R * PC * sizeof *dist);  // less work but looks like it's slower
 #endif
-
-    // Add border
-    memset(alt, '#', PC);
-    memset(&alt[END], '#', PC + 1);
-    for (int i = 2 * PC - 1; i < END; i += PC)
-        alt[i] = '#';
 
     // Find 'E'
     int cur = S + PC - 2;  // last index in the same row as S
