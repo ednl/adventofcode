@@ -5,59 +5,68 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *    clang -std=gnu17 -O3 -march=native -Wall -Wextra 21.c ../startstoptimer.c
- *    gcc   -std=gnu17 -O3 -march=native -Wall -Wextra 21.c ../startstoptimer.c
- * Get minimum runtime:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
- * Minimum runtime:
- *     Mac Mini 2020 (M1 3.2 GHz)          :  381 µs
- *     iMac 2013 (i5 Haswell 4570 3.2 GHz) :  607 µs
- *     Raspberry Pi 5 (2.4 GHz)            :  715 µs
- *     Raspberry Pi 4 (1.8 GHz)            : 2533 µs
+ *     cc -std=c17 -Wall -Wextra -pedantic 21.c
+ * Enable timer:
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 21.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
+ * Get minimum runtime from timer output in bash:
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ * Minimum runtime measurements:
+ *     Macbook Pro 2024 (M4 4.4 GHz) : ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 230 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
 #include <stdlib.h>    // qsort
+#include <string.h>    // memcpy to avoid cast align warning
 #include <stdint.h>    // int64_t, int32_t
 #include <inttypes.h>  // PRId64
-#include "../startstoptimer.h"
+#ifdef TIMER
+    #include "../startstoptimer.h"
+#endif
 
 #define EXAMPLE 0
 #if EXAMPLE == 1
-#define NAME "../aocinput/2022-21-example.txt"
-#define N 15
+    #define FNAME "../aocinput/2022-21-example.txt"
+    #define FSIZE 256  // needed for example: 191 (+ '\0' sentinel)
+    #define N 15
 #else
-#define NAME "../aocinput/2022-21-input.txt"
-#define N 2351
+    #define FNAME "../aocinput/2022-21-input.txt"
+    #define FSIZE 32768  // needed for my input: 30740 (+ '\0' sentinel)
+    #define N 2351
 #endif
 
 typedef struct monkey {
     int32_t id;
-    union {
-        int64_t val;
-        struct { int32_t a, b; };
-    };
     char op;
+    union {
+        struct { int32_t a, b; };
+        int64_t val;
+    };
 } Monkey;
 
+static char input[FSIZE];
 static Monkey monkey[N];
 
-// Much faster than atoi() but only valid for this data because every number is followed by a newline.
-// Slightly more general but still dependent on ASCII: while ((*s & 0xf0) == 0x30) ...;
-// Best and still faster: while (*s >= '0' && *s <= '9') n = n*10 + (*s++ - '0');
-static int readnum(const char *s)
+// Parse positive int followed by newline
+// skip number and newline
+static int parseint(const char **s)
 {
-    int n = 0;
-    while (*s != '\n')
-        n = n * 10 + (*s++ & 15);
-    return n;
+    int x = *(*s)++ & 15;
+    while (**s != '\n')
+        x = x * 10 + (*(*s)++ & 15);
+    (*s)++;  // skip newline
+    return x;
 }
 
 // Interpret 4 chars as a 32-bit int (LSB or MSB doesn't matter).
-// Compile with -Wno-cast-align to avoid warning.
 static int32_t hash(const char *s)
 {
-    return *(const int32_t *)s;
+    int32_t h;
+    memcpy(&h, s, sizeof h);
+    return h;
 }
 
 // Look up monkey by id
@@ -91,9 +100,9 @@ static int64_t getval(const int index)
     int64_t a = getval(m->a);
     const int64_t b = getval(m->b);
     switch (m->op) {
+        case '*': a *= b; break;
         case '+': a += b; break;
         case '-': a -= b; break;
-        case '*': a *= b; break;
         case '/': a /= b; break;
     }
     return a;
@@ -101,26 +110,32 @@ static int64_t getval(const int index)
 
 int main(void)
 {
-    starttimer();
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) return 1;
+    fread(input, 1, FSIZE, f);  // read single bytes until EOF or size=FSIZE
+    fclose(f);
+
+#ifdef TIMER
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
+#endif
+
 
     // Parse input
-    FILE *f = fopen(NAME, "r");
-    if (!f) return 1;
-    char line[32];
     Monkey *m = monkey;
-    for (int i = 0; i < N && fgets(line, sizeof line, f); ++i, ++m) {
-        m->id = hash(line);
-        const char *s = line + 6;
-        if (*s >= 'a') {
-            m->a = hash(s);
-            m->b = hash(s + 7);
-            m->op = *(s + 5);
+    for (const char *c = input; *c; m++) {
+        m->id = hash(c);
+        c += 6;
+        if (*c >= 'a') {
+            m->a = hash(c);
+            m->b = hash(c + 7);
+            m->op = *(c + 5);
+            c += 12;
         } else {
-            m->val = readnum(s);
+            m->val = parseint(&c);  // also skips line
             m->op = '=';
         }
     }
-    fclose(f);
 
     // Transform monkey array: use direct array index instead of "hash table" id
     qsort(monkey, sizeof monkey / sizeof *monkey, sizeof *monkey, cmp_monkies);
@@ -132,22 +147,24 @@ int main(void)
 
     // Part 1
     const int root = binsearch(hash("root"));
-    printf("Part 1: %"PRId64"\n", getval(root));  // example: 152, input: 21120928600114
+    printf("%"PRId64" ", getval(root));  // example: 152, input: 21120928600114
 
     // Part 2
     monkey[root].op = '-';  // difference should be zero
     int64_t *const humn = &monkey[binsearch(hash("humn"))].val;
     int64_t x0 = *humn, y0 = getval(root);      // first try at humn=<value from input file>
     int64_t x1 = *humn = 0, y1 = getval(root);  // second try at humn=0
-    while (y1) {  // "gradient descent" by Newton's method; for my input, it takes just two steps
-        int64_t tmp = x1;
-        x1 = *humn = (int64_t)(x0 - y0 * ((double)(x1 - x0) / (y1 - y0)));
-        x0 = tmp;
+    while (y1) {  // "gradient descent" by Newton's method; takes two steps for my input
+        *humn = x0 - (int64_t)((double)(x1 - x0) / (y1 - y0) * y0);  // needs fraction or it cycles back & forth
+        x0 = x1;
         y0 = y1;
+        x1 = *humn;
         y1 = getval(root);
     }
-    printf("Part 2: %"PRId64"\n", x1);  // example: 301, input: 3453748220116
+    printf("%"PRId64"\n", x1);  // example: 301, input: 3453748220116
 
-    printf("Time: %.0f us\n", stoptimer_us());
-    return 0;
+#ifdef TIMER
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
+#endif
 }
