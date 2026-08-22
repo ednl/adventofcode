@@ -8,10 +8,12 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 01.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 01.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 12 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  9.4 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : 20 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 52 µs
  */
@@ -45,12 +47,13 @@ static const char *const end = input + FSIZE;
 int main(void)
 {
     FILE *f = fopen(FNAME, "rb");  // fread requires binary mode
-    if (!f) { fprintf(stderr, "File not found: %s\n", FNAME); return 1; }
+    if (!f) { fprintf(stderr, "File not found: "FNAME"\n"); return 1; }
     fread(input, sizeof input, 1, f);  // read whole file at once
     fclose(f);
 
 #ifdef TIMER
-    starttimer();
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
     int zero1 = 0, zero2 = 0;
@@ -108,7 +111,7 @@ int main(void)
     printf("%d %d\n", zero1, zero2);  // example: 3 6, input: 1180 6892
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
-    return 0;
 }
