@@ -14,8 +14,8 @@
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) :  1.21 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :  ? µs
- *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  1.89 µs
+ *     Raspberry Pi 5 (2.4 GHz)      :  4.14 µs
  */
 
 #include <stdio.h>
@@ -28,15 +28,11 @@
 #endif
 
 #define EXAMPLE 0
-#define AOCDAY "02"
-
-#define AOCPRE "../aocinput/2025-"AOCDAY"-"
-#define AOCSUF ".txt"
 #if EXAMPLE == 1
-    #define FNAME AOCPRE"example"AOCSUF
+    #define FNAME "../aocinput/2025-02-example.txt"
     #define N 11  // ranges in example file
 #else
-    #define FNAME AOCPRE"input"AOCSUF
+    #define FNAME "../aocinput/2025-02-input.txt"
     #define N 30  // ranges in input file
 #endif
 #define FSIZE 512  // large enough to hold input (or example)
@@ -90,7 +86,7 @@ int main(void)
     // Read file from disk
     FILE *f = fopen(FNAME, "rb");  // fread requires binary mode
     if (!f) { fprintf(stderr, "File not found: "FNAME"\n"); return 1; }
-    fread(input, sizeof input, 1, f);  // read whole file at once
+    fread(input, 1, sizeof input, f);  // read single bytes until EOF
     fclose(f);
 
 #ifdef TIMER
