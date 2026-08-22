@@ -8,12 +8,14 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 02.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 02.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  2.63 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :  4.75 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 12.5  µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  1.21 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
  */
 
 #include <stdio.h>
@@ -87,12 +89,13 @@ int main(void)
 {
     // Read file from disk
     FILE *f = fopen(FNAME, "rb");  // fread requires binary mode
-    if (!f) { fprintf(stderr, "File not found: %s\n", FNAME); return 1; }
+    if (!f) { fprintf(stderr, "File not found: "FNAME"\n"); return 1; }
     fread(input, sizeof input, 1, f);  // read whole file at once
     fclose(f);
 
 #ifdef TIMER
-    starttimer();
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
     // Parse ranges
@@ -153,7 +156,7 @@ int main(void)
     printf("%"PRId64" %"PRId64"\n", sum1, sum2);  // example: 1227775554 4174379265, input: 30323879646 43872163557
 
 #ifdef TIMER
-    printf("Time: %.0f ns\n", stoptimer_ns());
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
-    return 0;
 }
