@@ -8,16 +8,21 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 16b.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 16b.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
+ * Get minimum runtime from timer output in bash:
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  69 ms
- *     Mac Mini 2020 (M1 3.2 GHz)    :   ? ms
- *     Raspberry Pi 5 (2.4 GHz)      :   ? ms
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 65.3 ms
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? ms
+ *     Raspberry Pi 5 (2.4 GHz)      : ? ms
  */
 
 #include <stdio.h>
+#include <stdint.h>
 #ifdef TIMER
-#include "../startstoptimer.h"
-#define TIMERLOOPS 10
+    #include "../startstoptimer.h"
+    #define TIMERLOOPS 10
 #endif
 
 #define FNAME "../aocinput/2019-16-input.txt"
@@ -37,14 +42,15 @@ static const VecType mod10[] = {
 
 int main(void)
 {
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) return 1;
+    fread(input, N, 1, f);
+    fclose(f);
+
 #ifdef TIMER
 starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < TIMERLOOPS; ++TIMERLOOP) {
 #endif
-
-    FILE *f = fopen(FNAME, "rb");
-    fread(input, N, 1, f);
-    fclose(f);
 
     // atoi
     for (int i = 0; i < N; ++i)
@@ -82,6 +88,6 @@ for (int TIMERLOOP = 0; TIMERLOOP < TIMERLOOPS; ++TIMERLOOP) {
 
 #ifdef TIMER
 }
-printf("Time: %.0f ms\n", stoptimer_ms() / TIMERLOOPS);
+fprintf(stderr, "Time: %.0f us\n", stoptimer_us() / TIMERLOOPS);
 #endif
 }
