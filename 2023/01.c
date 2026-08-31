@@ -8,14 +8,14 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 01.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 01.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz)       :  33 µs
- *     Mac Mini 2020 (M1 3.2 GHz)          :  56 µs (45 µs without reading the input file)
- *     Raspberry Pi 5 (2.4 GHz)            : 103 µs
- *     iMac 2013 (i5 Haswell 4570 3.2 GHz) : 106 µs
- *     Raspberry Pi 4 (1.8 GHz)            : 219 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 13.2 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>   // fopen, fclose, fread, printf
@@ -23,12 +23,13 @@
     #include "../startstoptimer.h"
 #endif
 
-#define N 32768  // greater than size of input file (21985)
-#define BITS15 ((1U << 15) - 1U)  // 15-bit mask
-#define BITS20 ((1U << 20) - 1U)  // 20-bit mask
-#define BITS25 ((1U << 25) - 1U)  // 25-bit mask
+#define FNAME "../aocinput/2023-01-input.txt"
+#define FSIZE 32768  // greater than size of input file (my input: 21985)
+#define BITS15 ((1U << 15) - 1)  // 15-bit mask
+#define BITS20 ((1U << 20) - 1)  // 20-bit mask
+#define BITS25 ((1U << 25) - 1)  // 25-bit mask
 
-static char input[N];  // complete input file as one blob
+static char input[FSIZE];
 
 // Forwards sliding window of compounded chars to look for substrings
 // between start (inclusive) and end (exclusive).
@@ -128,13 +129,14 @@ static int lookback(const char *start, const char *const end, const int def)
 
 int main(void)
 {
-    FILE *f = fopen("../aocinput/2023-01-input.txt", "rb");  // fread requires binary mode
-    if (!f) { fputs("File not found.\n", stderr); return 1; }
-    fread(input, 1, sizeof input, f);
+    FILE *f = fopen(FNAME, "rb");  // fread requires binary mode
+    if (!f) return 1;
+    fread(input, 1, sizeof input, f);  // read single bytes until EOF
     fclose(f);
 
 #ifdef TIMER
-    starttimer();
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
     int part1 = 0, part2 = 0;
@@ -149,9 +151,10 @@ int main(void)
         part1 += d2;
         part2 += lookback(end, s2, d2);  // look for last digit word AFTER last numerical digit
     }
-    printf("Part 1: %d\nPart 2: %d\n", part1, part2);  // example: 209 281, input: 54630 54770
+    printf("%d %d\n", part1, part2);  // example: 209 281, input: 54630 54770
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
 }
