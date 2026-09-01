@@ -25,9 +25,20 @@
 
 #define FNAME "../aocinput/2023-01-input.txt"
 #define FSIZE 32768  // greater than size of input file (my input: 21985)
-#define BITS15 ((1U << 15) - 1)  // 15-bit mask
-#define BITS20 ((1U << 20) - 1)  // 20-bit mask
-#define BITS25 ((1U << 25) - 1)  // 25-bit mask
+
+#define MASK15 ((1U << 15) - 1)  // 15-bit mask
+#define MASK20 ((1U << 20) - 1)  // 20-bit mask
+#define MASK25 ((1U << 25) - 1)  // 25-bit mask
+
+#define ONE   ((('o' - 'a') << 10) | (('n' - 'a') << 5) | ('e' - 'a'))
+#define SIX   ((('s' - 'a') << 10) | (('i' - 'a') << 5) | ('x' - 'a'))
+#define TWO   ((('t' - 'a') << 10) | (('w' - 'a') << 5) | ('o' - 'a'))
+#define FIVE  ((('f' - 'a') << 15) | (('i' - 'a') << 10) | (('v' - 'a') << 5) | ('e' - 'a'))
+#define FOUR  ((('f' - 'a') << 15) | (('o' - 'a') << 10) | (('u' - 'a') << 5) | ('r' - 'a'))
+#define NINE  ((('n' - 'a') << 15) | (('i' - 'a') << 10) | (('n' - 'a') << 5) | ('e' - 'a'))
+#define EIGHT ((('e' - 'a') << 20) | (('i' - 'a') << 15) | (('g' - 'a') << 10) | (('h' - 'a') << 5) | ('t' - 'a'))
+#define SEVEN ((('s' - 'a') << 20) | (('e' - 'a') << 15) | (('v' - 'a') << 10) | (('e' - 'a') << 5) | ('n' - 'a'))
+#define THREE ((('t' - 'a') << 20) | (('h' - 'a') << 15) | (('r' - 'a') << 10) | (('e' - 'a') << 5) | ('e' - 'a'))
 
 static char input[FSIZE];
 
@@ -41,39 +52,39 @@ static int lookfwd(const char *start, const char *const end, const int def)
     for (int i = 0 ; i < 3 ; ++i)
         win = win << 5 | (unsigned)(*start++ - 'a');
     switch (win) {
-        case 14756u: return 10;  // "one"
-        case 18711u: return 60;  // "six"
-        case 20174u: return 20;  // "two"
+        case ONE: return 10;  // "one"
+        case SIX: return 60;  // "six"
+        case TWO: return 20;  // "two"
     }
     if (start == end) return def;
     win = win << 5 | (unsigned)(*start++ - 'a');
     switch (win) {
-        case 172708u: return 50;  // "five"
-        case 178833u: return 40;  // "four"
-        case 434596u: return 90;  // "nine"
+        case FIVE: return 50;  // "five"
+        case FOUR: return 40;  // "four"
+        case NINE: return 90;  // "nine"
     }
-    switch (win & BITS15) {
-        case 14756u: return 10;  // "one"
-        case 18711u: return 60;  // "six"
-        case 20174u: return 20;  // "two"
+    switch (win & MASK15) {
+        case ONE: return 10;  // "one"
+        case SIX: return 60;  // "six"
+        case TWO: return 20;  // "two"
     }
     // Loop 5/4/3, 5/4/3, etc.
     while (start < end) {
         win = win << 5 | (unsigned)(*start++ - 'a');
-        switch (win & BITS25) {
-            case  4462835u: return 80;  // "eight"
-            case 19027085u: return 70;  // "seven"
-            case 20169860u: return 30;  // "three"
+        switch (win & MASK25) {
+            case EIGHT: return 80;  // "eight"
+            case SEVEN: return 70;  // "seven"
+            case THREE: return 30;  // "three"
         }
-        switch (win & BITS20) {
-            case 172708u: return 50;  // "five"
-            case 178833u: return 40;  // "four"
-            case 434596u: return 90;  // "nine"
+        switch (win & MASK20) {
+            case FIVE: return 50;  // "five"
+            case FOUR: return 40;  // "four"
+            case NINE: return 90;  // "nine"
         }
-        switch (win & BITS15) {
-            case 14756u: return 10;  // "one"
-            case 18711u: return 60;  // "six"
-            case 20174u: return 20;  // "two"
+        switch (win & MASK15) {
+            case ONE: return 10;  // "one"
+            case SIX: return 60;  // "six"
+            case TWO: return 20;  // "two"
         }
     }
     return def;
@@ -89,39 +100,39 @@ static int lookback(const char *start, const char *const end, const int def)
     for (int i = 0 ; i < 3 ; ++i)
         win = win >> 5 | ((unsigned)(*start-- - 'a') << 20);
     switch (win >> 10) {
-        case 14756u: return 1;  // "one"
-        case 18711u: return 6;  // "six"
-        case 20174u: return 2;  // "two"
+        case ONE: return 1;  // "one"
+        case SIX: return 6;  // "six"
+        case TWO: return 2;  // "two"
     }
     if (start == end) return def;
     win = win >> 5 | ((unsigned)(*start-- - 'a') << 20);
     switch (win >> 5) {
-        case 172708u: return 5;  // "five"
-        case 178833u: return 4;  // "four"
-        case 434596u: return 9;  // "nine"
+        case FIVE: return 5;  // "five"
+        case FOUR: return 4;  // "four"
+        case NINE: return 9;  // "nine"
     }
     switch (win >> 10) {
-        case 14756u: return 1;  // "one"
-        case 18711u: return 6;  // "six"
-        case 20174u: return 2;  // "two"
+        case ONE: return 1;  // "one"
+        case SIX: return 6;  // "six"
+        case TWO: return 2;  // "two"
     }
     // Loop 5/4/3, 5/4/3, etc.
     while (start > end) {
         win = win >> 5 | ((unsigned)(*start-- - 'a') << 20);
         switch (win) {
-            case  4462835u: return 8;  // "eight"
-            case 19027085u: return 7;  // "seven"
-            case 20169860u: return 3;  // "three"
+            case EIGHT: return 8;  // "eight"
+            case SEVEN: return 7;  // "seven"
+            case THREE: return 3;  // "three"
         }
         switch (win >> 5) {
-            case 172708u: return 5;  // "five"
-            case 178833u: return 4;  // "four"
-            case 434596u: return 9;  // "nine"
+            case FIVE: return 5;  // "five"
+            case FOUR: return 4;  // "four"
+            case NINE: return 9;  // "nine"
         }
         switch (win >> 10) {
-            case 14756u: return 1;  // "one"
-            case 18711u: return 6;  // "six"
-            case 20174u: return 2;  // "two"
+            case ONE: return 1;  // "one"
+            case SIX: return 6;  // "six"
+            case TWO: return 2;  // "two"
         }
     }
     return def;
