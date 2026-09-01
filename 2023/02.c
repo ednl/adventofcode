@@ -13,9 +13,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  3.59 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :    ?  µs
- *     Raspberry Pi 5 (2.4 GHz)      :    ?  µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 2.99 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
@@ -25,9 +25,9 @@
 
 #define FNAME "../aocinput/2023-02-input.txt"
 #define FSIZE (8192 + 4096)  // needed for my input: 10528
-
-// Limits per colour as imposed by the puzzle
-static const unsigned rgblim[3] = {12, 13, 14};
+#define RLIM 12
+#define GLIM 13
+#define BLIM 14
 
 static char input[FSIZE];
 
@@ -38,10 +38,10 @@ static unsigned max(const unsigned a, const unsigned b)
 
 static unsigned readnum(const char** s)
 {
-    unsigned n = 0;
-    while (**s >= '0' && **s <= '9')
-        n = n * 10 + (*(*s)++ & 15);
-    return n;
+    unsigned x = *(*s)++ & 15;
+    while (**s & 16)  // until space
+        x = x * 10 + (*(*s)++ & 15);
+    return x;
 }
 
 int main(void)
@@ -60,7 +60,9 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     for (const char *c = input; *c; c++) {
         ++game;  // game numbers are consecutive & identical to line number, so no parsing
         unsigned rgbmax[3] = {0};  // maximum number of cubes per colour per game
-        while (*c++ != ':');
+        c += 7;
+        while (*c != ' ')
+            c++;
         do {
             c++;  // skip space
             unsigned cubes = readnum(&c);
@@ -72,7 +74,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
             while (*c != ' ' && *c != '\n')
                 c++;  // skip to next space or newline
         } while (*c == ' ');
-        if (rgbmax[0] <= rgblim[0] && rgbmax[1] <= rgblim[1] && rgbmax[2] <= rgblim[2])
+        if (rgbmax[0] <= RLIM && rgbmax[1] <= GLIM && rgbmax[2] <= BLIM)
             part1 += game;
         part2 += rgbmax[0] * rgbmax[1] * rgbmax[2];
     }
