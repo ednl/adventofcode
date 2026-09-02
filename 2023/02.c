@@ -13,9 +13,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 2.99 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 4.32 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 8.62 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 2.92 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
@@ -30,11 +30,6 @@
 #define BLIM 14
 
 static char input[FSIZE];
-
-static inline unsigned max(const unsigned a, const unsigned b)
-{
-    return a > b ? a : b;
-}
 
 static unsigned readnum(const char** s)
 {
@@ -58,23 +53,22 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 
     unsigned part1 = 0, part2 = 0, game = 0;
     for (const char *c = input; *c; c++) {
-        ++game;  // game numbers are consecutive & identical to line number, so no parsing
-        unsigned rgbmax[3] = {0};  // maximum number of cubes per colour per game
-        c += 7;
-        while (*c != ' ')
+        unsigned rgbmax[3] = {0};                // maximum number of cubes per colour per game
+        ++game;                                  // game numbers are consecutive & identical to line number, so no parsing
+        c += 7;                                  // skip "Game N:" (1 digit + colon or 2 digits)
+        while (*c != ' ')                        // skip to first space on line
             c++;
         do {
-            c++;  // skip space
+            c++;                                 // skip space or newline
             const unsigned cubes = readnum(&c);  // read number until space
-            switch (*++c) {  // skip space
-                case 'r': rgbmax[0] = max(rgbmax[0], cubes); break;
-                case 'g': rgbmax[1] = max(rgbmax[1], cubes); break;
-                case 'b': rgbmax[2] = max(rgbmax[2], cubes); break;
-            }
-            while (*c != ' ' && *c != '\n')
-                c++;  // skip to next space or newline
+            const char rgb = *++c;               // skip space, first letter of colour
+            unsigned *const max = rgbmax + ((rgb & 1) | (rgb >> 3 & 2));  // 'r'=2, 'g'=1, 'b'=0
+            if (cubes > *max) *max = cubes;
+            c += 3;                              // minimum 3 letters to next decider
+            while (*c > ' ')                     // skip to next space or newline
+                c++;
         } while (*c == ' ');
-        if (rgbmax[0] <= RLIM && rgbmax[1] <= GLIM && rgbmax[2] <= BLIM)
+        if (rgbmax[2] <= RLIM && rgbmax[1] <= GLIM && rgbmax[0] <= BLIM)  // 'r'=2, 'g'=1, 'b'=0
             part1 += game;
         part2 += rgbmax[0] * rgbmax[1] * rgbmax[2];
     }
