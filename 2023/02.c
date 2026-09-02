@@ -13,9 +13,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 1.96 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : 2.92 µs
- *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 5.03 µs
  */
 
 #include <stdio.h>
@@ -55,7 +55,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     for (const char *c = input; *c; c++) {
         unsigned rgbmax[3] = {0};                // maximum number of cubes per colour per game
         ++game;                                  // game numbers are consecutive & identical to line number, so no parsing
-        c += 7;                                  // skip "Game N:" (1 digit + colon or 2 digits)
+        c += 7;                                  // skip "Game N:" (1 digit + colon, or 2 digits)
         while (*c != ' ')                        // skip to first space on line
             c++;
         do {
