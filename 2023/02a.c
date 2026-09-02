@@ -5,17 +5,17 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *     cc -std=c17 -Wall -Wextra -pedantic 02.c
+ *     cc -std=c17 -Wall -Wextra -pedantic 02a.c
  * Enable timer:
- *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 02.c
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 02a.c
  * Test output with timer enabled:
  *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 1.96 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 2.91 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 5.03 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 5.50 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
@@ -29,12 +29,13 @@
 #define GMAX 13
 #define BMAX 14
 
+static const int len[3] = {4, 5, 3};  // "blue", "green", "red"
 static char input[FSIZE];
 
-static int readnum(const char** s)
+static int readnum(const char **s)
 {
     int x = *(*s)++ & 15;
-    while (**s & 16)  // second digit or space
+    while (**s & 16)
         x = x * 10 + (*(*s)++ & 15);
     return x;
 }
@@ -55,19 +56,17 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     for (const char *c = input; *c; c++) {
         int max[3] = {0};                   // maximum number of cubes per colour per game
         game++;                             // game numbers are consecutive & identical to line number, so no parsing
-        c += 7;                             // skip "Game N:" (1 digit + colon, or 2 digits)
-        while (*c != ' ')                   // skip to first space on line
+        c += 6;                             // skip "Game x" (1 digit)
+        while (*c != ':')                   // skip to colon
             c++;
         do {
-            c++;                            // skip space
+            c += 2;                         // skip ": " or ", " or "; "
             const int cubes = readnum(&c);  // read number until space
-            const char rgb = *++c;          // skip space, first letter of colour
-            int *const cur = max + ((rgb & 1) | (rgb >> 3 & 2));  // 'r'=2, 'g'=1, 'b'=0
-            *cur = cubes > *cur ? cubes : *cur;
-            c += 3;                         // minimum 3 letters to next decider
-            while (*c > ' ')                // skip to next space or newline
-                c++;
-        } while (*c == ' ');
+            const char rgb = *++c;
+            const int i = (rgb & 1) | (rgb >> 3 & 2);  // 'r'=2, 'g'=1, 'b'=0
+            max[i] = cubes > max[i] ? cubes : max[i];
+            c += len[i];                    // "blue", "green", "red"
+        } while (*c != '\n');               // until newline
         if (max[2] <= RMAX && max[1] <= GMAX && max[0] <= BMAX)  // 'r'=2, 'g'=1, 'b'=0
             part1 += game;
         part2 += max[0] * max[1] * max[2];
