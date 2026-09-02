@@ -14,7 +14,7 @@
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 2.99 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 4.34 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 4.32 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 8.62 µs
  */
 
@@ -24,14 +24,14 @@
 #endif
 
 #define FNAME "../aocinput/2023-02-input.txt"
-#define FSIZE (8192 + 4096)  // needed for my input: 10528
+#define FSIZE 0x3000  // needed for my input: 10528
 #define RLIM 12
 #define GLIM 13
 #define BLIM 14
 
 static char input[FSIZE];
 
-static unsigned max(const unsigned a, const unsigned b)
+static inline unsigned max(const unsigned a, const unsigned b)
 {
     return a > b ? a : b;
 }
@@ -65,7 +65,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
             c++;
         do {
             c++;  // skip space
-            unsigned cubes = readnum(&c);
+            const unsigned cubes = readnum(&c);  // read number until space
             switch (*++c) {  // skip space
                 case 'r': rgbmax[0] = max(rgbmax[0], cubes); break;
                 case 'g': rgbmax[1] = max(rgbmax[1], cubes); break;
