@@ -16,7 +16,7 @@
  *     Macbook Pro 2024 (M4 4.4 GHz) : 10.5 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : 16.7 µs
  *     iMac 2013 (i5 4570 3.2 GHz)   : 40.9 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 60.1 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 56.2 µs
  */
 
 #include <stdio.h>
