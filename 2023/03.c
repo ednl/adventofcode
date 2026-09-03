@@ -8,158 +8,157 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 03.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 03.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 43 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 64 µs
- *     Raspberry Pi 5 (2.4 GHz)      :  ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 10.4 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 16.7 µs
+ *     iMac 2013 (i5 4570 3.2 GHz)   : 40.9 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 60.1 µs
  */
 
-#include <stdio.h>    // fopen, fclose, fgets, printf
-#include <ctype.h>    // isdigit
-#include <string.h>   // memset
-#include <stdbool.h>  // bool
+#include <stdio.h>
+#include <string.h>  // memset
+#include <stdbool.h>
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 0
-#if EXAMPLE == 1
-#define FNAME "../aocinput/2023-03-example.txt"
-#define N 10
-#else
 #define FNAME "../aocinput/2023-03-input.txt"
-#define N 140
-#endif
+#define N 140             // "schematic" square size (= lines in input file)
+#define M (1024 + 256)    // max number count in file (needed for my input: 1203 (+1 because 1-based))
+#define G (256 + 128)     // max '*' count in file (needed for my input: 364)
 
-// Engine schematic square grid with padding and room for end of line '\n\0'
-static char schematic[N + 2][N + 4];
+// Derived values
+#define ROWS  (N + 2)     // two extra rows as border
+#define COLS  (N + 1)     // one extra column for newline
+#define FSIZE (N * COLS)  // input file size
+#define END ((ROWS - 1) * COLS - 1)  // end of data
 
+typedef struct number {
+    int val, beg, end;
+} Number;
+
+static char schematic[ROWS * COLS];
+static int numindex[ROWS * COLS];
+static Number number[M];
+static int gearindex[G];
+
+// Slightly faster than library function, use unambiguous name
+static inline bool isdig(const char c)
+{
+    return c >= '0' && c <= '9';
+}
+
+// In my input file: # $ % & * + - / = @
 static bool issymbol(const char c)
 {
-    return c != '.' && !isdigit(c);
+    return c != '.' && (c < '0' || c > '9');
 }
 
-// Check for any symbol around number
-//   Pre: schematic[r][c0..c1] are digits
-//   Return: at least 1 symbol found = true/false
-static bool symboladjacent(const int r, const int c0, const int c1)
+// Check for symbols around number
+static bool ispartnumber(const Number *const n)
 {
-    for (int j = c0 - 1; j <= c1 + 1; ++j)
-        if (issymbol(schematic[r - 1][j]) || issymbol(schematic[r + 1][j]))
+    if (schematic[n->beg - 1] != '.' || schematic[n->end] != '.')
+        return true;
+    for (int i = n->beg - COLS - 1; i <= n->end - COLS; ++i)
+        if (issymbol(schematic[i]))
             return true;
-    return issymbol(schematic[r][c0 - 1]) || issymbol(schematic[r][c1 + 1]);
+    for (int i = n->beg + COLS - 1; i <= n->end + COLS; ++i)
+        if (issymbol(schematic[i]))
+            return true;
+    return false;
 }
 
-// Convert to number from digit(s) forward
-//   Pre: schematic[r][c] is digit (might be more after)
-//   Post: schematic[r][c] points to last consecutive digit
-//   Return: number
-static int parse_from(const int r, int *const c)
+// Distribution of gear numbers around gear symbol
+static int pattern(const int index)
 {
-    int n = schematic[r][*c] & 15;
-    while (*c < N && isdigit(schematic[r][*c + 1]))
-        n = n * 10 + (schematic[r][++*c] & 15);
-    return n;
+    return ((numindex[index - 1] != 0) << 2) | ((numindex[index] != 0) << 1) | (numindex[index + 1] != 0);
 }
 
-// Check part number
-//   Pre: schematic[r][c] is digit, might be start of part number
-//   Post: schematic[r][c] is first char AFTER all consecutive digits
-//   Return: part number or zero
-static int partnumber(const int r, int *const c)
+// How many gear numbers around gear symbol
+static int gears(const int pat)
 {
-    const int k = *c;  // save first col index of number
-    const int n = parse_from(r, c);  // *c is now last col index of number
-    return symboladjacent(r, k, *c) ? n : 0;  // valid part number?
+    switch (pat) {
+        case 0: return 0;
+        case 5: return 2;
+    }
+    return 1;
 }
 
-// Convert to number from range of digits & around
-//   Pre: schematic[r][c0..c1] are digits (might be more before or after)
-//   Return: number composed of all consecutive digits
-static int parse_around(const int r, int c0, int c1)
+// Partial ratio of gear number(s) one line
+static int ratio(const int index, const int pat)
 {
-    while (c0 > 1 && isdigit(schematic[r][c0 - 1]))
-        --c0;
-    while (c1 < N && isdigit(schematic[r][c1 + 1]))
-        ++c1;
-    int n = 0;
-    while (c0 <= c1)
-        n = n * 10 + (schematic[r][c0++] & 15);
-    return n;
+    if (!pat)
+        return 1;
+    if (pat & 2)
+        return number[numindex[index]].val;
+    switch (pat) {
+        case 1: return number[numindex[index + 1]].val;
+        case 4: return number[numindex[index - 1]].val;
+    }
+    return number[numindex[index - 1]].val * number[numindex[index + 1]].val;
 }
 
-// Calculate gear ratio
-// Pre: schematic[r][c] = '*' (possible gear)
-// Return: product of exactly 2 adjacent numbers, or zero
-static int gearratio(const int r, const int c)
+// Product of gear numbers if there are exactly two
+static int gearratio(const int index)
 {
-    // Find pattern of digits around gear
-    int pat = 0;
-    for (int i = r - 1; i < r + 2; ++i)
-        for (int j = c - 1; j < c + 2; ++j)
-            pat = pat << 1 | (isdigit(schematic[i][j]) != 0);
-
-    // Count separate numbers around gear
-    int nums = 0;
-    for (int i = 0; i != 9; i += 3)
-        switch (pat >> i & 7) {
-            case  0: break;
-            case  5: nums += 2; break;
-            default: nums += 1; break;
-        }
-    if (nums != 2)
+    const int p1 = pattern(index);
+    const int p2 = pattern(index - COLS);
+    const int p3 = pattern(index + COLS);
+    if (gears(p1) + gears(p2) + gears(p3) != 2)
         return 0;
-
-    // Parse 2 numbers and return product
-    int gear[2] = {0};
-    for (int i = 0, k = r + 1, g = 0; i != 9; i += 3, --k)
-        switch (pat >> i & 7) {
-            case 0: continue;  // no numbers on this line                 000
-            case 1: gear[g++] = parse_around(k, c + 1, c + 1); break;  // 001
-            case 2: gear[g++] = parse_around(k, c    , c    ); break;  // 010
-            case 3: gear[g++] = parse_around(k, c    , c + 1); break;  // 011
-            case 4: gear[g++] = parse_around(k, c - 1, c - 1); break;  // 100
-            case 5: gear[g++] = parse_around(k, c - 1, c - 1);
-                    gear[g++] = parse_around(k, c + 1, c + 1); break;  // 101
-            case 6: gear[g++] = parse_around(k, c - 1, c    ); break;  // 110
-            case 7: gear[g++] = parse_around(k, c - 1, c + 1); break;  // 111
-        }
-    return gear[0] * gear[1];
+    return ratio(index, p1) * ratio(index - COLS, p2) * ratio(index + COLS, p3);
 }
 
 int main(void)
 {
-    FILE *f = fopen(FNAME, "r");
-    if (!f) { fputs("File not found.\n", stderr); return 1; }
-
-    memset(schematic, '.', sizeof schematic);  // init including padding
-    for (int i = 1; i <= N; ++i) {
-        fgets(schematic[i] + 1, N + 2, f);  // read line including newline
-        schematic[i][N + 1] = '.';  // reset padding at end of line '\n'->'.'
-    }
+    FILE *f = fopen(FNAME, "rb");  // fread requires binary mode
+    if (!f) return 1;
+    fread(&schematic[COLS], FSIZE, 1, f);  // read as single block
     fclose(f);
 
 #ifdef TIMER
-    starttimer();
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
-    int sum1 = 0;
-    for (int i = 1; i <= N; ++i)
-        for (int j = 1; j <= N; ++j)
-            if (isdigit(schematic[i][j]))  // start of possible part number
-                sum1 += partnumber(i, &j);
-    printf("%u\n", sum1);  // example: 4361, input: 536202
+    // Set borders
+    memset(schematic, '.', COLS);
+    memset(schematic + END, '.', COLS + 1);
+    for (int i = 2 * COLS - 1; i != END; i += COLS)
+        schematic[i] = '.';  // replace newline with dot
 
-    int sum2 = 0;
-    for (int i = 1; i <= N; ++i)
-        for (int j = 1; j <= N; ++j)
-            if (schematic[i][j] == '*')  // possible gear
-                sum2 += gearratio(i, j);
-    printf("%u\n", sum2);  // example: 467835, input: 78272573
+    // Inventory of all numbers and gear symbols
+    int numcount = 0, gearcount = 0;
+    for (int i = COLS; i < END; ++i) {
+        if (isdig(schematic[i])) {
+            numcount++;
+            const int i0 = i;
+            int x = 0;
+            do {
+                numindex[i] = numcount;
+                x = x * 10 + (schematic[i] & 15);
+            } while (isdig(schematic[++i]));
+            number[numcount] = (Number){x, i0, i};
+        }
+        if (schematic[i] == '*')  // can be directly after number
+            gearindex[gearcount++] = i;
+    }
+
+    // Sum part numbers and gear ratios
+    int part1 = 0, part2 = 0;
+    for (int i = 1; i <= numcount; ++i)
+        if (ispartnumber(&number[i]))
+            part1 += number[i].val;
+    for (int i = 0; i < gearcount; ++i)
+        part2 += gearratio(gearindex[i]);
+    printf("%u %u\n", part1, part2);  // 536202 78272573
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
 }
