@@ -133,14 +133,14 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 
     int part1 = 0, part2 = 0;
     for (int i = COLS; i < END; ++i) {
-        if (isdigit(schematic[i])) {
+        if (isdig(schematic[i])) {
             numcount++;
             const int i0 = i;
             int x = 0;
             do {
                 numindex[i] = numcount;
                 x = x * 10 + (schematic[i] & 15);
-            } while (isdigit(schematic[++i]));
+            } while (isdig(schematic[++i]));
             number[numcount] = (Number){x, i0, i};
         }
         if (schematic[i] == '*')
