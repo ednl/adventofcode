@@ -46,12 +46,12 @@ static Number number[M];
 static int gearindex[G];
 static int numcount, gearcount;
 
-static inline bool isdigit(const char c)
+static inline bool isdig(const char c)
 {
     return c >= '0' && c <= '9';
 }
 
-static inline bool notdigit(const char c)
+static inline bool notdig(const char c)
 {
     return c < '0' || c > '9';
 }
@@ -60,7 +60,7 @@ static inline bool notdigit(const char c)
 // LF  #  $  %  &  *  +  -  .  /  0  1  2  3  4  5  6  7  8  9  =  @
 static bool issymbol(const char c)
 {
-    return c != '.' && notdigit(c);
+    return c != '.' && notdig(c);
 }
 
 static bool ispartnumber(const Number *const n)
