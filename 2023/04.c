@@ -15,7 +15,7 @@
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) :  2.90 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :  4.85 µs
- *     iMac 2013 (i5 4570 3.2 GHz)   :     ? µs
+ *     iMac 2013 (i5 4570 3.2 GHz)   : 14.8  µs
  *     Raspberry Pi 5 (2.4 GHz)      : 17.0  µs
  */
 
@@ -68,7 +68,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
             wins |= (__uint128_t)1 << readnum(c);
 
         c += 2;  // skip "| "
-        int match = 0;  // winning numbers count on this card
+        int match = 0;  // count winning numbers on this card
         for (int i = 0; i < HAVE; c += 3, ++i)
             match += wins >> readnum(c) & 1;
         part1 += match ? (1 << (match - 1)) : 0;
