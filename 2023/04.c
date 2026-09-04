@@ -66,7 +66,8 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         int match = 0;  // count winning numbers on this card
         for (int i = 0; i < HAVE; c += 3, ++i)
             match += wins >> readnum(c) & 1;
-        part1 += (1 << match) >> 1;
+        // part1 += match ? (1 << (match - 1)) : 0;
+        part1 += (1 << match) >> 1;  // shorter alternative but prob. same speed
 
         const int add = ++copies[card];  // count original card as one more copy
         part2 += add;
