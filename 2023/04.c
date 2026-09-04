@@ -15,7 +15,7 @@
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) :  2.90 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :  4.85 µs
- *     iMac 2013 (i5 4570 3.2 GHz)   : 14.8  µs
+ *     iMac 2013 (i5 4570 3.2 GHz)   : 14.7  µs
  *     Raspberry Pi 5 (2.4 GHz)      : 17.0  µs
  */
 
@@ -35,11 +35,6 @@
 
 static char input[FSIZE];
 static int copies[CARDS];
-
-static inline int min(const int a, const int b)
-{
-    return a < b ? a : b;
-}
 
 static inline int readnum(const char *s)
 {
@@ -71,12 +66,12 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         int match = 0;  // count winning numbers on this card
         for (int i = 0; i < HAVE; c += 3, ++i)
             match += wins >> readnum(c) & 1;
-        part1 += match ? (1 << (match - 1)) : 0;
+        part1 += (1 << match) >> 1;
 
         const int add = ++copies[card];  // count original card as one more copy
         part2 += add;
 
-        const int lim = min(++card + match, CARDS);  // 1 past maximum index of extra copies to add
+        const int lim = ++card + match;  // 1 past maximum index of extra copies to add
         for (int i = card; i < lim; ++i)  // add extra copies
             copies[i] += add;
     }
