@@ -8,43 +8,38 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 05.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 05.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz)       :  44 µs
- *     Mac Mini 2020 (M1 3.2 GHz)          :  88 µs
- *     Raspberry Pi 5 (2.4 GHz)            : 141 µs
- *     iMac 2013 (i5 Haswell 4570 3.2 GHz) : 174 µs
- *     Raspberry Pi 4 (1.8 GHz)            : 303 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 32.4 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ *     iMac 2013 (i5 4570 3.2 GHz)   : ? µs
  */
 
-#include <stdio.h>     // fopen, fclose, fscanf, printf
+#include <stdio.h>
 #include <stdlib.h>    // qsort
 #include <stdint.h>    // int64_t
-#include <inttypes.h>  // PRId64
-#include <stdbool.h>   // bool
-#include "../startstoptimer.h"
-
-// Input parameters
-#define EXAMPLE 0
-#if EXAMPLE == 1
-    #define NAME "../aocinput/2023-05-example.txt"
-    #define SEEDS  4
-    #define CONVS  5  // max 4 conversion ranges per cat in example
-#else
-    #define NAME "../aocinput/2023-05-input.txt"
-    #define SEEDS 20
-    #define CONVS 50  // max 46 conversion ranges per cat in my input
+#include <inttypes.h>  // PRIu64
+#include <stdbool.h>
+#ifdef TIMER
+    #include "../startstoptimer.h"
 #endif
-#define CATS 8  // categories: seed, soil, fertilizer, water, light, temperature, humidity, location
-#define MAPS (CATS - 1)  // translation from cat(n) to cat(n+1)
-#define SSIZE 16  // max for my input = 11
 
-// Data structures
-typedef struct Conv {  // a conversion is an offset for range [lo..hi)
+#define FNAME "../aocinput/2023-05-input.txt"
+#define FSIZE 6400  // needed for my input: 6380
+#define SEEDS 20    // 20 seeds on first line of input
+#define MAPS  7     // translations from cat(n) to cat(n+1)
+#define CATS  8     // categories: seed, soil, fertilizer, water, light, temperature, humidity, location
+#define CONVS 48    // max 46 conversion ranges per map in my input
+#define SSIZE 16    // max stack size (needed for my input: 11)
+
+typedef struct conv {  // a conversion is an offset for range [lo..hi)
     int64_t lo, hi, ofs;
 } Conv;
-typedef struct Map {  // a map is a list of conversions
+typedef struct map {  // a map is a list of conversions
     Conv conv[CONVS];
     size_t len;  // actual number of conversions used
 } Map;
@@ -53,7 +48,7 @@ typedef struct range {  // seed range to be converted from mapindex onwards
     int64_t lo, hi;
 } Range;
 
-// Global data
+static char input[FSIZE];
 static int64_t seed[SEEDS];
 static Map map[MAPS];
 static Range stack[SSIZE];
@@ -67,6 +62,15 @@ static int64_t min(const int64_t a, const int64_t b)
 static int64_t max(const int64_t a, const int64_t b)
 {
     return a > b ? a : b;
+}
+
+static int64_t parseint(const char **s)
+{
+    int64_t x = *(*s)++ & 15;
+    while (**s & 16)  // every number followed by space or newline
+        x = x * 10 + (*(*s)++ & 15);
+    (*s)++;  // skip space or newline
+    return x;
 }
 
 // Qsort helper: sort by Conv::lo ascending
@@ -84,7 +88,7 @@ static int lo_asc(const void *p, const void *q)
 static int64_t convert1(int64_t n)
 {
     const Map *m = map;
-    for (int i = 0; i < MAPS; ++i, ++m) {
+    for (int i = 0; i < MAPS; ++m, ++i) {
         const Conv *l = &m->conv[0];
         const Conv *r = &m->conv[m->len - 1];
         while (l <= r) {
@@ -101,7 +105,7 @@ static int64_t convert1(int64_t n)
 
 static bool push(const Range r)
 {
-    if (ssize == SSIZE) { fputs("Stack overflow.\n", stderr); return false; }
+    // if (ssize == SSIZE) { fputs("Stack overflow.\n", stderr); return false; }
     stack[ssize++] = r;
     return true;
 }
@@ -151,33 +155,47 @@ static int64_t convert2(Range range)
 
 int main(void)
 {
-    FILE *f = fopen(NAME, "r");
-    if (!f) { fputs("File not found.\n", stderr); return 1; }
-
-    starttimer();
-    while (fgetc(f) != ':');  // skip to first seed number
-    for (int i = 0; i < SEEDS; ++i)  // read seed numbers
-        fscanf(f, "%"PRId64, &seed[i]);
-    while (fgetc(f) != ':');  // skip to first conversion of first map
-    for (int i = 0; i < MAPS; ++i) {
-        int64_t dst, src, len;
-        while (map[i].len < CONVS && fscanf(f, "%"PRId64" %"PRId64" %"PRId64, &dst, &src, &len) == 3)
-            map[i].conv[map[i].len++] = (Conv){src, src + len, dst - src};
-        qsort(map[i].conv, map[i].len, sizeof (Conv), lo_asc);  // sort to enable l-r search
-        while (!feof(f) && fgetc(f) != ':');  // skip to first conversion of next map
-    }
+    FILE *f = fopen(FNAME, "rb");  // fread requires binary mode
+    if (!f) return 1;
+    fread(input, 1, FSIZE, f);  // read single bytes until EOF
     fclose(f);
+
+#ifdef TIMER
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
+    for (int i = 0; i < MAPS; ++i)
+        map[i].len = 0;
+#endif
+
+    const char *c = input + 7;  // skip "seeds: "
+    for (int i = 0; i < SEEDS; ++i)  // read seed numbers
+        seed[i] = parseint(&c);
+    for (int i = 0; i < MAPS; ++i) {
+        c += 18; // skip shortest map description "\nseed-to-soil map:"
+        while (*c != '\n')  // skip longer map descriptions
+            c++;
+        c++;  // skip newline
+        do {
+            const int64_t dst = parseint(&c);
+            const int64_t src = parseint(&c);
+            const int64_t len = parseint(&c);
+            map[i].conv[map[i].len++] = (Conv){src, src + len, dst - src};
+            qsort(map[i].conv, map[i].len, sizeof (Conv), lo_asc);  // sort to enable l-r search
+        } while (*c & 16);  // until newline or null
+    }
 
     int64_t part1 = INT64_MAX;
     for (int i = 0; i < SEEDS; ++i)
         part1 = min(part1, convert1(seed[i]));
-    printf("Part 1: %"PRId64"\n", part1);  // example: 35, input: 836040384
+    printf("%"PRIu64" ", part1);  // 836040384
 
     int64_t part2 = INT64_MAX;
     for (int i = 0; i < SEEDS; i += 2)
         part2 = min(part2, convert2((Range){0, seed[i], seed[i] + seed[i + 1]}));
-    printf("Part 2: %"PRId64"\n", part2);  // example: 46, input: 10834440
+    printf("%"PRIu64"\n", part2);  // 10834440
 
-    printf("Time: %.0f us\n", stoptimer_us());
-    return 0;
+#ifdef TIMER
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
+#endif
 }
