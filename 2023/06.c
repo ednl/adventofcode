@@ -8,35 +8,40 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 06.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 06.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 0.67 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 1.12 µs
- *     Raspberry Pi 5 (2.4 GHz)      :    ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : ? ns
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 99 ns
+ *     iMac 2013 (i5 4570 3.2 GHz)   : ? ns
+ *     Raspberry Pi 5 (2.4 GHz)      : ? ns
  */
 
-#include <stdio.h>     // fopen, fclose, fscanf, printf
-#include <math.h>      // sqrt, floor, ceil
-#include <stdint.h>    // int64_t
-#include <inttypes.h>  // PRId64
+#include <stdio.h>
+#include <math.h>      // sqrt
+#include <stdint.h>    // uint64_t
+#include <inttypes.h>  // PRIu64
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 0
-#if EXAMPLE == 1
-    #define NAME "../aocinput/2023-06-example.txt"
-    #define RACES 3
-#else
-    #define NAME "../aocinput/2023-06-input.txt"
-    #define RACES 4
-#endif
-#define T 0  // time index
-#define D 1  // dist index
-#define L 2  // number of parameters
+#define FNAME "../aocinput/2023-06-input.txt"
+#define FSIZE 74  // 2 lines of 36 chars +newline
+#define RACES 4
 
-static int64_t race[RACES][L];
+static char input[FSIZE];
+static unsigned t[RACES];
+static unsigned d[RACES];
+
+static unsigned parseint(const char **s)
+{
+    unsigned x = *(*s)++ & 15;
+    while (**s & 16)  // followed by space or newline
+        x = x * 10 + (*(*s)++ & 15);
+    return x;
+}
 
 // Given: t = race time, d = race distance (t>0, d>0)
 // Find: x = button time => remaining time = t - x
@@ -45,59 +50,53 @@ static int64_t race[RACES][L];
 // Find roots: travel = d
 // <=> x(t - x) = d
 //     x^2 - tx + d = 0
-//     x1,2 = (t +/- sqrt(t^2 - 4d)) / 2
-//     x1,2 = t/2 +/- sqrt((t/2)^2 - d)
-static int64_t ways2win(int raceid)
+//     x0,1 = (t +/- sqrt(t^2 - 4d)) / 2
+//     x1 - x0 = sqrt(t^2 - 4d)
+//
+// From /u/musifter at https://redd.it/1w8oaya :
+//
+// But we need the number of integers in that size of range,
+// but the range center depends on if the time is even or odd:
+// |   |   |   |   |   |   |  Integers (t is even) (5)
+//   |   |   |   |   |   |    Integers (t is odd)  (6)
+// |-----------|-----------|
+// x0         t/2          x1
+// And additionally, if we truncate the difference to an integer,
+// it depends if that ends up even or odd as to whether we're including
+// or excluding one. And so the factor to adjust ends up being an XNOR.
+static uint64_t ways2win(const uint64_t t, const uint64_t d)
 {
-    const int64_t t = race[raceid][T];  // local variables for convenience
-    const int64_t d = race[raceid][D];
-    const double t_mid = (double)t / 2;
-    const double sq = t_mid * t_mid - d;
-    // if (sq < 0)  // no real solutions; doesn't happen in example or my input
-    //     return 0;
-    const double width = sqrt(sq);
-    int64_t button1 = (int64_t)(ceil(t_mid - width));
-    int64_t button2 = (int64_t)(floor(t_mid + width));
-    if (button1 * (t - button1) == d) { ++button1; --button2; }  // remove integer roots
-    // if (button1 <= 0) button1 = 1;  // two impossible cases because t>0,d>0
-    // if (button2 >= t) button2 = t - 1;
-    const int64_t len = button2 - button1 + 1;  // might be -1 for identical integer roots
-    return len > 0 ? len : 0;
+    const uint64_t w = sqrt(t * t - 4 * (d + 1));
+    return w + ((t + w + 1) & 1);
 }
 
 int main(void)
 {
-    FILE *f = fopen(NAME, "r");
-    if (!f) { fputs("File not found.\n", stderr); return 1; }
-
-    for (int i = 0; i < L; ++i) {  // two lines
-        while (fgetc(f) != ':');  // skip to first number
-        for (int j = 0; j < RACES; ++j)
-            fscanf(f, "%"PRId64, &race[j][i]);  // transpose
-    }
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) { fputs("File not found: "FNAME, stderr); return 1; }
+    fread(input, sizeof input, 1, f);  // read whole file as one block
     fclose(f);
 
 #ifdef TIMER
-    starttimer();
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
-    // Part 1
-    int64_t prod = 1;
-    for (int i = 0 ; i < RACES; ++i)
-        prod *= ways2win(i);
-    printf("%"PRId64"\n", prod);         // example:   288, input:  2449062
+    uint64_t t2 = 0, d2 = 0;  // part 2
+    const char *c = input + 13;  // skip to t[0] (eqv. of "Distance:" +3 space, +1 = length diff of t[0] and d[0])
+    for (int i = 0; i < RACES; c += 5, ++i)  // skip 5 spaces between times
+        t2 = t2 * 100 + (t[i] = parseint(&c));  // assume 10 <= t[1..] < 100
+    c += 8;  // skip "\nDistance:" -5 +3
+    for (int i = 0; i < RACES; c += 3, ++i)  // skip 3 spaces between distances
+        d2 = d2 * 10000 + (d[i] = parseint(&c));  // assume 1000 <= d[1..] < 10000
 
-    // Part 2
-    for (int i = 0; i < L; ++i)
-        for (int j = 1; j < RACES; ++j) {  // collate into first race
-            int64_t mult = 10;
-            while (mult <= race[j][i])
-                mult *= 10;
-            race[0][i] = race[0][i] * mult + race[j][i];
-        }
-    printf("%"PRId64"\n", ways2win(0));  // example: 71503, input: 33149631
+    unsigned part1 = 1;
+    for (int i = 0; i < RACES; ++i)
+        part1 *= ways2win(t[i], d[i]);
+    printf("%u %"PRIu64"\n", part1, ways2win(t2, d2));  // 2449062 33149631
 
 #ifdef TIMER
-    printf("Time: %.0f ns\n", stoptimer_ns());
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
 }
