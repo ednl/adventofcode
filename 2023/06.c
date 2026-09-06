@@ -5,18 +5,18 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *     cc -std=c17 -Wall -Wextra -pedantic 06.c
+ *     cc -std=c17 -Wall -Wextra -pedantic 06.c -lm
  * Enable timer:
- *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 06.c
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 06.c -lm
  * Test output with timer enabled:
  *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : ? ns
- *     Mac Mini 2020 (M1 3.2 GHz)    : 99 ns
- *     iMac 2013 (i5 4570 3.2 GHz)   : ? ns
- *     Raspberry Pi 5 (2.4 GHz)      : ? ns
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  59 ns
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  99 ns
+ *     Raspberry Pi 5 (2.4 GHz)      : 190 ns
+ *     iMac 2013 (i5 4570 3.2 GHz)   : 253 ns
  */
 
 #include <stdio.h>
