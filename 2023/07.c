@@ -8,17 +8,19 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 07.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 07.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 157 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 230 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :   ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 164 µs
  *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
  */
 
-#include <stdio.h>    // fopen, fclose, fscanf, printf
+#include <stdio.h>
 #include <stdlib.h>   // qsort
-#include <stdbool.h>  // bool
+#include <stdbool.h>
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
@@ -26,14 +28,8 @@
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
-#define EXAMPLE 0
-#if EXAMPLE == 1
-    #define NAME "../aocinput/2023-07-example.txt"
-    #define HANDS 5
-#else
-    #define NAME "../aocinput/2023-07-input.txt"
-    #define HANDS 1000
-#endif
+#define FNAME "../aocinput/2023-07-input.txt"
+#define HANDS 1000
 #define HANDSIZE  5  // five card deal
 #define VALRANGE 15  // face values range from 0 ('J' in part 2) to 14 ('A')
 
@@ -56,7 +52,7 @@ typedef struct hand {
 // Complete game with all hands
 static Hand game[HANDS];
 
-static void swap(int *const a, int *const b)
+static void swap(int *const restrict a, int *const restrict b)
 {
     const int tmp = *a;
     *a = *b;
@@ -66,8 +62,8 @@ static void swap(int *const a, int *const b)
 // Qsort helper: sort game of hands by rank descending, deal descending
 static int strength_desc(const void *p, const void *q)
 {
-    const Hand *a = (const Hand*)p;
-    const Hand *b = (const Hand*)q;
+    const Hand *a = p;
+    const Hand *b = q;
     if (a->rank > b->rank) return -1;
     if (a->rank < b->rank) return  1;
     if (a->deal > b->deal) return -1;
@@ -152,20 +148,21 @@ static int winnings(const bool ispart2)
 
 int main(void)
 {
-    FILE *f = fopen(NAME, "r");
+    FILE *f = fopen(FNAME, "r");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
     for (int i = 0; i < HANDS; ++i)
         fscanf(f, "%"STR(HANDSIZE)"s %d", game[i].card, &game[i].bid);
     fclose(f);
 
 #ifdef TIMER
-    starttimer();
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
-    printf("Part 1: %d\n", winnings(1 == 2));  // example: 6440, input: 250957639
-    printf("Part 2: %d\n", winnings(2 == 2));  // example: 5905, input: 251515496
+    printf("%d %d\n", winnings(0), winnings(1));  // 250957639 251515496
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
 }
