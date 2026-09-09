@@ -30,10 +30,10 @@
 #define FNAME "../aocinput/2023-08-input.txt"
 #define FSIZE 16384  // needed for my input: 13657
 #define START 8  // nodes ending in A, needed for my input: 6
-#define HSIZE (26 * 26 * 26)  // hash size
-#define SSIZE ((HSIZE >> 6) + 1)  // seen size in 64-bit units
+#define HSIZE (26 * 26 * 26)  // hash size for 3-letter names
+#define SSIZE ((HSIZE >> 6) + 1)  // "seen" size in 64-bit units
 #define QSIZE (1 << 3)  // queue size, needed for my input: 1<<2 = 4
-#define QMASK (QSIZE - 1)  // queue mask
+#define QMASK (QSIZE - 1)  // queue mask (QSIZE must be power of 2)
 
 typedef struct pair {
     uint16_t a, b;  // left/right, index/cost
@@ -46,7 +46,7 @@ static uint64_t seen[SSIZE];
 static Pair queue[QSIZE];
 static unsigned qhead, qtail;
 
-// Assume queue never full (for my input: maxlen=3)
+// Assume queue is never full (for my input: maxlen=3)
 static void push(const Pair x)
 {
     queue[qhead++] = x;
@@ -56,7 +56,7 @@ static void push(const Pair x)
 static bool pop(Pair *const x)
 {
     if (qhead == qtail)  // queue is never full
-        return false;  // so only return false when queue is empty
+        return false;  // so only here when queue is empty
     *x = queue[qtail++];
     qtail &= QMASK;
     return true;
@@ -73,7 +73,7 @@ static uint16_t hash(const char *s)
 // Mark index as seen, return false if already seen
 static bool mark(const uint16_t x)
 {
-    const int i = x >> 6;
+    const int i = x >> 6;  // divide by 64 because typeof seen = uint64_t
     const uint64_t bit = UINT64_C(1) << (x & ((1 << 6) - 1));
     if (seen[i] & bit)
         return false;
@@ -94,9 +94,9 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     memset(seen, 0, sizeof seen);
 #endif
 
-    // First line length, my input: 293
-    const char *c = input + 250;
-    for (; *c != '\n'; c++);
+    // First line length, must be prime to avoid LCM
+    const char *c = input + 250;  // assume first line length >= 250
+    for (; *c != '\n'; c++);  // find newline
     const unsigned len = c - input;
 
     // Build graph, save nodes ending in A
