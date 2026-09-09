@@ -8,148 +8,127 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 08.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 08.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 113 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 151 µs
- *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 2.27 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
-#include <stdio.h>     // getline (should probably check for availability)
-#include <stdint.h>    // int64_t
-#include <inttypes.h>  // PRId64
+#include <stdio.h>
+#include <stdint.h>    // uint16_t, uint64_t
+#include <inttypes.h>  // PRIu64
 #include <stdbool.h>
-#include <pthread.h>   // pthread_create, pthread_join
 #ifdef TIMER
+    #include <string.h>  // memset
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 0  // 0=full input, also available: 1,2,3 = example 1,2,3
-#if EXAMPLE
-    #define STR_HELPER(x) #x
-    #define STR(x) STR_HELPER(x)
-    #define NAME "../aocinput/2023-08-example"STR(EXAMPLE)".txt"
-#else
-    #define NAME ("../aocinput/2023-08-input.txt")
-#endif
-#define BITS  (5)  // range 1..26 fits in 5 bits
-#define BTWO  (BITS << 1)  // twice the bits
-#define WORD  (1 << BITS)  // 32
-#define MASK  (WORD - 1)   // 31
-#define NODES (WORD * WORD * WORD)  // 32768
-#define START (('A' & MASK) << BTWO | ('A' & MASK) << BITS | ('A' & MASK))
-#define MAXTHREADS 16  // must be bigger than number of xxA nodes in input
+#define FNAME "../aocinput/2023-08-input.txt"
+#define FSIZE 16384  // needed for my input: 13657
+#define HSIZE (26 * 26 * 26)  // hash size
+#define SSIZE ((HSIZE >> 6) + 1)  // seen size
+#define START 6  // nodes ending in A (start node count)
+#define QSIZE (1 << 3)  // queue size, needed for my input: 1<<2 = 4
+#define QMASK (QSIZE - 1)  // queue mask
 
-static char *lr;  // L=left,R=right instructions from first line of input
-static int node[NODES][2];  // simple indexing = fast array (but VERY sparse)
-static int threadcount;  // number of xxA nodes in input
-static int xxA[MAXTHREADS];  // node index values with names ending in A
-static pthread_t tid[MAXTHREADS];  // thread IDs
+typedef struct pair {
+    uint16_t a, b;  // left/right, index/cost
+} Pair;
 
-// Greatest Common Divisor
-// https://en.wikipedia.org/wiki/Euclidean_algorithm
-static int64_t gcd(int64_t a, int64_t b)
+static char input[FSIZE];
+static Pair node[HSIZE];
+static uint16_t start[START];
+static Pair queue[QSIZE];
+static unsigned qhead, qtail;
+static uint64_t seen[SSIZE];
+
+// Assume queue never full (for my input: maxlen=3)
+static void push(const Pair x)
 {
-    while (b) {
-        const int64_t tmp = b;
-        b = a % b;
-        a = tmp;
-    }
-    return a;
+    queue[qhead++] = x;
+    qhead &= QMASK;
 }
 
-// Least Common Multiple
-// https://en.wikipedia.org/wiki/Least_common_multiple#Using_the_greatest_common_divisor
-static int64_t lcm(const int64_t a, const int64_t b)
+static bool pop(Pair *const x)
 {
-    return a / gcd(a, b) * b;
+    if (qhead == qtail)  // queue is never full
+        return false;
+    *x = queue[qtail++];
+    qtail &= QMASK;
+    return true;
 }
 
-// Hash 3 uppercase letters to 15-bit value
-// 5-bit mask: 'A' = 1, 'Z' = 26
-// "AAA" = (( 1 * 32) +  1) * 32 +  1 =  1024 +  32 +  1 =  1057
-// "ZZZ" = ((26 * 32) + 26) * 32 + 26 = 26624 + 832 + 26 = 27482
-static int hash(const char *s)
+// "AAA"=0, "AAB"=676, "AAZ"=16900, "ZZZ"=17575
+static uint16_t hash(const char *s)
 {
-    return (s[0] & MASK) << BTWO | (s[1] & MASK) << BITS | (s[2] & MASK);
+    return *s + *(s + 1) * 26 + *(s + 2) * 26 * 26 - 0xb27f;
 }
 
-// Check if index i is to a node whose name does NOT end in 'Z'
-static bool end_not_z(const int i)
+static bool mark(const uint16_t x)
 {
-    return (i & MASK) != ('Z' & MASK);
-}
-
-// Navigate the map from node at index i to first node that ends in Z
-// For part 1, this works because the first xxZ node from AAA is ZZZ
-// For part 2, this is good enough because the first xxZ node from xxA
-// always loops back to the starting point; otherwise loop detection
-// would be needed.
-// Return: number of steps (as void* because this the thread loop)
-static void *navigate(void *start)
-{
-    int index = *(int *)start;  // start = &xxA[n] where n is thread number
-    int64_t steps = 0;  // could be int16 but compiler complains about cast
-    for (const char *dir = lr; end_not_z(index); ++steps) {  // start search from start of LR instructions
-        index = node[index][(int)*dir];  // *dir is 0 (L) or 1 (R), cast to suppress "char index" warning
-        if (*++dir == '\n')  // fetch next LR instruction, check for end
-            dir = lr;        // loop around
-    }
-    return (void *)steps;  // return as thread compatible result
+    const int i = x >> 6;
+    const uint64_t bit = UINT64_C(1) << (x & ((1 << 6) - 1));
+    if (seen[i] & bit)
+        return false;
+    seen[i] |= bit;
+    return true;
 }
 
 int main(void)
 {
-    // Read and convert one line of 'L' and 'R' instructions to index 0 or 1
-    FILE *f = fopen(NAME, "r");
-    if (!f)
-        return 1;  // file not found
-    size_t lr_size;
-    int LR = getline(&lr, &lr_size, f) - 1;  // subtract 1 for '\n'
-    if (LR < 1)
-        return 2;  // line 1 empty, or read error
-    for (int i = 0; i < LR; ++i)  // leave '\n' intact
-        lr[i] = lr[i] >> 1 & 1;   // 'L'=0b1001100 => 0, 'R'=0b1010010 => 1
-
-    // Skip empty line
-    fgetc(f);
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) return 1;
+    fread(input, 1, sizeof input, f);  // read single bytes until EOF
+    fclose (f);
 
 #ifdef TIMER
-    starttimer();
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
+    memset(seen, 0, sizeof seen);
 #endif
 
-    // Read and convert named nodes to "hashed" index values
-    // Save nodes ending in A
-    char *buf = NULL;
-    size_t bufsize;
-    while (getline(&buf, &bufsize, f) > 1) {  // e.g.: "ABC = (DEF, GHI)\n"
-        const int i = hash(buf);
-        node[i][0] = hash(buf + 7);
-        node[i][1] = hash(buf + 12);
-        if (buf[2] == 'A')  // save nodes ending in 'A'
-            xxA[threadcount++] = i;  // for my input, threadcount goes up to 6
-    }
-    // fclose(f);  // file was opened read-only, safe to leave clean-up to OS
-    // free(buf);  // leave clean-up to OS
+    // First line length, my input: 293
+    const char *c = input + 250;
+    for (; *c != '\n'; c++);
+    const unsigned len = c - input;
 
-    // Launch thread for each map navigation from node xxA to xxZ
-    for (int i = 0; i < threadcount; ++i)
-        pthread_create(&tid[i], NULL, navigate, &xxA[i]);
-
-    // Wait for threads to finish, take LCM of results
-    int64_t part2 = 1;  // neutral start because LCM(x,1) = x
-    void *steps;  // thread return value
-    for (int i = 0; i < threadcount; ++i) {
-        pthread_join(tid[i], &steps);
-        part2 = lcm(part2, (int64_t)steps);
-        if (xxA[i] == START)  // AAA node could be anywhere in input
-            printf("Part 1: %"PRId64"\n", (int64_t)steps);  // ex1: 2, ex2: 6, ex3: 2, input: 19631
+    // Build graph, save nodes ending in A
+    unsigned count = 0;
+    for (c += 2; *c; c += 17) {  // skip empty line, skip line
+        const uint16_t h = hash(c);
+        node[h] = (Pair){hash(c + 7), hash(c + 12)};
+        if (h < 676)  // "xxA" < "yyB" = 676
+            start[count++] = h;
     }
-    printf("Part 2: %"PRId64"\n", part2);  // ex1: 2, ex2: 6, ex3: 6, input: 21003205388413
-    // free(lr);  // leave clean-up to OS
+
+    unsigned part1 = len;
+    uint64_t part2 = len;
+    for (unsigned i = 0; i < count; ++i) {
+        qhead = qtail = 0;  // reset queue
+        push((Pair){start[i], 0});
+        mark(start[i]);
+        Pair x;
+        while (pop(&x)) {
+            if (x.a >= 16900) {  // "xxZ"
+                if (x.a == 17575)  // "ZZZ"
+                    part1 *= x.b;  // LCM of primes is product
+                part2 *= x.b;
+                break;
+            }
+            if (mark(node[x.a].a))
+                push((Pair){node[x.a].a, x.b + 1});
+            if (mark(node[x.a].b))
+                push((Pair){node[x.a].b, x.b + 1});
+        }
+    }
+    printf("%u %"PRIu64"\n", part1, part2);  // 19631 21003205388413
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
 }
