@@ -29,9 +29,9 @@
 
 #define FNAME "../aocinput/2023-08-input.txt"
 #define FSIZE 16384  // needed for my input: 13657
+#define START 8  // nodes ending in A, needed for my input: 6
 #define HSIZE (26 * 26 * 26)  // hash size
-#define SSIZE ((HSIZE >> 6) + 1)  // seen size
-#define START 6  // nodes ending in A (start node count)
+#define SSIZE ((HSIZE >> 6) + 1)  // seen size in 64-bit units
 #define QSIZE (1 << 3)  // queue size, needed for my input: 1<<2 = 4
 #define QMASK (QSIZE - 1)  // queue mask
 
@@ -42,9 +42,9 @@ typedef struct pair {
 static char input[FSIZE];
 static Pair node[HSIZE];
 static uint16_t start[START];
+static uint64_t seen[SSIZE];
 static Pair queue[QSIZE];
 static unsigned qhead, qtail;
-static uint64_t seen[SSIZE];
 
 // Assume queue never full (for my input: maxlen=3)
 static void push(const Pair x)
@@ -56,18 +56,21 @@ static void push(const Pair x)
 static bool pop(Pair *const x)
 {
     if (qhead == qtail)  // queue is never full
-        return false;
+        return false;  // so only return false when queue is empty
     *x = queue[qtail++];
     qtail &= QMASK;
     return true;
 }
 
 // "AAA"=0, "AAB"=676, "AAZ"=16900, "ZZZ"=17575
+// So "ends in A": hash < 676
+//    "ends in Z": hash >= 16900
 static uint16_t hash(const char *s)
 {
-    return *s + *(s + 1) * 26 + *(s + 2) * 26 * 26 - 0xb27f;
+    return *s + *(s + 1) * 26 + *(s + 2) * 26 * 26 - ('A' + 'A' * 26 + 'A' * 26 * 26);
 }
 
+// Mark index as seen, return false if already seen
 static bool mark(const uint16_t x)
 {
     const int i = x >> 6;
@@ -101,7 +104,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     for (c += 2; *c; c += 17) {  // skip empty line, skip line
         const uint16_t h = hash(c);
         node[h] = (Pair){hash(c + 7), hash(c + 12)};
-        if (h < 676)  // "xxA" < "yyB" = 676
+        if (h < 676)  // "xxA" < "AAB" = 676
             start[count++] = h;
     }
 
