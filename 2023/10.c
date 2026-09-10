@@ -9,33 +9,27 @@
  *     https://en.wikipedia.org/wiki/Pick%27s_theorem
  *
  * Compile:
- *     cc -std=c17 -Wall -Wextra -pedantic -Wno-multichar 09.c
+ *     cc -std=c17 -Wall -Wextra -pedantic -Wno-multichar 10.c
  * Enable timer:
- *     cc -O3 -march=native -mtune=native -Wno-multichar -DTIMER ../startstoptimer.c 09.c
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c -Wno-multichar 10.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  41 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :  75 µs
- *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 20.8 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
-#include <stdio.h>    // fopen, fclose, fgets, printf
+#include <stdio.h>
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 0
-#if EXAMPLE
-    #define NAME "../aocinput/2023-10-example.txt"
-    #define W 20
-    #define H 10
-#else
-    #define NAME "../aocinput/2023-10-input.txt"
-    #define W 140
-    #define H 140
-#endif
-#define W2 (W + 2)  // +2 for '\n\0'
+#define FNAME "../aocinput/2023-10-input.txt"
+#define W 140
+#define H 140
 
 typedef struct vec {
     int x, y;
@@ -49,8 +43,8 @@ typedef struct state {
 } State;
 
 static const Vec delta[] = {{0,0},{0,-1},{0,1},{-1,0},{1,0}};
-static const int pdiff[] = {0, -W2, W2, -1, 1};
-static char pipe[H][W2];
+static const int pdiff[] = {0, -(W + 1), W + 1, -1, 1};
+static char pipe[H][W + 1];  // +newline
 
 static void add_r(Vec *a, const Vec b)
 {
@@ -103,14 +97,14 @@ static State start(void)
 
 int main(void)
 {
-    FILE *f = fopen(NAME, "r");
+    FILE *f = fopen(FNAME, "rb");
     if (!f) { fputs("File not found.\n", stderr); return 1; }
-    for (int i = 0; i < H; ++i)
-        fgets(pipe[i], sizeof *pipe, f);
+    fread(pipe, sizeof pipe, 1, f);  // read as one block
     fclose(f);
 
 #ifdef TIMER
-    starttimer();
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
     State s = start();
@@ -143,6 +137,7 @@ int main(void)
     printf("%d %d\n", border, inside);  // 7005 417
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
 }
