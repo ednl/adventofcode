@@ -13,9 +13,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  9.5 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :  ?   µs
- *     Raspberry Pi 5 (2.4 GHz)      :  ?   µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  9.1 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 13.8 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 25.6 µs
  */
 
 #include <stdio.h>
@@ -31,9 +31,10 @@
 #define M 1000000  // empty space expansion factor part 2
 #define G 512      // galaxies, needed for my input: 430
 
-static char image[N][N + 1];
-static int xcount[N], ycount[N], xshift[N], yshift[N];
-static int xpos[G], ypos[G];
+static char image[N][N + 1];          // +newline
+static uint8_t xcount[N], ycount[N];  // number of galaxies per line (reset between timing loops, so small datatype)
+static int xpos[G], ypos[G];          // galaxy positions
+static int xshift[N], yshift[N];      // how many shifts (= empty lines) until here
 
 // Nifty algorithm by /u/NikitaSkybytskyi
 // https://www.reddit.com/r/adventofcode/comments/18fqxuq/an_on_algorithm_for_day_11/kcvwlev/
