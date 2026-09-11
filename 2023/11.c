@@ -48,6 +48,8 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
     // Parse and y-axis result
+    // as suggested by /u/DelightfulCodeWeasel
+    // https://old.reddit.com/r/adventofcode/comments/1wd8oml/2023_day_11_in_review_cosmic_expansion/p958dj5/
     int64_t part1 = 0, part2 = 0;
     register int64_t sum1 = 0, sum2 = 0, tot = 0;
     for (int i = 0; i < N; ++i) {
@@ -70,6 +72,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     }
 
     // Sum of all pairwise distances on one axis
+    // as explained by /u/maneatingape
     // https://github.com/maneatingape/advent-of-code-rust/blob/main/src/year2023/day11.rs
     sum1 = sum2 = tot = 0;
     for (int i = 0; i < N; ++i)
