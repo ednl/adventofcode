@@ -11,43 +11,32 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  62 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :  95 µs
- *     Raspberry Pi 5 (2.4 GHz)      :   ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 20.1 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
 */
 
-#include <stdio.h>     // fopen, fclose, getline, printf, fputc, stdout
-#include <stdlib.h>    // free
-#include <stdbool.h>   // bool
+#include <stdio.h>
+#include <stdbool.h>
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 0
-#if EXAMPLE
-#define NAME "../aocinput/2023-13-example.txt"
-#define N 9
-#else
-#define NAME "../aocinput/2023-13-input.txt"
+#define FNAME "../aocinput/2023-13-input.txt"
+#define FSIZE 20480  // needed for my input: 17767
 #define N 17
-#endif
 
+static char input[FSIZE];
 static int map[N], rot[N];
 static bool transposed;
 
-static int stoi(const char *s)
+static int atobin(const char **s)
 {
-    int val = 0;
-    while (*s)
-        val = val << 1 | (*s++ & 1);  // '.'=0, '#'=1
-    return val;
+    unsigned val = *(*s)++ & 1;
+    while (**s & 32)  // until '\n'
+        val = val << 1 | (*(*s)++ & 1);  // '.'=0, '#'=1
+    return val;  // leave *s pointing at newline to get length
 }
-
-// static void putbin(const int val, int len)
-// {
-//     while (len > 0)
-//         fputc('0' + (val >> --len & 1), stdout);
-// }
 
 static int rev(int val, int len)
 {
@@ -117,38 +106,32 @@ static int summarize(const int rows, const int cols, const int imperf)
 
 int main(void)
 {
-    FILE *f = fopen(NAME, "r");
-    if (!f) { fputs("File not found.\n", stderr); return 1; }
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) { fputs("File not found: "FNAME, stderr); return 1; }
+    fread(input, 1, sizeof input, f);  // read single bytes until EOF
+    fclose(f);
 
 #ifdef TIMER
-    starttimer();
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
-    int len;
-    char *buf = NULL;
-    size_t bufsz;
-    int part1 = 0, part2 = 0, rows = 0, cols = 0;
-    while ((len = (int)getline(&buf, &bufsz, f)) > 0) {
-        buf[--len] = '\0';  // remove newline
-        if (len) {
-            cols = len;
-            map[rows++] = stoi(buf);
-        } else {
-            transposed = false;
-            part1 += summarize(rows, cols, 0);
-            part2 += summarize(rows, cols, 1);
-            rows = cols = 0;
-        }
+    int part1 = 0, part2 = 0;
+    for (const char *c = input; *c; c++) {
+        const char *const start = c;
+        map[0] = atobin(&c);  // first row
+        const int cols = c++ - start;  // set cols, skip newline
+        int rows = 1;
+        for (; *c & 32; c++)  // until LF or NUL
+            map[rows++] = atobin(&c);
+        transposed = false;
+        part1 += summarize(rows, cols, 0);
+        part2 += summarize(rows, cols, 1);
     }
-    free(buf);
-    transposed = false;
-    part1 += summarize(rows, cols, 0);
-    part2 += summarize(rows, cols, 1);
-
-    printf("Part 1: %d\n", part1);  // example: 405, input: 31739
-    printf("Part 2: %d\n", part2);  // example: 400, input: 31539
+    printf("%d %d\n", part1, part2);  // 31739 31539
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
 }
