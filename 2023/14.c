@@ -11,26 +11,20 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz)       : 10 ms
- *     Mac Mini 2020 (M1 3.2 GHz)          : 22 ms
- *     iMac 2013 (i5 Haswell 4570 3.2 GHz) : 37 ms
- *     Raspberry Pi 5 (2.4 GHz)            : 41 ms
- *     Raspberry Pi 4 (1.8 GHz)            : 87 ms
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 10 ms
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 22 ms
+ *     Raspberry Pi 5 (2.4 GHz)      : 41 ms
  */
 
-#include <stdio.h>    // fopen, fclose, fgets, printf
-#include <string.h>   // memset
-#include <stdbool.h>  // bool
-#include "../startstoptimer.h"
-
-#define EXAMPLE 0
-#if EXAMPLE
-    #define NAME "../aocinput/2023-14-example.txt"
-    #define N 10
-#else
-    #define NAME "../aocinput/2023-14-input.txt"
-    #define N 100
+#include <stdio.h>
+#include <string.h>  // memset
+#include <stdbool.h>
+#ifdef TIMER
+    #include "../startstoptimer.h"
 #endif
+
+#define FNAME "../aocinput/2023-14-input.txt"
+#define N 100
 #define LIM (N + 1)
 #define DIM (N + 2)
 #define CYCLES 1000000000
@@ -38,7 +32,6 @@
 
 static char map[DIM][DIM + 2];
 
-// Transpose
 static void transpose(void)
 {
     for (int i = 1; i < LIM; ++i)
@@ -48,15 +41,6 @@ static void transpose(void)
             map[j][i] = tmp;
         }
 }
-
-#if EXAMPLE
-static void printmap(void)
-{
-    for (int i = 0; i < DIM; ++i)
-        printf("%s", map[i]);  // string already has '\n'
-    printf("\n");
-}
-#endif
 
 // Roll round rocks all the way to the left or right
 static void roll(const bool left)
@@ -109,14 +93,16 @@ static void cycle(void)
 
 int main(void)
 {
-    FILE *f = fopen(NAME, "r");
+    FILE *f = fopen(FNAME, "r");
     if (!f)
         return 1;
     for (int i = 1; i < LIM; ++i)
         fgets(&map[i][1], DIM, f);  // leave room for border
     fclose(f);
 
+#ifdef TIMER
     starttimer();
+#endif
 
     memset(&map[0][1], '#', N);  // top and bottom border not used
     memset(&map[DIM - 1][1], '#', N);
@@ -128,24 +114,15 @@ int main(void)
     }
 
     // Part 1, begin with N = up
-    #if EXAMPLE
-        printmap();
-    #endif
     transpose(); /* N = left */ roll(true); // roll left = N
     transpose(); /* N = up   */
-    #if EXAMPLE
-        printmap();
-    #endif
-    printf("Part 1: %d\n", load());  // example: 136, input: 113525
+    printf("%d ", load());  // 113525
 
     // Part 2
     // Complete first cycle from part 1: begin with N = up
     roll(true);  // roll left  = W
     transpose(); /* N = left */ roll(false); // roll right = S
     transpose(); /* N = up   */ roll(false); // roll right = E
-    #if EXAMPLE
-        printmap();
-    #endif
 
     // Get reference value after 100 cycles
     // (for my input enough to reach steady state loop)
@@ -164,10 +141,9 @@ int main(void)
     const int mod = (CYCLES - STEADY) % loop;
     for (int i = 0; i < mod; ++i)
         cycle();
+    printf("%d\n", load());  // 101292
 
-    #if EXAMPLE
-        printmap();
-    #endif
-    printf("Part 2: %d\n", load());  // example: 64, input: 101292
-    printf("Time: %.0f ms\n", stoptimer_ms());
+#ifdef TIMER
+    printf("Time: %.0f us\n", stoptimer_us());
+#endif
 }
