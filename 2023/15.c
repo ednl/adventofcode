@@ -10,27 +10,23 @@
  * Get minimum runtime:
  *     m=99999999;for((i=0;i<5000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo $m;done
  * Minimum runtime:
- *     Raspberry Pi 5 (2.4 GHz)            :  311 µs
- *     Macbook Pro 2024 (M4 4.4 GHz)       :  317 µs
- *     Mac Mini 2020 (M1 3.2 GHz)          :  501 µs
- *     Raspberry Pi 4 (1.8 GHz)            :  662 µs
- *     iMac 2013 (i5 Haswell 4570 3.2 GHz) : 1020 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 30.0 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
  */
 
-#include <stdio.h>    // fopen, fclose, fgets, printf
-#include <string.h>   // memcpy
-#include <stdint.h>   // int64_t
-#include <stdbool.h>  // bool
-#include "../startstoptimer.h"
-
-#define EXAMPLE 0
-#if EXAMPLE
-#define NAME "../aocinput/2023-15-example.txt"
-#else
-#define NAME "../aocinput/2023-15-input.txt"
+#include <stdio.h>
+#include <string.h>  // memcpy
+#include <stdint.h>  // int64_t
+#include <stdbool.h>
+#ifdef TIMER
+    #include "../startstoptimer.h"
 #endif
+
+#define FNAME "../aocinput/2023-15-input.txt"
+#define FSIZE ((1<<14)|(1<<13))  // needed for my input: 22846
 #define N 256  // number of boxes
-#define M 8    // max number of lenses per box (my input: 6)
+#define M 8    // max number of lenses per box, needed for my input: 6
 
 typedef struct lens {
     int32_t id;
@@ -42,6 +38,7 @@ typedef struct box {
     uint8_t count;
 } Box;
 
+static char input[FSIZE];
 static Box box[N];
 
 // For my input, label is max. 6 chars long, regex=[a-z]{1,6}
@@ -115,23 +112,30 @@ static int power(void)
 
 int main(void)
 {
-    starttimer();
-    FILE *f = fopen(NAME, "r");
-    if (!f) { fputs("File not found.\n", stderr); return 1; }
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) { fputs("File not found: "FNAME, stderr); return 1; }
+    fread(input, 1, sizeof input, f);
+    fclose(f);
+
+#ifdef TIMER
+starttimer();
+for (unsigned TIMERLOOP = 1000; TIMERLOOP--; ) {
+#endif
 
     char buf[16], *s = buf;
-    int c, part1 = 0;
-    while ((c = fgetc(f)) != EOF)
-        switch (c) {
+    int part1 = 0;
+    for (const char *c = input; *c; c++)
+        switch (*c) {
             case '\n':
             case ',' : *s = '\0'; part1 += hash(buf); s = buf; break;
             case '-' : *s = '\0'; rem(buf); *s++ = '-'; break;
-            case '=' : *s = '\0'; add(buf, (c = fgetc(f)) & 15); *s++ = '='; *s++ = (char)c; break;
-            default  : *s++ = (char)c;
+            case '=' : *s = '\0'; add(buf, *++c & 15); *s++ = '='; *s++ = *c; break;
+            default  : *s++ = *c;
         }
-    fclose(f);
-    printf("Part 1: %d\n", part1);    // example: 1320, input: 514394
-    printf("Part 2: %d\n", power());  // example:  145, input: 236358
-    printf("Time: %.0f us\n", stoptimer_us());
-    return 0;
+    printf("%u %u\n", part1, power());  // 514394 236358
+
+#ifdef TIMER
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
+#endif
 }
