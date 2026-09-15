@@ -13,16 +13,16 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  28.9 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :  71.7 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 164   µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 13.1 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
-#include <string.h>  // memcpy
+#include <string.h>  // memmove
 #include <stdint.h>  // uint32_t, uint8_t
-#include <stdbool.h>
 #ifdef TIMER
+    // #include <string.h>  // memset
     #include "../startstoptimer.h"
 #endif
 
@@ -31,86 +31,39 @@
 #define N 256  // number of boxes
 #define M 8    // max number of lenses per box, needed for my input: 6
 
+typedef uint32_t u32;
+typedef uint8_t u8;
 typedef struct lens {
-    uint32_t id;
-    uint8_t focal;
+    u32 label;
+    u8 focal;
 } Lens;
 
-typedef struct box {
-    Lens lens[M];
-    uint8_t count;
-} Box;
-
 static char input[FSIZE];
-static Box box[N];
+static Lens lens[N][M];
+static u8 count[N];
 
-// For my input, label is max. 6 chars long, regex=[a-z]{1,6}
-static uint32_t label2id(const char *s)
+static inline u32 next(const u32 prev, const u8 byte)
 {
-    uint32_t id = *s++;
-    while (*s >= 'a')
-        id = id << 5 | (*s++ & 31);
-    return id;
-}
-
-static uint8_t hash(const char *s)
-{
-    uint8_t h = 0;
-    while (*s) {
-        h += (uint8_t)*s++;
-        h *= 17;
-    }
-    return h;
+    return (prev + byte) * 17 & 0xff;
 }
 
 // Remove lens from box
-// Return true if found and removed, false if box empty or lens not in box
-static bool rem(const char *const label)
+static void rem(const u32 box, const u32 label)
 {
-    Box *b = &box[hash(label)];
-    if (!b->count)
-        return false;
-    const uint32_t id = label2id(label);
-    const Lens *const end = b->lens + b->count;
-    for (Lens *lens = b->lens; lens != end; ++lens)
-        if (lens->id == id) {
-            const Lens *next = lens + 1;
-            if (next != end)
-                memcpy(lens, next, (end - next) * sizeof *lens);
-            b->count--;
-            return true;
-        }
-    return false;
+    for (u8 i = 0; i < count[box]; ++i)
+        if (lens[box][i].label == label)
+            memmove(&lens[box][i], &lens[box][i + 1], (--count[box] - i) * sizeof (Lens));
 }
 
-// Add lens to box
-// Return true if replaced or appended, false for memory allocation failure
-static bool add(const char *const label, const uint8_t focal)
+// Insert lens into box
+static void ins(const u32 box, const u32 label, const u8 focal)
 {
-    Box *b = &box[hash(label)];
-    const uint32_t id = label2id(label);
-    const Lens *const end = b->lens + M;
-    Lens *const tail = b->lens + b->count;
-    for (Lens *lens = b->lens; lens != tail; ++lens)
-        if (lens->id == id) {
-            lens->focal = focal;  // replace
-            return true;
+    for (u8 i = 0; i < count[box]; ++i)
+        if (lens[box][i].label == label) {
+            lens[box][i].focal = focal;  // replace
+            return;
         }
-    if (tail == end)
-        return false;
-    *tail = (Lens){id, focal};  // append
-    b->count++;
-    return true;
-}
-
-// Focussing power of final lens configuration
-static int power(void)
-{
-    int sum = 0;
-    for (int i = 0; i < N; ++i)
-        for (int j = 0; j < (int)box[i].count; ++j)
-            sum += (i + 1) * (j + 1) * box[i].lens[j].focal;
-    return sum;
+    lens[box][count[box]++] = (Lens){label, focal};  // append
 }
 
 int main(void)
@@ -123,19 +76,30 @@ int main(void)
 #ifdef TIMER
 starttimer();
 for (unsigned TIMERLOOP = 1000; TIMERLOOP--; ) {
+    memset(count, 0, sizeof count);
 #endif
 
-    char buf[16], *s = buf;
-    int part1 = 0;
-    for (const char *c = input; *c; c++)
-        switch (*c) {
-            case '\n':
-            case ',' : *s = '\0'; part1 += hash(buf); s = buf; break;
-            case '-' : *s = '\0'; rem(buf); *s++ = '-'; break;
-            case '=' : *s = '\0'; add(buf, *++c & 15); *s++ = '='; *s++ = *c; break;
-            default  : *s++ = *c;
+    u32 part1 = 0;
+    for (const char *c = input; *c; c += 2) {
+        u32 hash = 0, label = 0;
+        for (; *c >= 'a'; c++) {
+            hash = next(hash, *c);
+            label = label << 5 | (*c & 31);  // max 6 chars
         }
-    printf("%u %u\n", part1, power());  // 514394 236358
+        if (*c == '-') {
+            rem(hash, label);
+            hash = next(hash, '-');
+        } else {  // '='
+            ins(hash, label, *++c & 15);
+            hash = next(next(hash, '='), *c);
+        }
+        part1 += hash;
+    }
+    u32 part2 = 0;
+    for (u32 i = 0; i < N; ++i)
+        for (u8 j = 0; j < count[i]; ++j)
+            part2 += (i + 1) * (j + 1) * lens[i][j].focal;
+    printf("%u %u\n", part1, part2);  // 514394 236358
 
 #ifdef TIMER
 }
