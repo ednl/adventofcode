@@ -14,15 +14,14 @@
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 13.1 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 21.3 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 81.4 µs
  */
 
 #include <stdio.h>
-#include <string.h>  // memmove
+#include <string.h>  // memmove, memset
 #include <stdint.h>  // uint32_t, uint8_t
 #ifdef TIMER
-    // #include <string.h>  // memset
     #include "../startstoptimer.h"
 #endif
 
