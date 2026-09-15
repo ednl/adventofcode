@@ -49,7 +49,7 @@ static inline u32 next(const u32 prev, const u8 byte)
 // Remove lens from box
 static void rem(const u32 box, const u32 label)
 {
-    for (u8 i = 0; i != count[box]; ++i)
+    for (u8 i = 0; i < count[box]; ++i)
         if (lens[box][i].label == label) {
             memmove(&lens[box][i], &lens[box][i + 1], (--count[box] - i) * sizeof (Lens));
             return;  // thanks /u/terje_wiig_mathisen for spotting that I forgot this
@@ -59,7 +59,7 @@ static void rem(const u32 box, const u32 label)
 // Insert lens into box
 static void ins(const u32 box, const u32 label, const u8 focal)
 {
-    for (u8 i = 0; i != count[box]; ++i)
+    for (u8 i = 0; i < count[box]; ++i)
         if (lens[box][i].label == label) {
             lens[box][i].focal = focal;  // replace
             return;
@@ -97,8 +97,8 @@ for (unsigned TIMERLOOP = 1000; TIMERLOOP--; ) {
         part1 += hash;
     }
     u32 part2 = 0;
-    for (u32 i = 0; i != N; ++i)
-        for (u8 j = 0; j != count[i]; ++j)
+    for (u32 i = 0; i < N; ++i)
+        for (u8 j = 0; j < count[i]; ++j)
             part2 += (i + 1) * (j + 1) * lens[i][j].focal;
     printf("%u %u\n", part1, part2);  // 514394 236358
 
