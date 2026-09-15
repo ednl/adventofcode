@@ -14,8 +14,7 @@
  *     Macbook Pro 2024 (M4 4.4 GHz)       :  5.87 ms
  *     Mac Mini 2020 (M1 3.2 GHz)          :  8.42 ms
  *     iMac 2013 (i5 Haswell 4570 3.2 GHz) : 10.2  ms
- *     Raspberry Pi 5 (2.4 GHz)            : 15.4  ms
- *     Raspberry Pi 4 (1.8 GHz)            : 32.2  ms
+ *     Raspberry Pi 5 (2.4 GHz)            : 15.3  ms
  */
 
 #include <stdio.h>     // fopen, fclose, fgets, printf
@@ -24,16 +23,12 @@
 #include <stdint.h>    // int64_t
 #include <inttypes.h>  // PRId64
 #include <stdbool.h>   // bool
-#include "../startstoptimer.h"
-
-#define EXAMPLE 0
-#if EXAMPLE
-    #define NAME "../aocinput/2023-12-example.txt"
-    #define N 6
-#else
-    #define NAME "../aocinput/2023-12-input.txt"
-    #define N 1000
+#ifdef TIMER
+    #include "../startstoptimer.h"
 #endif
+
+#define NAME "../aocinput/2023-12-input.txt"
+#define N 1000
 #define PLEN 128  // max needed 20+1+1, 100+4+1+1
 #define GLEN 32   // max needed 6, 30
 
@@ -50,6 +45,7 @@ typedef struct hashentry {
 static Springs springs[N];
 static Hashentry *hashtable;
 static size_t hashcount, hashsize = 640;  // 640 = max hashcount for my input
+static int64_t hashval[4096];
 
 // Unique hash value for 0<=ipat<128, 0<=igrp<32
 // Return: number in range [0..4096).
@@ -96,6 +92,7 @@ static bool hashfind(const int ipat, const int igrp, int64_t *val)
 static bool hashinsert(size_t index, const int key, const int64_t val)
 {
     if (hashcount == hashsize) {  // table full?
+        // putchar('!');
         Hashentry *p = realloc(hashtable, (hashsize <<= 1) * sizeof *hashtable);  // double the size
         if (!p)
             return false;
@@ -239,10 +236,13 @@ static int read(const char *fname)
 
 int main(void)
 {
-    starttimer();
     const int rows = read(NAME);
     if (rows < 1)
         return 1;
+
+#ifdef TIMER
+    starttimer();
+#endif
 
     hashtable = malloc(hashsize * sizeof *hashtable);
     printf("Part 1: %"PRId64"\n", sumarr(rows));  // example: 21, input: 7705
@@ -272,6 +272,8 @@ int main(void)
         togocount(row);  // new cumulative sum
     }
     printf("Part 2: %"PRId64"\n", sumarr(rows));  // example: 525152, input: 50338344809230
+#ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
+#endif
     free(hashtable);
 }

@@ -13,14 +13,14 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  30.0 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  28.9 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :  71.7 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 164   µs
  */
 
 #include <stdio.h>
 #include <string.h>  // memcpy
-#include <stdint.h>  // int64_t
+#include <stdint.h>  // uint32_t, uint8_t
 #include <stdbool.h>
 #ifdef TIMER
     #include "../startstoptimer.h"
@@ -32,7 +32,7 @@
 #define M 8    // max number of lenses per box, needed for my input: 6
 
 typedef struct lens {
-    int32_t id;
+    uint32_t id;
     uint8_t focal;
 } Lens;
 
@@ -45,11 +45,11 @@ static char input[FSIZE];
 static Box box[N];
 
 // For my input, label is max. 6 chars long, regex=[a-z]{1,6}
-static int32_t label2id(const char *s)
+static uint32_t label2id(const char *s)
 {
-    int32_t id = 0;
-    while (*s >= 'a' && *s <= 'z')
-        id = id * 26 + *s++;
+    uint32_t id = *s++;
+    while (*s >= 'a')
+        id = id << 5 | (*s++ & 31);
     return id;
 }
 
@@ -65,19 +65,19 @@ static uint8_t hash(const char *s)
 
 // Remove lens from box
 // Return true if found and removed, false if box empty or lens not in box
-static bool rem(const char *label)
+static bool rem(const char *const label)
 {
     Box *b = &box[hash(label)];
     if (!b->count)
         return false;
-    const int32_t id = label2id(label);
-    const Lens *end = b->lens + b->count;
+    const uint32_t id = label2id(label);
+    const Lens *const end = b->lens + b->count;
     for (Lens *lens = b->lens; lens != end; ++lens)
         if (lens->id == id) {
             const Lens *next = lens + 1;
             if (next != end)
-                memcpy(lens, next, (size_t)(end - next) * sizeof *lens);
-            --b->count;
+                memcpy(lens, next, (end - next) * sizeof *lens);
+            b->count--;
             return true;
         }
     return false;
@@ -85,12 +85,12 @@ static bool rem(const char *label)
 
 // Add lens to box
 // Return true if replaced or appended, false for memory allocation failure
-static bool add(const char *label, const uint8_t focal)
+static bool add(const char *const label, const uint8_t focal)
 {
     Box *b = &box[hash(label)];
-    const int32_t id = label2id(label);
-    const Lens *end = b->lens + M;
-    Lens *tail = b->lens + b->count;
+    const uint32_t id = label2id(label);
+    const Lens *const end = b->lens + M;
+    Lens *const tail = b->lens + b->count;
     for (Lens *lens = b->lens; lens != tail; ++lens)
         if (lens->id == id) {
             lens->focal = focal;  // replace
@@ -99,7 +99,7 @@ static bool add(const char *label, const uint8_t focal)
     if (tail == end)
         return false;
     *tail = (Lens){id, focal};  // append
-    ++b->count;
+    b->count++;
     return true;
 }
 
