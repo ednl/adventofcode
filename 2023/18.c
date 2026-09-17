@@ -17,7 +17,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz)    : 1.86 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz)    : 1.77 µs
  *     Apple M1 Mac Mini 2020 (3.2 GHz) : 2.94 µs
  *     Raspberry Pi 5 (2.4 GHz)         : 6.03 µs
  */
@@ -33,6 +33,7 @@
 #define FSIZE ((1<<13)|(1<<12))  // 12288, needed for my input: 10759
 
 typedef enum dir {R, D, L, U} Dir;  // R=0, D=1, L=2, U=3
+static const char hash[] = {['R']=R, ['D']=D, ['L']=L, ['U']=U};
 static char input[FSIZE];
 
 // Shoelace: A = 1/2 . sum((y[i] + y[i+1]).(x[i] - x[i+1]))
@@ -73,7 +74,8 @@ for (unsigned TIMERLOOP = 1000; TIMERLOOP--; ) {
     int64_t a2 = 0, b2 = 0, y2 = 0;
     for (const char *c = input; *c; c += 8) {
         // Part 1
-        const Dir dir1 = (*c * 143 + 69) >> 6 & 3;  // RDLU = 0123
+        // const Dir dir1 = (*c * 263) >> 8 & 3;  // RDLU = 0123
+        const Dir dir1 = hash[*c];  // RDLU = 0123
         int len1;
         if (*(c + 3) == ' ') {
             len1 = *(c + 2) & 15;  // 2..9
