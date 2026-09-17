@@ -19,7 +19,7 @@
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz)    : 1.74 µs
  *     Apple M1 Mac Mini 2020 (3.2 GHz) : 2.82 µs
- *     Raspberry Pi 5 (2.4 GHz)         : 6.03 µs
+ *     Raspberry Pi 5 (2.4 GHz)         : 5.75 µs
  */
 
 #include <stdio.h>
@@ -74,7 +74,7 @@ for (unsigned TIMERLOOP = 1000; TIMERLOOP--; ) {
     int64_t a2 = 0, b2 = 0, y2 = 0;
     for (const char *c = input; *c; c += 8) {
         // Part 1
-        // const Dir dir1 = (*c * 263) >> 8 & 3;  // RDLU = 0123 (0.1 µs slower)
+        // const Dir dir1 = (*c * 263) >> 8 & 3;  // RDLU = 0123 (0.1 µs slower, 0.3 on Pi5)
         const Dir dir1 = hash[(uint8_t)*c];  // RDLU = 0123, cast to keep compiler happy
         int len1;
         if (*(c + 3) == ' ') {
