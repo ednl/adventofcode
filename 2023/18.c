@@ -17,9 +17,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz)    :    ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz)    : 1.86 µs
  *     Apple M1 Mac Mini 2020 (3.2 GHz) : 2.94 µs
- *     Raspberry Pi 5 (2.4 GHz)         :    ? µs
+ *     Raspberry Pi 5 (2.4 GHz)         : 6.03 µs
  */
 
 #include <stdio.h>
@@ -36,11 +36,10 @@ typedef enum dir {R, D, L, U} Dir;  // R=0, D=1, L=2, U=3
 static char input[FSIZE];
 
 // Shoelace: A = 1/2 . sum((y[i] + y[i+1]).(x[i] - x[i+1]))
-// https://en.wikipedia.org/wiki/Shoelace_formula
 // For two points on horizontal line: y[i] = y[i+1], so y[i] + y[i+1] = 2y
 // For two points on vertical line  : x[i] = x[i+1], so x[i] - x[i+1] = 0
 // Bring the 1/2 in the sum: A = sum(y.dx) for horizontal lines only.
-static void shoelace(int64_t *const restrict a, int64_t *const restrict b, int64_t *const restrict y, const int len, const int dir)
+static void shoelace(int64_t *const restrict a, int64_t *const restrict b, int64_t *const restrict y, const int len, const Dir dir)
 {
     switch (dir) {
         case R: *a -= *y * len; break;
@@ -52,7 +51,6 @@ static void shoelace(int64_t *const restrict a, int64_t *const restrict b, int64
 }
 
 // Pick: i = A - b/2 + 1, but add border b
-// https://en.wikipedia.org/wiki/Pick%27s_theorem
 // A can be negative, depending on direction of Shoelace
 static int64_t pick(const int64_t a, const int64_t b)
 {
@@ -75,7 +73,7 @@ for (unsigned TIMERLOOP = 1000; TIMERLOOP--; ) {
     int64_t a2 = 0, b2 = 0, y2 = 0;
     for (const char *c = input; *c; c += 8) {
         // Part 1
-        const int dir1 = (*c * 143 + 69) >> 6 & 3;  // RDLU = 0123
+        const Dir dir1 = (*c * 143 + 69) >> 6 & 3;  // RDLU = 0123
         int len1;
         if (*(c + 3) == ' ') {
             len1 = *(c + 2) & 15;  // 2..9
@@ -85,7 +83,6 @@ for (unsigned TIMERLOOP = 1000; TIMERLOOP--; ) {
             c += 7;
         }
         shoelace(&a1, &b1, &y1, len1, dir1);
-
         // Part 2
         const int len2 =
               (( *c      & 16 ?  *c      & 15 : ( *c      & 7) + 9) << 16)
@@ -93,7 +90,7 @@ for (unsigned TIMERLOOP = 1000; TIMERLOOP--; ) {
             | ((*(c + 2) & 16 ? *(c + 2) & 15 : (*(c + 2) & 7) + 9) <<  8)
             | ((*(c + 3) & 16 ? *(c + 3) & 15 : (*(c + 3) & 7) + 9) <<  4)
             | ((*(c + 4) & 16 ? *(c + 4) & 15 : (*(c + 4) & 7) + 9));
-        const int dir2 = *(c + 5) & 3;
+        const Dir dir2 = *(c + 5) & 3;
         shoelace(&a2, &b2, &y2, len2, dir2);
     }
     printf("%"PRIu64" %"PRIu64"\n", pick(a1, b1), pick(a2, b2)); // 46334 102000662718092
