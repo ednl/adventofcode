@@ -122,7 +122,7 @@ for (unsigned TIMERLOOP = 1000; TIMERLOOP--; ) {
 #endif
 
     for (const char *c = input; *c; ) {
-        horz(&c); c += 8;
+        horz(&c); c += 8;  // assume input starts with R or L for both parts 1 and 2
         vert(&c); c += 8;
     }
     printf("%"PRIu64" %"PRIu64"\n", pick(part1), pick(part2));  // 46334 102000662718092
