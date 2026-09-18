@@ -18,8 +18,8 @@
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz)    : 0.93 µs
- *     Apple M1 Mac Mini 2020 (3.2 GHz) :    ? µs
- *     Raspberry Pi 5 (2.4 GHz)         :    ? µs
+ *     Apple M1 Mac Mini 2020 (3.2 GHz) : 1.35 µs
+ *     Raspberry Pi 5 (2.4 GHz)         : 3.76 µs
  */
 
 #include <stdio.h>
