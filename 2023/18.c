@@ -33,10 +33,10 @@
 #define FSIZE ((1<<13)|(1<<12))  // 12288, needed for my input: 10759
 
 typedef enum dir {R, D, L, U} Dir;  // R=0, D=1, L=2, U=3
-static const Dir hash[] = {['R']=R, ['D']=D, ['L']=L, ['U']=U};
+static const Dir transl[] = {['R']=R, ['D']=D, ['L']=L, ['U']=U};
 static char input[FSIZE];
 
-// Shoelace: A = 1/2 . sum((y[i] + y[i+1]).(x[i] - x[i+1]))
+// Shoelace formula: A = 1/2 . sum((y[i] + y[i+1]).(x[i] - x[i+1]))
 // For two points on horizontal line: y[i] = y[i+1], so y[i] + y[i+1] = 2y
 // For two points on vertical line  : x[i] = x[i+1], so x[i] - x[i+1] = 0
 // Bring the 1/2 in the sum: A = sum(y.dx) for horizontal lines only.
@@ -51,8 +51,9 @@ static void shoelace(int64_t *const restrict a, int64_t *const restrict b, int64
     *b += len;
 }
 
-// Pick: i = A - b/2 + 1, but add border b
-// A can be negative, depending on direction of Shoelace
+// Pick's theorem: i = A - b/2 + 1, but add border b
+// A can be negative, depending on direction of contour
+// (but both are positive for my input)
 static int64_t pick(const int64_t a, const int64_t b)
 {
     return (a > 0 ? a : -a) + (b >> 1) + 1;
@@ -74,8 +75,8 @@ for (unsigned TIMERLOOP = 1000; TIMERLOOP--; ) {
     int64_t a2 = 0, b2 = 0, y2 = 0;
     for (const char *c = input; *c; c += 8) {
         // Part 1
-        // const Dir dir1 = (*c * 263) >> 8 & 3;  // RDLU = 0123 (0.1 µs slower, 0.3 on Pi5)
-        const Dir dir1 = hash[(uint8_t)*c];  // RDLU = 0123, cast to keep compiler happy
+        // const Dir dir1 = (*c * 263) >> 8 & 3;  // perfect hash is 0.1 µs slower, 0.3 on Pi5
+        const Dir dir1 = transl[(uint8_t)*c];  // RDLU = 0123, cast to keep compiler happy
         int len1;
         if (*(c + 3) == ' ') {
             len1 = *(c + 2) & 15;  // 2..9
