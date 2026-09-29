@@ -8,41 +8,41 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 02.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 02.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz)                    :  52 µs
- *     Mac Mini 2020 (M1 3.2 GHz)                       :  88 µs
- *     Raspberry Pi 5 (2.4 GHz)                         : 121 µs
- *     iMac 2013 (Core i5 Haswell 4570 3.2 GHz)         : 171 µs
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 223 µs
- *     Raspberry Pi 4 (1.8 GHz)                         : 400 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 18.9 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
 #include <stdlib.h>  // abs
+#include <stdint.h>  // uint8_t
 #include <stdbool.h>
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
-#define FNAME   "../aocinput/2024-02-input.txt"
+#define FNAME "../aocinput/2024-02-input.txt"
+#define FSIZE ((1<<14)|(1<<12))  // needed for my input: 19161
 #define REPORTS 1000  // lines in input file
-#define LEVELS  8     // max numbers per line
-#define BUFSIZE (LEVELS * 3 + 1)  // line buf size (2 digits + 1 space/newline per number, +'\0')
+#define LEVELS  8  // max numbers per line
 #define MINDIST 1
 #define MAXDIST 3
 
-static int data[REPORTS][LEVELS];  // input file parsed
-static int count[REPORTS];         // number of levels in each report
+static char input[FSIZE];
+static uint8_t data[REPORTS][LEVELS];  // input file parsed
+static uint8_t count[REPORTS];         // number of levels in each report
 
-// Parse 1- or 2-digit number, update char pointer
-static int num(const char **const c)
+// Parse 1- or 2-digit number, update string pointer
+static unsigned readnum(const char **const s)
 {
-    int x = (*(*c)++ & 15);
-    if (**c >= '0' && **c <= '9')
-        x = x * 10 + (*(*c)++ & 15);
-    (*c)++;
+    unsigned x = *(*s)++ & 15;
+    if (**s & 16)  // not space or newline
+        x = x * 10 + (*(*s)++ & 15);
     return x;
 }
 
@@ -53,7 +53,7 @@ static int change(const int a, const int b)
 }
 
 // Is this report safe? It has 'count' levels. If 'skip' is a valid index, skip it.
-static bool issafe(const int *const level, const int count, const int skip)
+static bool issafe(const uint8_t *const level, const int count, const int skip)
 {
     const int end = count - 1 - (skip == count - 1);  // limit for i when comparing level[i] and level[i+1]
     int sumchange = 0;
@@ -71,34 +71,38 @@ static bool issafe(const int *const level, const int count, const int skip)
 
 int main(void)
 {
-#ifdef TIMER
-    starttimer();
-#endif
-
-    // Parse input file
-    FILE *f = fopen(FNAME, "r");
-    if (!f) { fputs("File not found.\n", stderr); return 1; }
-    char buf[BUFSIZE];
-    for (int i = 0; fgets(buf, sizeof buf, f); ++i) {
-        int j = 0;
-        for (const char *c = buf; *c; data[i][j++] = num(&c));
-        count[i] = j;  // actual number of levels in this report
-    }
+    FILE *f = fopen(FNAME, "rb");  // fread requires binary mode
+    if (!f) { fputs("File not found: "FNAME, stderr); return EXIT_FAILURE; }
+    fread(input, 1, sizeof input, f);  // read single bytes until EOF
     fclose(f);
 
-    // Evaluate reports
+#ifdef TIMER
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
+#endif
+
+    const char *c = input;
+    for (int i = 0; *c; ++i)
+        for (int j = 0;;) {
+            data[i][j++] = readnum(&c);
+            if (*c++ == '\n') {
+                count[i] = j;
+                break;
+            }
+        }
+
     int safe = 0, damp = 0;
     for (int i = 0; i < REPORTS; ++i)  // for every report
         for (int skip = -1; skip < count[i]; ++skip)  // try different versions
             if (issafe(data[i], count[i], skip)) {
                 safe += skip == -1;  // part 1
-                ++damp;              // part 2
+                damp++;              // part 2
                 break;               // stop at first safe version
             }
-    printf("%d %d\n", safe, damp);  // 516 561
+    printf("%u %u\n", safe, damp);  // 516 561
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
-    return 0;
 }
