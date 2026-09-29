@@ -5,9 +5,9 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *     cc -std=c17 -Wall -Wextra -pedantic 01.c
+ *     cc -std=c17 -Wall -Wextra -pedantic 01a.c
  * Enable timer:
- *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 01.c
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 01a.c
  * Test output with timer enabled:
  *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
@@ -20,16 +20,20 @@
 
 #include <stdio.h>
 #include <stdlib.h>  // qsort, abs
+#include <stdint.h>  // uint8_t
 #ifdef TIMER
+    #include <string.h>  // memset
     #include "../startstoptimer.h"
 #endif
 
 #define FNAME "../aocinput/2024-01-input.txt"
 #define N 1000  // number of lines in input file
+#define M 100000  // greater than any input value
 #define FSIZE (N * 14)  // 5+3+5+1 = 14
 
 static char input[FSIZE];
 static int a[N], b[N];  // two columns of values
+static uint8_t freq[M];
 
 static int cmp_int_asc(const void *p, const void *q)
 {
@@ -51,13 +55,14 @@ int main(void)
 #ifdef TIMER
 starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
+    memset(freq, 0, sizeof freq);
 #endif
 
     // Read numbers from columns
     const char *c = input;
     for (int i = 0; i < N; ++i) {
-        a[i] = readnum(c); c += 8;
-        b[i] = readnum(c); c += 6;
+        a[i] = readnum(c);           c += 8;
+        freq[(b[i] = readnum(c))]++; c += 6;
     }
 
     // Sort columns separately
@@ -65,12 +70,9 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     qsort(b, N, sizeof *b, cmp_int_asc);
 
     int part1 = 0, part2 = 0;
-    for (int i = 0, j = 0; i < N; ++i) {
-        part1 += abs(a[i] - b[i]);    // sum distances of pairs a[i],b[i]
-        while (j < N && a[i] > b[j])  // find matching b[j]
-            ++j;
-        while (j < N && a[i] == b[j])
-            part2 += b[j++];          // add each matching b[j]
+    for (int i = 0; i < N; ++i) {
+        part1 += abs(a[i] - b[i]);
+        part2 += a[i] * freq[a[i]];
     }
     printf("%u %u\n", part1, part2);  // 1320851 26859182
 
