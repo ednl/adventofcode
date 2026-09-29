@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  30.0 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  29.1 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :  61.8 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 142   µs
  */
@@ -22,7 +22,6 @@
 #include <stdlib.h>  // qsort, abs
 #include <stdint.h>  // uint8_t
 #ifdef TIMER
-    #include <string.h>  // memset
     #include "../startstoptimer.h"
 #endif
 
@@ -55,7 +54,6 @@ int main(void)
 #ifdef TIMER
 starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
-    memset(freq, 0, sizeof freq);
 #endif
 
     // Read numbers from columns
@@ -73,6 +71,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     for (int i = 0; i < N; ++i) {
         part1 += abs(a[i] - b[i]);
         part2 += a[i] * freq[a[i]];
+        freq[a[i]] = 0;  // reset for next timer loop; faster than memset of whole array
     }
     printf("%u %u\n", part1, part2);  // 1320851 26859182
 
