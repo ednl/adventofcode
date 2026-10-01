@@ -14,8 +14,8 @@
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) :  30.7 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :     ? µs
- *     Raspberry Pi 5 (2.4 GHz)      :     ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  65.0 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 150.3 µs
  */
 
 #include <stdio.h>
@@ -35,7 +35,7 @@
 static char input[FSIZE];
 static int a[N], b[N];  // two columns of values
 static int key[MAPSIZE];
-static uint8_t val[MAPSIZE];
+static uint8_t val[MAPSIZE];  // split up key/val for easy reset
 
 static uint32_t fnv1a(uint32_t x)
 {
