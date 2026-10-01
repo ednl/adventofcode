@@ -27,18 +27,19 @@
 #endif
 
 #define FNAME "../aocinput/2024-01-input.txt"
-#define N 1000  // number of lines in input file
-#define FSIZE (N * 14)  // 5+3+5+1 = 14
-#define MAPSIZE (1 << 12)  // unique values ~1500 so size>3000 preferably
-#define MAPMASK (MAPSIZE - 1)
+#define N 1000             // number of lines in input file
+#define FSIZE (N * 14)     // 5+3+5+1 = 14
 #define OFS ('0' * 11111)  // 5-digit number ascii offset
+#define TSIZE (1 << 12)    // ~1500 unique values so size>3000 preferably
+#define TMASK (TSIZE - 1)
 
 static char input[FSIZE];
 static int col1[N];
-static int col2[N];  // two columns of values
-static int key[MAPSIZE];
-static uint8_t val[MAPSIZE];  // split up key/val for easy reset
+static int col2[N];  // input values in two columns
+static int key[TSIZE];
+static uint8_t val[TSIZE];  // separate val[] of small type for quick & easy reset
 
+// https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function#FNV-1a_hash
 static uint32_t fnv1a(uint32_t x)
 {
     uint32_t h = 0x811c9dc5;
@@ -52,18 +53,18 @@ static uint32_t fnv1a(uint32_t x)
 // Open-addressing, linear probing
 static void insert(const int x)
 {
-    uint32_t index = fnv1a(x) & MAPMASK;
+    uint32_t index = fnv1a(x) & TMASK;
     while (key[index] && key[index] != x)
-        index = (index + 1) & MAPMASK;
+        index = (index + 1) & TMASK;
     key[index] = x;
     val[index]++;
 }
 
 static uint8_t lookup(const int x)
 {
-    uint32_t index = fnv1a(x) & MAPMASK;
+    uint32_t index = fnv1a(x) & TMASK;
     while (key[index] && key[index] != x)
-        index = (index + 1) & MAPMASK;
+        index = (index + 1) & TMASK;
     return val[index];
 }
 
@@ -91,7 +92,7 @@ int main(void)
 #ifdef TIMER
 starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
-    memset(val, 0, sizeof val);
+    memset(val, 0, sizeof val);  // reset for next timer loop
 #endif
 
     // Read numbers from columns
@@ -106,8 +107,8 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     qsort(col2, N, sizeof *col2, cmp_int_asc);
 
     int part1 = 0, part2 = 0;
-    for (int i = 0; i < N; ++i) {
-        part1 += abs(col1[i] - col2[i]);
+    for (int i = 0; i < N; ++i) {  // assume col1 values are unique in that col
+        part1 += abs(col1[i] - col2[i]);  // distance = absolute value of difference
         part2 += col1[i] * lookup(col1[i]);
     }
     printf("%u %u\n", part1, part2);  // 1320851 26859182

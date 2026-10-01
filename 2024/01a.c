@@ -20,21 +20,21 @@
 
 #include <stdio.h>
 #include <stdlib.h>  // qsort, abs
-#include <stdint.h>
+#include <stdint.h>  // uint8_t
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
 #define FNAME "../aocinput/2024-01-input.txt"
-#define N 1000  // number of lines in input file
-#define M 100000  // greater than any input value
-#define FSIZE (N * 14)  // 5+3+5+1 = 14
+#define N 1000             // number of lines in input file
+#define M 100000           // bigger than any col1 value
+#define FSIZE (N * 14)     // 5+3+5+1 = 14
 #define OFS ('0' * 11111)  // 5-digit number ascii offset
 
 static char input[FSIZE];
 static int col1[N];
-static int col2[N];  // two columns of values
-static uint8_t hist[M];
+static int col2[N];  // input values in two columns
+static uint8_t hist[M];  // small type for fast reset
 
 static int cmp_int_asc(const void *p, const void *q)
 {
@@ -74,10 +74,10 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     qsort(col2, N, sizeof *col2, cmp_int_asc);
 
     int part1 = 0, part2 = 0;
-    for (int i = 0; i < N; ++i) {
-        part1 += abs(col1[i] - col2[i]);
+    for (int i = 0; i < N; ++i) {  // assume col1 values are unique in that col
+        part1 += abs(col1[i] - col2[i]);  // distance = absolute value of difference
         part2 += col1[i] * hist[col1[i]];
-        hist[col1[i]] = 0;  // reset for next timer loop; faster than memset of whole array even for u8
+        hist[col1[i]] = 0;  // reset for next timer loop; faster than memset of whole array
     }
     printf("%u %u\n", part1, part2);  // 1320851 26859182
 
