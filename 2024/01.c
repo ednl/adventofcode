@@ -74,9 +74,8 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 
     int part1 = 0, part2 = 0;
     for (int i = 0, j = 0; i < N; ++i) {  // assume col1 values are unique in that col
-        // part1 += col1[i] > col2[i] ? col1[i] - col2[i] : col2[i] - col1[i];  // distance = absolute value of difference
         part1 += abs(col1[i] - col2[i]);  // distance = absolute value of difference
-        for (; col1[i] > col2[j]; ++j);  // col2[N] always bigger than any col1
+        for (; col1[i] > col2[j]; ++j);   // col2[N] always bigger than any col1
         for (; col1[i] == col2[j]; ++j)
             part2 += col1[i];
     }
