@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  30.0 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  29.9 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :  62.4 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 145   µs
  */
@@ -27,18 +27,24 @@
 #define FNAME "../aocinput/2024-01-input.txt"
 #define N 1000  // number of lines in input file
 #define FSIZE (N * 14)  // 5+3+5+1 = 14
+#define OFS ('0' * 11111)  // 5-digit number ascii offset
 
 static char input[FSIZE];
-static int a[N], b[N];  // two columns of values
+static int col1[N];
+static int col2[N + 1];  // two columns of values, +sentinel
 
 static int cmp_int_asc(const void *p, const void *q)
 {
-    return *(const int *)p - *(const int *)q;  // safe because 10000 <= x < 100000
+    const int a = *(const int *)p;
+    const int b = *(const int *)q;
+    if (a < b) return -1;
+    if (a > b) return  1;
+    return 0;
 }
 
-static int readnum(const char *const c)
+static int readnum(const char *const s)
 {
-    return *c * 10000 + *(c + 1) * 1000 + *(c + 2) * 100 + *(c + 3) * 10 + *(c + 4) - 0x82350;
+    return *s * 10000 + *(s + 1) * 1000 + *(s + 2) * 100 + *(s + 3) * 10 + *(s + 4) - OFS;
 }
 
 int main(void)
@@ -53,24 +59,24 @@ starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
-    // Read numbers from columns
+    // Read numbers in columns
     const char *c = input;
     for (int i = 0; i < N; ++i) {
-        a[i] = readnum(c); c += 8;
-        b[i] = readnum(c); c += 6;
+        col1[i] = readnum(c); c += 8;
+        col2[i] = readnum(c); c += 6;
     }
 
     // Sort columns separately
-    qsort(a, N, sizeof *a, cmp_int_asc);
-    qsort(b, N, sizeof *b, cmp_int_asc);
+    qsort(col1, N, sizeof *col1, cmp_int_asc);
+    qsort(col2, N, sizeof *col2, cmp_int_asc);
 
     int part1 = 0, part2 = 0;
+    col2[N] = 100000;  // bigger than any col1 value; avoid j<N checks
     for (int i = 0, j = 0; i < N; ++i) {
-        part1 += abs(a[i] - b[i]);    // sum distances of pairs a[i],b[i]
-        while (j < N && a[i] > b[j])  // find matching b[j]
-            ++j;
-        while (j < N && a[i] == b[j])
-            part2 += b[j++];          // add each matching b[j]
+        part1 += abs(col1[i] - col2[i]);  // sum distances a,b pairs
+        for (; col1[i] > col2[j]; ++j);   // find matching b[j]
+        for (; col1[i] == col2[j]; ++j)
+            part2 += col1[i];             // add each matching value
     }
     printf("%u %u\n", part1, part2);  // 1320851 26859182
 

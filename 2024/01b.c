@@ -29,11 +29,13 @@
 #define FNAME "../aocinput/2024-01-input.txt"
 #define N 1000  // number of lines in input file
 #define FSIZE (N * 14)  // 5+3+5+1 = 14
-#define MAPSIZE (1 << 12)
+#define MAPSIZE (1 << 12)  // unique values ~1500 so size>3000 preferably
 #define MAPMASK (MAPSIZE - 1)
+#define OFS ('0' * 11111)  // 5-digit number ascii offset
 
 static char input[FSIZE];
-static int a[N], b[N];  // two columns of values
+static int col1[N];
+static int col2[N];  // two columns of values
 static int key[MAPSIZE];
 static uint8_t val[MAPSIZE];  // split up key/val for easy reset
 
@@ -57,7 +59,7 @@ static void insert(const int x)
     val[index]++;
 }
 
-static uint8_t search(const int x)
+static uint8_t lookup(const int x)
 {
     uint32_t index = fnv1a(x) & MAPMASK;
     while (key[index] && key[index] != x)
@@ -67,12 +69,16 @@ static uint8_t search(const int x)
 
 static int cmp_int_asc(const void *p, const void *q)
 {
-    return *(const int *)p - *(const int *)q;  // safe because 10000 <= x < 100000
+    const int a = *(const int *)p;
+    const int b = *(const int *)q;
+    if (a < b) return -1;
+    if (a > b) return  1;
+    return 0;
 }
 
-static int readnum(const char *const c)
+static int readnum(const char *const s)
 {
-    return *c * 10000 + *(c + 1) * 1000 + *(c + 2) * 100 + *(c + 3) * 10 + *(c + 4) - 0x82350;
+    return *s * 10000 + *(s + 1) * 1000 + *(s + 2) * 100 + *(s + 3) * 10 + *(s + 4) - OFS;
 }
 
 int main(void)
@@ -91,18 +97,18 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     // Read numbers from columns
     const char *c = input;
     for (int i = 0; i < N; ++i) {
-        a[i] = readnum(c);           c += 8;
-        insert((b[i] = readnum(c))); c += 6;
+        col1[i] = readnum(c);           c += 8;
+        insert((col2[i] = readnum(c))); c += 6;
     }
 
     // Sort columns separately
-    qsort(a, N, sizeof *a, cmp_int_asc);
-    qsort(b, N, sizeof *b, cmp_int_asc);
+    qsort(col1, N, sizeof *col1, cmp_int_asc);
+    qsort(col2, N, sizeof *col2, cmp_int_asc);
 
     int part1 = 0, part2 = 0;
     for (int i = 0; i < N; ++i) {
-        part1 += abs(a[i] - b[i]);
-        part2 += a[i] * search(a[i]);
+        part1 += abs(col1[i] - col2[i]);
+        part2 += col1[i] * lookup(col1[i]);
     }
     printf("%u %u\n", part1, part2);  // 1320851 26859182
 
