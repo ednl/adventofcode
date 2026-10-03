@@ -13,36 +13,48 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  6.04 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :  9.75 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 22.7 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 5.76 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
-#include <unistd.h>   // isatty, fileno
+#include <unistd.h>  // isatty, fileno
 #include <stdbool.h>
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
 #define FNAME "../aocinput/2024-03-input.txt"
-#define FSIZE (5 << 12)  // 20480, needed for my input: 19928
+#define FSIZE (5U << 12)  // 20480, needed for my input: 19928
+
+// Match 4 characters at once, interpreted as 32-bit unsigned (little-endian)
+#define MUL_ 0x286c756dU  // *(unsigned *)"mul("
+#define DO__ 0x29286f64U  // *(unsigned *)"do()"
+#define DON_ 0x276e6f64U  // *(unsigned *)"don'"
+// #define DONT 0x00292874U  // *(unsigned *)"t()"
+// #define MASK ((1U << 24) - 1)  // "'t()" is 3 bytes, so disregard byte 4 (little-endian MSB)
+
+// Don't rely on undefined behaviour
+typedef unsigned u32_unaligned __attribute__((aligned(1)));
 
 static char input[FSIZE];
 
 // Parse consecutive digits as integer, update char pointer
 // NB: my input contains only numbers 1-999, already restricted to allowed range
-static int readnum(const char **s)
+static unsigned readnum(const char **s)
 {
-    int x = 0;
+    unsigned x = 0;
     while (**s >= '0' && **s <= '9')
         x = x * 10 + (*(*s)++ & 15);
     return x;
 }
 
-static bool match(const char *restrict str, const char *restrict pre)
+// Does 'str' start with 'pre'? Also update str pointer as far as matching
+// Undefined if str and pre have same length (will read beyond '\0')
+static bool match(const char *restrict *str, const char *restrict pre)
 {
-    for (; *str == *pre; str++, pre++);
+    for (; **str == *pre; (*str)++, pre++);
     return !*pre;
 }
 
@@ -63,34 +75,43 @@ starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
-    int sum1 = 0, sum2 = 0;
+    unsigned sum1 = 0, sum2 = 0, a, b;
     bool enabled = true;  // "At the beginning, mul instructions are enabled."
     for (const char *c = input; *c; ) {
-        if (*c != 'm' && *c != 'd') {
+        if (*c != 'm' && *c != 'd') {  // common case in front = major speedup
             c++;
             continue;
         }
-        if (match(c, "mul(")) {
+        switch (*(u32_unaligned *)c) {
+        case MUL_:  // "mul("
             c += 4;
-            const int a = readnum(&c);
+            a = readnum(&c);
             if (*c == ',') {
                 c++;
-                const int b = readnum(&c);
+                b = readnum(&c);
                 if (*c == ')') {
                     c++;
-                    const int prod = a * b;
-                    sum1 += prod;
-                    sum2 += prod * enabled;
+                    sum1 += a * b;
+                    sum2 += a * b * enabled;
                 }
             }
-        } else if (match(c, "do()")) {
+            break;
+        case DO__:   // "do()"
             c += 4;
             enabled = true;
-        } else if (match(c, "don't()")) {
-            c += 7;
-            enabled = false;
-        } else
+            break;
+        case DON_:  // "don'"
+            c += 4;
+            if (match(&c, "t()"))
+                enabled = false;
+            // if ((*(u32_unaligned *)c & MASK) == DONT) {  // 0.1 µs slower
+            //     c += 3;
+            //     enabled = false;
+            // }
+            break;
+        default:
             c++;
+        }
     }
     printf("%u %u\n", sum1, sum2);  // 181345830 98729041
 
