@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  6.06 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  6.04 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :  9.94 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 22.5  µs
  */
@@ -82,12 +82,12 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
                     sum2 += a * b * enabled;
                 }
             }
-        } else if (match(c, "do()")) {
-            c += 4;
-            enabled = true;
         } else if (match(c, "don't()")) {
             c += 7;
             enabled = false;
+        } else if (match(c, "do()")) {
+            c += 4;
+            enabled = true;
         } else
             c++;
     printf("%u %u\n", sum1, sum2);  // 181345830 98729041

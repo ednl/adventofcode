@@ -29,13 +29,13 @@
 #define FSIZE (5U << 12)  // 20480, needed for my input: 19928
 
 // Match 4 characters at once, interpreted as 32-bit unsigned (little-endian)
-#define MUL_ 0x286c756dU  // *(unsigned *)"mul("
-#define DO__ 0x29286f64U  // *(unsigned *)"do()"
-#define DON_ 0x276e6f64U  // *(unsigned *)"don'"
-// #define DONT 0x00292874U  // *(unsigned *)"t()"
-// #define MASK ((1U << 24) - 1)  // "'t()" is 3 bytes, so disregard byte 4 (little-endian MSB)
+// Predefined to avoid non-standard multichar constants (or compile with -Wno-multichar)
+#define MUL_ 0x286c756dU  // *(unsigned *)"mul(" = '(lum'
+#define DO__ 0x29286f64U  // *(unsigned *)"do()" = ')(od'
+#define DON_ 0x276e6f64U  // *(unsigned *)"don'" = '\'nod'
 
 // Don't rely on undefined behaviour
+// Alternative: memcpy
 typedef unsigned u32_unaligned __attribute__((aligned(1)));
 
 static char input[FSIZE];
@@ -50,7 +50,7 @@ static unsigned readnum(const char **s)
     return x;
 }
 
-// Does 'str' start with 'pre'? Also update str pointer as far as matching
+// Does 'str' start with 'pre'? Also skip all matching in str
 // Undefined if str and pre have same length (will read beyond '\0')
 static bool match(const char *restrict *str, const char *restrict pre)
 {
@@ -96,18 +96,14 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
                 }
             }
             break;
-        case DO__:   // "do()"
-            c += 4;
-            enabled = true;
-            break;
         case DON_:  // "don'"
             c += 4;
             if (match(&c, "t()"))
                 enabled = false;
-            // if ((*(u32_unaligned *)c & MASK) == DONT) {  // 0.1 µs slower
-            //     c += 3;
-            //     enabled = false;
-            // }
+            break;
+        case DO__:   // "do()"
+            c += 4;
+            enabled = true;
             break;
         default:
             c++;
