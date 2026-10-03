@@ -50,12 +50,12 @@ static unsigned readnum(const char **s)
     return x;
 }
 
-// Does 'str' start with 'pre'? Also skip all matching in str
-// Undefined if str and pre have same length (will read beyond '\0')
-static bool match(const char *restrict *str, const char *restrict pre)
+// String has prefix? or: "starts_with()". Also skip all matching in str
+// Undefined if str and prefix have same length (will read beyond '\0')
+static bool match(const char *restrict *str, const char *restrict prefix)
 {
-    for (; **str == *pre; (*str)++, pre++);
-    return !*pre;
+    for (; **str == *prefix; (*str)++, prefix++);
+    return !*prefix;
 }
 
 int main(void)
