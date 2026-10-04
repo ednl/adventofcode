@@ -35,7 +35,7 @@
 #define F (COLS - 1)          // index offset direction NE / SW = "Fwd slash"
 #define V (COLS)              // index offset direction N  / S  = "Vertical"
 #define B (COLS + 1)          // index offset direction NW / SE = "Backslash"
-#define X (('M' + 'S') * 2)   // XMAS corners for part 2
+#define X (('M' + 'S') * 2)   // X-MAS corner values for part 2
 
 // 1-D grid
 static char g[ROWS * COLS];
