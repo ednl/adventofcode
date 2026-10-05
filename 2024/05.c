@@ -44,15 +44,15 @@ static void swap(int *const a, int *const b)
 
 // Standard partition process of QuickSort
 // Take last element as pivot, moves smaller to the left of it
-static int partition(int *const arr, const int l, const int r)
+static int partition(int *const arr, const int left, const int right)
 {
-    const int x = arr[r];
-    int i = l;
-    for (int j = l; j < r; ++j)
-        if (rule[arr[j]][x])  // order by the rules
-            swap(&arr[i++], &arr[j]);
-    swap(&arr[i], &arr[r]);
-    return i;
+    const int pivot = arr[right];
+    int pivix = left;
+    for (int i = left; i < right; ++i)
+        if (rule[ arr[i] ][pivot])  // order by the rules
+            swap(&arr[pivix++], &arr[i]);
+    swap(&arr[pivix], &arr[right]);
+    return pivix;
 }
 
 // https://www.geeksforgeeks.org/dsa/quickselect-algorithm/
