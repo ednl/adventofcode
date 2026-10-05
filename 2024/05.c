@@ -13,15 +13,13 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 11.9 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 26.1 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 83.6 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  4.5 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :    ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      :    ? µs
  */
 
 #include <stdio.h>
 #include <unistd.h>  // isatty, fileno
-#include <stdlib.h>  // qsort
-#include <stdint.h>  // uint8_t
 #include <stdbool.h>
 #ifdef TIMER
     #include "../startstoptimer.h"
@@ -33,25 +31,55 @@
 #define PAGES   23
 
 static char input[FSIZE];
-// Rule[a][b] is true when a should come before b
-static bool rule[100][100];           // every pair of 2-digit numbers (and 1)
-static uint8_t page[UPDATES][PAGES];  // every page of every "update"
-static unsigned pagecount[UPDATES];   // actual number of pages in this "update"
+static bool rule[100][100];       // rule[a][b] is true when a comes before b
+static int page[UPDATES][PAGES];  // every page of every "update"
+static int pagecount[UPDATES];    // actual number of pages in this "update"
 
-// Parse 2-digit number
-static unsigned readnum(const char *const s)
+static void swap(int *const a, int *const b)
 {
-    return *s * 10 + *(s + 1) - '0' * 11;
+    const int tmp = *a;
+    *a = *b;
+    *b = tmp;
 }
 
-// Order by the rules
-static int cmp(const void *p, const void *q)
+// Standard partition process of QuickSort
+// Take last element as pivot, moves smaller to the left of it
+static int partition(int *const arr, const int l, const int r)
 {
-    const uint8_t a = *(const uint8_t *)p;
-    const uint8_t b = *(const uint8_t *)q;
-    if (rule[a][b]) return -1;  // a must come before b
-    if (rule[b][a]) return  1;  // b must come before a
-    return 0;  // don't care
+    const int x = arr[r];
+    int i = l;
+    for (int j = l; j < r; ++j)
+        if (rule[arr[j]][x])  // order by the rules
+            swap(&arr[i++], &arr[j]);
+    swap(&arr[i], &arr[r]);
+    return i;
+}
+
+// https://www.geeksforgeeks.org/dsa/quickselect-algorithm/
+// but k is zero-based
+static int sortedindex(int *const arr, const int l, const int r, const int k)
+{
+    // Partition the array around the last
+    // element and get the position of the pivot
+    // element in the sorted array.
+    const int index = partition(arr, l, r);
+
+    // If position is the same as k
+    if (index - l == k)
+        return arr[index];
+
+    // If position is more, recur for the left subarray
+    if (index - l > k)
+        return sortedindex(arr, l, index - 1, k);
+
+    // Else recur for the right subarray
+    return sortedindex(arr, index + 1, r, k - index + l - 1);
+}
+
+// Parse 2-digit number
+static int readnum(const char *const s)
+{
+    return *s * 10 + *(s + 1) - '0' * 11;
 }
 
 int main(void)
@@ -75,26 +103,25 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     for (; *c & 16; c += 6)  // until blank line
         rule[readnum(c)][readnum(c + 3)] = true;  // pair ordered as a<b
     // Start second part at blank line: *c=='\n'
-    for (unsigned i = 0; *(c + 1); ++i) {
-        unsigned j = 0;
+    for (int i = 0; *(c + 1); ++i) {
+        int j = 0;
         do {
-            page[i][j++] = (uint8_t)readnum(c + 1);
+            page[i][j++] = readnum(c + 1);
             c += 3;
         } while (*c == ',');
         pagecount[i] = j;
     }
 
-    unsigned sum1 = 0, sum2 = 0;
-    for (unsigned i = 0; i < UPDATES; ++i) {
-        for (unsigned j = 1; j < pagecount[i]; ++j)
+    int sum1 = 0, sum2 = 0;
+    for (int i = 0; i < UPDATES; ++i) {
+        for (int j = 1; j < pagecount[i]; ++j)
             // No need to check every pair, only consecutive ones; without loops,
             // ordering is transitive (if a<b and b<c then a<c) and so, for the final
             // order to be uniquely determined, there can be no loops. Or at least not
             // across the middle element we want; but my input was nice enough.
             if (rule[ page[i][j] ][ page[i][j - 1] ]) {
                 // Pages out of order, so this is part 2
-                qsort(&page[i][0], pagecount[i], sizeof **page, cmp);
-                sum2 += page[i][pagecount[i] >> 1];  // pick middle element
+                sum2 += sortedindex(&page[i][0], 0, pagecount[i] - 1, pagecount[i] >> 1);
                 goto next_i;  // break + continue
             }
         // All pages were ordered, so this is part 1
