@@ -11,10 +11,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Mac Mini 2020 (M1 3.2 GHz)                       : 8.86 ms
- *     Raspberry Pi 5 (2.4 GHz)                         : 23   ms
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 27   ms
- *     Raspberry Pi 4 (1.8 GHz)                         : 51   ms
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  8.38 ms
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 14.97 ms
+ *     Raspberry Pi 5 (2.4 GHz)      :     ? ms
  */
 
 #include <stdio.h>
@@ -24,15 +23,8 @@
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 0
-#if EXAMPLE
-    #define FNAME "../aocinput/2024-06-example.txt"
-    #define N 10  // rows and cols of example grid
-#else
-    #define FNAME "../aocinput/2024-06-input.txt"
-    #define N 130  // rows and cols of input grid
-#endif
-#define FSIZE N * (N + 1)  // square grid +newline
+#define FNAME "../aocinput/2024-06-input.txt"
+#define N 130  // rows and cols of input grid
 #define WALL '#'
 #define FREE '.'
 
@@ -53,11 +45,11 @@ typedef struct state {
 // static const char *head = "^>v<";
 static const Pos step[] = {{0,-1}, {1,0}, {0,1}, {-1,0}};
 
-// Grid, extra newline per row, size in bytes = FSIZE
+// Grid, extra newline per row
 static char map[N][N + 1];
 
 // bit 0-3 set = been here going u/d/l/r
-static char hist[N][N];
+static unsigned char hist[N][N];
 
 // First visited at which step in part 1
 static int first[N][N];
@@ -109,12 +101,12 @@ static Dir turn(const Dir dir)
 
 static void sethist(const Pos pos, const Dir dir)
 {
-    hist[pos.y][pos.x] |= (1 << dir);
+    hist[pos.y][pos.x] |= (1U << dir);
 }
 
 static bool isdupe(const Pos pos, const Dir dir)
 {
-     return hist[pos.y][pos.x] & (1 << dir);
+    return hist[pos.y][pos.x] & (1U << dir);
 }
 
 // Part 1: add position to path, save direction on grid
@@ -173,15 +165,14 @@ static bool isfirstvisit(const Pos pos, const int stepcount)
 
 int main(void)
 {
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) { fputs("File not found.\n", stderr); return 1; }
+    fread(map, sizeof map, 1, f);
+    fclose(f);
+
 #ifdef TIMER
     starttimer();
 #endif
-
-    // Read input file
-    FILE *f = fopen(FNAME, "rb");
-    if (!f) { fputs("File not found.\n", stderr); return 1; }
-    fread(map, FSIZE, 1, f);
-    fclose(f);
 
     // Find starting position
     Pos pos = {0};
@@ -189,7 +180,7 @@ int main(void)
     if (!findstart(&pos)) { fputs("Starting position not found.\n", stderr); return 2; }
 
     // Walk in circles until we fall off the map
-    printf("Part 1: %d\n", walk(pos, dir));  // example: 41, input: 5331
+    printf("%u ", walk(pos, dir));  // 5331
 
     int loops = 0;
     for (int i = 1; i < pathlen; ++i)
@@ -198,10 +189,9 @@ int main(void)
             loops += hasloop(i);
             mark(path[i].pos, FREE);  // reset obstruction
         }
-    printf("Part 2: %d\n", loops);  // example: 6, input: 1812
+    printf("%u\n", loops);  // 1812
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
 #endif
-    return 0;
 }
