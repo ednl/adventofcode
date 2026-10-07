@@ -13,9 +13,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 116 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 251 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 460 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  66.7 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ?   µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ?   µs
  */
 
 #include <stdio.h>
@@ -52,12 +52,12 @@ static bool reduce1(const Equation *const eq, const uint64_t res, const unsigned
 {
     if (ix == 0)
         return res == eq->num[0];
-    // Addition
-    if (res > eq->num[ix] && reduce1(eq, res - eq->num[ix], ix - 1))
-        return true;
     // Multiplication
     const lldiv_t dv = lldiv(res, eq->num[ix]);
     if (!dv.rem && reduce1(eq, dv.quot, ix - 1))
+        return true;
+    // Addition
+    if (res > eq->num[ix] && reduce1(eq, res - eq->num[ix], ix - 1))
         return true;
     return false;  // this branch failed
 }
@@ -66,16 +66,16 @@ static bool reduce2(const Equation *const eq, const uint64_t res, const unsigned
 {
     if (ix == 0)
         return res == eq->num[0];
-    // Addition
-    if (res > eq->num[ix] && reduce2(eq, res - eq->num[ix], ix - 1))
+    // Concatenation
+    const lldiv_t d2 = lldiv(res, eq->mag[ix]);  // divide by order of magnitude of num
+    if (d2.rem == eq->num[ix] && reduce2(eq, d2.quot, ix - 1))
         return true;
     // Multiplication
     const lldiv_t d1 = lldiv(res, eq->num[ix]);
     if (!d1.rem && reduce2(eq, d1.quot, ix - 1))
         return true;
-    // Concatenation
-    const lldiv_t d2 = lldiv(res, eq->mag[ix]);  // divide by order of magnitude of num
-    if (d2.rem == eq->num[ix] && reduce2(eq, d2.quot, ix - 1))
+    // Addition
+    if (res > eq->num[ix] && reduce2(eq, res - eq->num[ix], ix - 1))
         return true;
     return false;  // this branch failed
 }
