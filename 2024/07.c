@@ -8,14 +8,14 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 07.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 07.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz)                    :  178 µs
- *     Mac Mini 2020 (M1 3.2 GHz)                       :  262 µs
- *     Raspberry Pi 5 (2.4 GHz)                         :  429 µs
- *     Raspberry Pi 4 (1.8 GHz)                         : 1045 µs
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 1070 µs (strangely slow, normally closer to Pi5)
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 121 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
@@ -27,14 +27,8 @@
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 0
-#if EXAMPLE
-    #define FNAME "../aocinput/2024-07-example.txt"
-    #define N 9  // lines in example file
-#else
-    #define FNAME "../aocinput/2024-07-input.txt"
-    #define N 850  // lines in input file
-#endif
+#define FNAME "../aocinput/2024-07-input.txt"
+#define N 850  // lines in input file
 #define M 12  // max number count per equation
 
 typedef struct equation {
@@ -50,20 +44,20 @@ static Equation equation[N];
 static void parseline(Equation *const eq, const char *s)
 {
     static const int mag[4] = {1, 10, 100, 1000};  // every num is less than 1000
-    int64_t test = *s++ & 15;
+    int64_t test = 0;
     while (*s != ':')
         test = test * 10 + (*s++ & 15);
-    ++s;  // skip ':'
     eq->test = test;
-    int n = 0;
-    for (; *s++ == ' '; ++n) {
-        int num = *s++ & 15, len = 1;
-        for (; *s >= '0' && *s <= '9'; ++len)
+    ++s;  // skip ':'
+    int i = 0;
+    for (; *s++ & 32; ++i) {  // until newline
+        int num = 0, len = 0;
+        for (; *s & 16; ++len)  // until space or newline
             num = num * 10 + (*s++ & 15);
-        eq->num[n] = num;
-        eq->mag[n] = mag[len];  // order of magnitude
+        eq->num[i] = num;
+        eq->mag[i] = mag[len];  // order of magnitude
     }
-    eq->count = n;
+    eq->count = i;
 }
 
 // Recursively reduce equation in reverse
@@ -101,7 +95,8 @@ int main(void)
     fclose(f);
 
 #ifdef TIMER
-    starttimer();
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
     int64_t cal1 = 0, cal2 = 0;
@@ -113,10 +108,10 @@ int main(void)
         } else if (reduce(eq, eq->test, eq->count - 1, 2))
             cal2 += eq->test;
     }
-    printf("%"PRId64" %"PRId64"\n", cal1, cal2);  // test: 3749 11387, input: 303766880536 337041851384440
+    printf("%"PRId64" %"PRId64"\n", cal1, cal2);  // 303766880536 337041851384440
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
-    return 0;
 }
