@@ -27,11 +27,10 @@
 #endif
 
 #define FNAME "../aocinput/2024-08-input.txt"
-#define N 50                 // rows and cols of square grid in input file
-#define FSIZE (N * (N + 1))  // input file size of square grid +newline
-#define SETSIZE ((FSIZE >> 6) + 1)  // how many u64 needed for bitset (= 40)
-#define FREQ (26 * 2 + 10)   // size of perfect hash of (0..9,A..Z,a..z)
-#define M 4                  // max antennas per frequency, needed for my input: 4
+#define N 50                // rows and cols of square grid in input file
+#define SETSIZE ((N * N + 63) >> 6)  // how many u64 in bitset (= 40), don't need N+1 columns here
+#define FREQ (26 * 2 + 10)  // size of perfect hash of (0..9,A..Z,a..z)
+#define M 4                 // max antennas per frequency, needed for my input: 4
 
 typedef struct vec {
     int x, y;
@@ -71,9 +70,9 @@ static bool onmap(const Vec v)
 }
 
 // Mark antinode in bitset
-static void mark(uint64_t *const arr, const Vec v)
+static void mark(uint64_t *const arr, const Vec pos)
 {
-    const int index = v.y * (N + 1) + v.x;
+    const int index = pos.y * N + pos.x;  // bitset uses N "columns", not N+1
     arr[index >> 6] |= UINT64_C(1) << (index & 63);
 }
 
