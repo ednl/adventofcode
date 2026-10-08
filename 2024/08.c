@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 1.83 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 1.81 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : 2.70 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 6.25 µs
  */
@@ -36,20 +36,27 @@ typedef struct vec {
     int x, y;
 } Vec;
 
-static char map[N][N + 1];
+static char map[N][N + 1];    // +newline = N+1 columns
 static Vec antenna[FREQ][M];  // location of every antenna per frequency
 static uint8_t count[FREQ];   // how many antennae per frequency
-static uint64_t antinode1[SETSIZE];
-static uint64_t antinode2[SETSIZE];
+static uint64_t antinode1[SETSIZE];  // part 1
+static uint64_t antinode2[SETSIZE];  // part 2
 
-// Vector sum a+=b
-static void add(Vec *const a, const Vec b)
+// Vector addition by reference: a += b
+static void add_r(Vec *const a, const Vec b)
 {
     a->x += b.x;
     a->y += b.y;
 }
 
-// Vector difference a-b (=go from b to a)
+// Vector subtraction by reference: a -= b
+static void sub_r(Vec *const a, const Vec b)
+{
+    a->x -= b.x;
+    a->y -= b.y;
+}
+
+// Vector difference: a-b (= go from b to a)
 static Vec sub(const Vec a, const Vec b)
 {
     return (Vec){a.x - b.x, a.y - b.y};
@@ -76,18 +83,26 @@ static void mark(uint64_t *const arr, const Vec pos)
     arr[index >> 6] |= UINT64_C(1) << (index & 63);
 }
 
-// Antinodes in one direction
+// Antinodes in two directions
 // GCD for part 2 not needed for my input
-static void resonate(Vec dst, const Vec src)
+static void resonate(Vec a, Vec b)
 {
-    const Vec step = sub(dst, src);
-    add(&dst, step);
-    if (onmap(dst)) {
-        mark(antinode1, dst);
+    const Vec step = sub(a, b);  // from b to a
+    add_r(&a, step);  // one more step away from b
+    if (onmap(a)) {
+        mark(antinode1, a);
         do {
-            mark(antinode2, dst);
-            add(&dst, step);
-        } while (onmap(dst));
+            mark(antinode2, a);
+            add_r(&a, step);
+        } while (onmap(a));
+    }
+    sub_r(&b, step);  // from a to b, and one more step away from a
+    if (onmap(b)) {
+        mark(antinode1, b);
+        do {
+            mark(antinode2, b);
+            sub_r(&b, step);
+        } while (onmap(b));
     }
 }
 
@@ -119,23 +134,10 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     // A..Z: 40404000034044044044400330
     // 0..9: 4444444444
 
-    // printf("    a..z: ");
-    // for (int i = 0; i < 26; ++i)
-    //     putchar('0' + count[i]);
-    // printf("\n    A..Z: ");
-    // for (int i = 26; i < 52; ++i)
-    //     putchar('0' + count[i]);
-    // printf("\n    0..9: ");
-    // for (int i = 52; i < 62; ++i)
-    //     putchar('0' + count[i]);
-    // putchar('\n');
-
     for (int i = 0; i < FREQ; ++i)
         for (int j = 1; j < count[i]; ++j)
-            for (int k = 0; k < j; ++k) {
+            for (int k = 0; k < j; ++k)
                 resonate(antenna[i][j], antenna[i][k]);
-                resonate(antenna[i][k], antenna[i][j]);
-            }
 
     int part1 = 0, part2 = 0;
     for (int i = 0; i < SETSIZE; ++i) {
