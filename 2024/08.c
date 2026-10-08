@@ -131,27 +131,11 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     // putchar('\n');
 
     for (int i = 0; i < FREQ; ++i)
-        // for (int j = 1; j < count[i]; ++j)
-        //     for (int k = 0; k < j; ++k) {
-        //         resonate(antenna[i][j], antenna[i][k]);
-        //         resonate(antenna[i][k], antenna[i][j]);
-        //     }
-        if (count[i]) {  // count is only 0, 3 or 4
-            resonate(antenna[i][0], antenna[i][1]);
-            resonate(antenna[i][1], antenna[i][0]);
-            resonate(antenna[i][0], antenna[i][2]);
-            resonate(antenna[i][2], antenna[i][0]);
-            resonate(antenna[i][1], antenna[i][2]);
-            resonate(antenna[i][2], antenna[i][1]);
-            if (count[i] == 4) {
-                resonate(antenna[i][0], antenna[i][3]);
-                resonate(antenna[i][3], antenna[i][0]);
-                resonate(antenna[i][1], antenna[i][3]);
-                resonate(antenna[i][3], antenna[i][1]);
-                resonate(antenna[i][2], antenna[i][3]);
-                resonate(antenna[i][3], antenna[i][2]);
+        for (int j = 1; j < count[i]; ++j)
+            for (int k = 0; k < j; ++k) {
+                resonate(antenna[i][j], antenna[i][k]);
+                resonate(antenna[i][k], antenna[i][j]);
             }
-        }
 
     int part1 = 0, part2 = 0;
     for (int i = 0; i < SETSIZE; ++i) {
