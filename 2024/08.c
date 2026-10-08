@@ -27,20 +27,21 @@
 #endif
 
 #define FNAME "../aocinput/2024-08-input.txt"
-#define N 50  // rows and cols of square grid in input file
-#define FSIZE (N * (N + 1))  // +newline
-#define FREQ (26 * 2 + 10)  // a..z, A..Z, 0..9
-#define M 4  // max antennas per frequency, needed for my input: 4
+#define N 50                 // rows and cols of square grid in input file
+#define FSIZE (N * (N + 1))  // input file size of square grid +newline
+#define SETSIZE ((FSIZE >> 6) + 1)  // how many u64 needed for bitset (= 40)
+#define FREQ (26 * 2 + 10)   // size of perfect hash of (0..9,A..Z,a..z)
+#define M 4                  // max antennas per frequency, needed for my input: 4
 
 typedef struct vec {
     int x, y;
 } Vec;
 
 static char map[N][N + 1];
-static Vec antenna[FREQ][M];  // location (index) of all antennae by frequency
+static Vec antenna[FREQ][M];  // location of every antenna per frequency
 static uint8_t count[FREQ];   // how many antennae per frequency
-static uint64_t antinode1[1 + (FSIZE >> 6)];
-static uint64_t antinode2[1 + (FSIZE >> 6)];
+static uint64_t antinode1[SETSIZE];
+static uint64_t antinode2[SETSIZE];
 
 // Vector sum a+=b
 static void add(Vec *const a, const Vec b)
@@ -69,12 +70,15 @@ static bool onmap(const Vec v)
     return v.x >= 0 && v.x < N && v.y >= 0 && v.y < N;
 }
 
+// Mark antinode in bitset
 static void mark(uint64_t *const arr, const Vec v)
 {
-    const int i = v.y * (N + 1) + v.x;
-    arr[i >> 6] |= UINT64_C(1) << (i & 63);
+    const int index = v.y * (N + 1) + v.x;
+    arr[index >> 6] |= UINT64_C(1) << (index & 63);
 }
 
+// Antinodes in one direction
+// GCD for part 2 not needed for my input
 static void resonate(Vec dst, const Vec src)
 {
     const Vec step = sub(dst, src);
@@ -119,7 +123,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
             }
 
     int part1 = 0, part2 = 0;
-    for (unsigned i = 0; i < sizeof antinode1 / sizeof *antinode1; ++i) {
+    for (int i = 0; i < SETSIZE; ++i) {
         part1 += __builtin_popcountll(antinode1[i]);
         part2 += __builtin_popcountll(antinode2[i]);
     }
