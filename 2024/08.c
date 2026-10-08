@@ -114,12 +114,44 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
                 mark(antinode2, (Vec){j, i});  // antennae are antinodes in part 2
             }
 
+    // Antenna counts per frequency for my input:
+    // a..z: 30404000044044044044400440
+    // A..Z: 40404000034044044044400330
+    // 0..9: 4444444444
+
+    // printf("    a..z: ");
+    // for (int i = 0; i < 26; ++i)
+    //     putchar('0' + count[i]);
+    // printf("\n    A..Z: ");
+    // for (int i = 26; i < 52; ++i)
+    //     putchar('0' + count[i]);
+    // printf("\n    0..9: ");
+    // for (int i = 52; i < 62; ++i)
+    //     putchar('0' + count[i]);
+    // putchar('\n');
+
     for (int i = 0; i < FREQ; ++i)
-        for (int j = 1; j < count[i]; ++j)
-            for (int k = 0; k < j; ++k) {
-                resonate(antenna[i][j], antenna[i][k]);
-                resonate(antenna[i][k], antenna[i][j]);
+        // for (int j = 1; j < count[i]; ++j)
+        //     for (int k = 0; k < j; ++k) {
+        //         resonate(antenna[i][j], antenna[i][k]);
+        //         resonate(antenna[i][k], antenna[i][j]);
+        //     }
+        if (count[i]) {  // count is only 0, 3 or 4
+            resonate(antenna[i][0], antenna[i][1]);
+            resonate(antenna[i][1], antenna[i][0]);
+            resonate(antenna[i][0], antenna[i][2]);
+            resonate(antenna[i][2], antenna[i][0]);
+            resonate(antenna[i][1], antenna[i][2]);
+            resonate(antenna[i][2], antenna[i][1]);
+            if (count[i] == 4) {
+                resonate(antenna[i][0], antenna[i][3]);
+                resonate(antenna[i][3], antenna[i][0]);
+                resonate(antenna[i][1], antenna[i][3]);
+                resonate(antenna[i][3], antenna[i][1]);
+                resonate(antenna[i][2], antenna[i][3]);
+                resonate(antenna[i][3], antenna[i][2]);
             }
+        }
 
     int part1 = 0, part2 = 0;
     for (int i = 0; i < SETSIZE; ++i) {
