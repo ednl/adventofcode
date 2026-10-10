@@ -33,11 +33,12 @@
 #define STACK 16  // stack size, needed for my input: 8
 
 // Derived values
-#define FSIZE (N * (N + 1))  // input file size +newlines
-#define MAPSIZE ((N + 2) * (N + 1))  // plus border rows top+bottom
+#define COLS (N + 1)  // +newline
+#define FSIZE (N * COLS)  // input file size
+#define MAPSIZE ((N + 2) * COLS)  // plus border rows top+bottom
 #define SETSIZE ((MAPSIZE + 63) >> 6)  // how many u64 in bitset (= 34)
-#define BEG (N + 1)  // first grid location inside map
-#define END ((N + 1) * (N + 1) - 1)  // last+1 grid location inside map
+#define BEG (COLS)  // first grid location inside map
+#define END ((N + 1) * COLS - 1)  // last+1 grid location inside map
 
 typedef struct pair {
     int part1, part2;
@@ -55,12 +56,12 @@ static void add_r(Pair *const a, const Pair b)
     a->part2 += b.part2;
 }
 
-static void setseen(const int ix)
+static void mark(const int ix)
 {
     seen[ix >> 6] |= UINT64_C(1) << (ix & 63);
 }
 
-static bool getseen(const int ix)
+static bool ismarked(const int ix)
 {
     return seen[ix >> 6] >> (ix & 63) & 1;
 }
@@ -82,28 +83,28 @@ static bool pop(int *ix)
     return false;
 }
 
-// Depth-first search (DFS)
+// Depth-first search (DFS), parts 1 & 2 combined
 static Pair findtrails(int ix)
 {
     Pair count = {0};
-    memset(seen, 0, sizeof seen);  // part 1
+    memset(seen, 0, sizeof seen);  // for part 1
     do {
-        const char curr = map[ix];
-        if (curr != GOAL) {
-            const char next = curr + 1;
-            if (map[ix - (N + 1)] == next) push(ix - (N + 1));
-            if (map[ix + (N + 1)] == next) push(ix + (N + 1));
+        const char height = map[ix];
+        if (height != GOAL) {
+            const char next = height + 1;
+            if (map[ix - COLS] == next) push(ix - COLS);
+            if (map[ix + COLS] == next) push(ix + COLS);
             if (map[ix - 1] == next) push(ix - 1);
             if (map[ix + 1] == next) push(ix + 1);
         } else {
-            if (!getseen(ix)) {  // part 1
-                setseen(ix);
+            if (!ismarked(ix)) {  // part 1
+                mark(ix);
                 count.part1++;
             }
             count.part2++;  // part 2
         }
     } while (pop(&ix));
-    return count;  // two different values for parts 1 and 2
+    return count;
 }
 
 int main(void)
