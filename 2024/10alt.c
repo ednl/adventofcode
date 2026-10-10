@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 11.9 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
@@ -43,14 +43,10 @@ static int path[MAPSIZE];
 
 static int step(const int ix, const int prev)
 {
-    if (map[ix - COLS - 1] == prev) path[ix] += path[ix - COLS - 1];
-    if (map[ix - COLS    ] == prev) path[ix] += path[ix - COLS    ];
-    if (map[ix - COLS + 1] == prev) path[ix] += path[ix - COLS + 1];
-    if (map[ix        - 1] == prev) path[ix] += path[ix        - 1];
-    if (map[ix        + 1] == prev) path[ix] += path[ix        + 1];
-    if (map[ix + COLS - 1] == prev) path[ix] += path[ix + COLS - 1];
-    if (map[ix + COLS    ] == prev) path[ix] += path[ix + COLS    ];
-    if (map[ix + COLS + 1] == prev) path[ix] += path[ix + COLS + 1];
+    if (map[ix - COLS] == prev) path[ix] += path[ix - COLS];
+    if (map[ix - 1   ] == prev) path[ix] += path[ix - 1   ];
+    if (map[ix + 1   ] == prev) path[ix] += path[ix + 1   ];
+    if (map[ix + COLS] == prev) path[ix] += path[ix + COLS];
     return path[ix];
 }
 
