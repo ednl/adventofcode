@@ -14,8 +14,8 @@
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 11.4 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 21.2 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 36.2 µs
  */
 
 #include <stdio.h>
@@ -25,14 +25,14 @@
 #endif
 
 #define FNAME "../aocinput/2024-10-input.txt"
-#define N 45      // square grid dimension in input file
+#define N    45   // square grid dimension in input file
 #define HEAD '0'  // trailhead
 #define GOAL '9'  // end of the trail
 
 // Derived values
 #define COLS (N + 1)  // +newline
 #define FSIZE (N * COLS)  // input file size
-#define MAPSIZE ((N + 2) * COLS)  // plus 2 border rows top+bottom
+#define MAPSIZE ((N + 2) * COLS)  // plus 1 border row top+bottom
 #define BEG (COLS)  // first grid location inside map
 #define END (BEG + FSIZE - 1)  // last+1 grid location inside map
 
@@ -41,10 +41,10 @@ static int path[MAPSIZE];
 
 static int step(const int ix, const int prev)
 {
-    if (map[ix - COLS] == prev) path[ix] += path[ix - COLS];
-    if (map[ix + COLS] == prev) path[ix] += path[ix + COLS];
     if (map[ix - 1] == prev) path[ix] += path[ix - 1];
     if (map[ix + 1] == prev) path[ix] += path[ix + 1];
+    if (map[ix - COLS] == prev) path[ix] += path[ix - COLS];
+    if (map[ix + COLS] == prev) path[ix] += path[ix + COLS];
     return path[ix];
 }
 
