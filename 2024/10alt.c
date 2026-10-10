@@ -58,7 +58,7 @@ int main(void)
 {
     FILE *f = fopen(FNAME, "rb");
     if (!f) { fputs("File not found: "FNAME, stderr); return 1; }
-    fread(&map[BEG], FSIZE, 1, f);  // leave one row blank at top (and bottom)
+    fread(&map[BEG], FSIZE, 1, f);  // leave 2 blank rows at top (and bottom)
     fclose(f);
 
 #ifdef TIMER
@@ -69,15 +69,15 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     memset(path, 0, sizeof path);
     for (int i = BEG; i < END; ++i)
         if (map[i] == HEAD)
-            path[i] = 1;
+            path[i] = 1;  // base
     for (int height = HEAD + 1; height < GOAL; ++height)
         for (int i = BEG; i < END; ++i)
             if (map[i] == height)
-                step(i, height - 1);
+                step(i, height - 1);  // accumulate
     int sum = 0;
     for (int i = BEG; i < END; ++i)
         if (map[i] == GOAL)
-            sum += step(i, GOAL - 1);
+            sum += step(i, GOAL - 1);  // final path count
     printf("%u\n", sum);  // gives 3619, should be 1225 for my input
 
 #ifdef TIMER
