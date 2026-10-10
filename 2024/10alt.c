@@ -13,16 +13,14 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 11.9 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 11.4 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
-#include <string.h>  // memset
-#include <stdint.h>  // uint64_t
-#include <stdbool.h>
 #ifdef TIMER
+    #include <string.h>  // memset
     #include "../startstoptimer.h"
 #endif
 
@@ -34,8 +32,8 @@
 // Derived values
 #define COLS (N + 1)  // +newline
 #define FSIZE (N * COLS)  // input file size
-#define MAPSIZE ((N + 4) * COLS)  // plus 2 border rows top+bottom
-#define BEG (2 * COLS)  // first grid location inside map
+#define MAPSIZE ((N + 2) * COLS)  // plus 2 border rows top+bottom
+#define BEG (COLS)  // first grid location inside map
 #define END (BEG + FSIZE - 1)  // last+1 grid location inside map
 
 static char map[MAPSIZE];  // input file incl. newlines and border rows top+bottom
@@ -44,9 +42,9 @@ static int path[MAPSIZE];
 static int step(const int ix, const int prev)
 {
     if (map[ix - COLS] == prev) path[ix] += path[ix - COLS];
-    if (map[ix - 1   ] == prev) path[ix] += path[ix - 1   ];
-    if (map[ix + 1   ] == prev) path[ix] += path[ix + 1   ];
     if (map[ix + COLS] == prev) path[ix] += path[ix + COLS];
+    if (map[ix - 1] == prev) path[ix] += path[ix - 1];
+    if (map[ix + 1] == prev) path[ix] += path[ix + 1];
     return path[ix];
 }
 
@@ -60,9 +58,9 @@ int main(void)
 #ifdef TIMER
 starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
+    memset(path, 0, sizeof path);
 #endif
 
-    memset(path, 0, sizeof path);
     for (int i = BEG; i < END; ++i)
         if (map[i] == HEAD)
             path[i] = 1;  // base
@@ -74,7 +72,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     for (int i = BEG; i < END; ++i)
         if (map[i] == GOAL)
             sum += step(i, GOAL - 1);  // final path count
-    printf("%u\n", sum);  // gives 3619, should be 1225 for my input
+    printf("%u\n", sum);  // 1225
 
 #ifdef TIMER
 }
