@@ -8,124 +8,124 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 10.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 10.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz)                    :  33 µs
- *     Mac Mini 2020 (M1 3.2 GHz)                       :  59 µs
- *     Raspberry Pi 5 (2.4 GHz)                         : 121 µs
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 123 µs
- *     Raspberry Pi 4 (1.8 GHz)                         :   ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  9.25 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
 #include <string.h>  // memset
+#include <stdint.h>  // uint64_t
 #include <stdbool.h>
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 0
-#if EXAMPLE
-    #define FNAME "../aocinput/2024-10-example.txt"
-    #define N 8  // square grid dimension in example file: 8x8
-#else
-    #define FNAME "../aocinput/2024-10-input.txt"
-    #define N 45  // square grid dimension in input file: 45x45
-#endif
-#define FSIZE (N * (N + 1))  // byte size of input incl. newlines
-#define SSIZE 32  // stack size
-#define START '0'
-#define GOAL  '9'
+#define FNAME "../aocinput/2024-10-input.txt"
+#define N 45      // square grid dimension in input file
+#define HEAD '0'  // trailhead
+#define GOAL '9'  // end of the trail
+#define STACK 16  // stack size, needed for my input: 8
 
-typedef struct vec {
-    int x, y;
-} Vec;
+// Derived values
+#define FSIZE (N * (N + 1))  // input file size +newlines
+#define MAPSIZE ((N + 2) * (N + 1))  // plus border rows top+bottom
+#define SETSIZE ((MAPSIZE + 63) >> 6)  // how many u64 in bitset (= 34)
+#define BEG (N + 1)  // first grid location inside map
+#define END ((N + 1) * (N + 1) - 1)  // last+1 grid location inside map
 
-typedef struct stack {
-    size_t len;
-    Vec mem[SSIZE];
-} Stack;
+typedef struct pair {
+    int part1, part2;
+} Pair;
 
-static char map[N][N + 1];  // input file incl. newlines
-static bool seen[N][N];  // which destinations already visited? (part 1)
-static Stack stack;  // grid locations still to process
+static char map[MAPSIZE];  // input file incl. newlines and border rows top+bottom
+static uint64_t seen[SETSIZE];  // which destinations already visited? (part 1)
+static int stack[STACK];  // grid locations (index) still to process
+static int stacklen;
 
-// Save x-y pair onto stack
-static bool push(const int x, const int y)
+// Add vectors by reference: a+=b
+static void add_r(Pair *const a, const Pair b)
 {
-    if (stack.len == SSIZE)
-        return false;
-    stack.mem[stack.len++] = (Vec){x, y};
-    return true;
+    a->part1 += b.part1;
+    a->part2 += b.part2;
 }
 
-// Retrieve x-y pair from stack
-static bool pop(int *const restrict x, int *const restrict y)
+static void setseen(const int ix)
 {
-    if (!stack.len)
-        return false;
-    const Vec val = stack.mem[--stack.len];
-    *x = val.x;
-    *y = val.y;
-    return true;
+    seen[ix >> 6] |= UINT64_C(1) << (ix & 63);
+}
+
+static bool getseen(const int ix)
+{
+    return seen[ix >> 6] >> (ix & 63) & 1;
+}
+
+// Save location onto stack
+// Assume stack always large enough, needed for my input: 8
+static void push(const int ix)
+{
+    stack[stacklen++] = ix;
+}
+
+// Retrieve location from stack
+static bool pop(int *ix)
+{
+    if (stacklen) {
+        *ix = stack[--stacklen];
+        return true;
+    }
+    return false;
 }
 
 // Depth-first search (DFS)
-static Vec findtrails(const int row, const int col)
+static Pair findtrails(int ix)
 {
-    Vec count = {0};
-    int i = row, j = col;
+    Pair count = {0};
     memset(seen, 0, sizeof seen);  // part 1
     do {
-        const char alt = map[i][j];  // current altitude
-        if (alt == GOAL) {
-            if (!seen[i][j]) {  // part 1
-                seen[i][j] = true;
-                ++count.x;
-            }
-            ++count.y;  // part 2
+        const char curr = map[ix];
+        if (curr != GOAL) {
+            const char next = curr + 1;
+            if (map[ix - (N + 1)] == next) push(ix - (N + 1));
+            if (map[ix + (N + 1)] == next) push(ix + (N + 1));
+            if (map[ix - 1] == next) push(ix - 1);
+            if (map[ix + 1] == next) push(ix + 1);
         } else {
-            const char up = alt + 1;  // next altitude
-            if (i > 0     && map[i - 1][j] == up) push(i - 1, j);
-            if (i < N - 1 && map[i + 1][j] == up) push(i + 1, j);
-            if (j > 0     && map[i][j - 1] == up) push(i, j - 1);
-            if (j < N - 1 && map[i][j + 1] == up) push(i, j + 1);
+            if (!getseen(ix)) {  // part 1
+                setseen(ix);
+                count.part1++;
+            }
+            count.part2++;  // part 2
         }
-    } while (pop(&i, &j));
-    return count;  // two different values for part 1 and 2
-}
-
-// Add vectors by reference
-static void add_r(Vec *const a, const Vec b)
-{
-    a->x += b.x;
-    a->y += b.y;
+    } while (pop(&ix));
+    return count;  // two different values for parts 1 and 2
 }
 
 int main(void)
 {
-    // Read input as one block
     FILE *f = fopen(FNAME, "rb");
-    if (!f) { fprintf(stderr, "File not found: %s\n", FNAME); return 1; }
-    fread(map, sizeof map, 1, f);
+    if (!f) { fputs("File not found: "FNAME, stderr); return 1; }
+    fread(&map[BEG], FSIZE, 1, f);  // leave one row blank at top (and bottom)
     fclose(f);
 
-    // Exclude disk access from timer
 #ifdef TIMER
-    starttimer();
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
-    // Find trails for every starting position
-    Vec sum = {0};
-    for (int i = 0; i < N; ++i)
-        for (int j = 0; j < N; ++j)
-            if (map[i][j] == START)
-                add_r(&sum, findtrails(i, j));
-    printf("%d %d\n", sum.x, sum.y);  // 552 1225
+    Pair sum = {0};
+    for (int i = BEG; i < END; ++i)
+        if (map[i] == HEAD)  // find trails for every starting position
+            add_r(&sum, findtrails(i));
+    printf("%u %u\n", sum.part1, sum.part2);  // 552 1225
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
-    return 0;
 }
