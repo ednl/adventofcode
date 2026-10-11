@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 600 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 598 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
@@ -81,24 +81,23 @@ static lldiv_t split(const int64_t x, const int even)
     return lldiv(x, pow10[even >> 1]);
 }
 
-static int64_t count(const int64_t stone, const int blink)
+static int64_t count(const int64_t stone, int blink)
 {
-    if (!blink)
+    if (blink-- == 0)
         return 1;
-    const int b = blink - 1;
-    if (stone < CACHESIZE && cache[b][stone])
-        return cache[b][stone];
-    int64_t n = 0;
-    int even;
-    if (!stone)
-        n = count(1, b);
-    else if (!((even = digits(stone)) & 1)) {
-        const lldiv_t lr = split(stone, even);
-        n = count(lr.quot, b) + count(lr.rem, b);
-    } else
-        n = count(stone * 2024, b);
+    if (stone < CACHESIZE && cache[blink][stone])
+        return cache[blink][stone];
+    int64_t n;
+    const int numdig = digits(stone);
+    if ((numdig & 1) == 0) {  // even number of digits
+        const lldiv_t lr = split(stone, numdig);
+        n = count(lr.quot, blink) + count(lr.rem, blink);
+    } else if (stone == 0)
+        n = count(1, blink);
+    else  // odd number of digits (except 0)
+        n = count(stone * 2024, blink);
     if (stone < CACHESIZE)
-        cache[b][stone] = n;
+        cache[blink][stone] = n;
     return n;
 }
 
