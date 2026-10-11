@@ -8,14 +8,14 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 11.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 11.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz)                    : 0.69 ms
- *     Mac Mini 2020 (M1 3.2 GHz)                       : 1.02 ms
- *     Raspberry Pi 5 (2.4 GHz)                         : 1.91 ms
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 3.15 ms
- *     Raspberry Pi 4 (1.8 GHz)                         : 5.95 ms
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 600 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
@@ -23,20 +23,15 @@
 #include <stdint.h>    // int64_t
 #include <inttypes.h>  // PRId64
 #ifdef TIMER
+    #include <string.h>  // memset
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 0
-#if EXAMPLE == 1
-    #define FNAME "../aocinput/2024-11-example.txt"
-    #define N 2
-#else
-    #define FNAME "../aocinput/2024-11-input.txt"
-    #define N 8
-#endif
+#define FNAME "../aocinput/2024-11-input.txt"
+#define N 8
 #define BLINK1 25
 #define BLINK2 75
-#define CACHESIZE 1000
+#define CACHESIZE 1024
 
 typedef struct vec {
     int64_t x, y;
@@ -73,7 +68,7 @@ static const int dig10[] = {
      2, 2, 2,  1, 1, 1,  0, 0, 0, 1};  // index=64 for x=0 => 1 digit
 
 static int64_t input[N];
-static int64_t cache[CACHESIZE][BLINK2];
+static int64_t cache[BLINK2][CACHESIZE];
 
 static int digits(const int64_t x)
 {
@@ -91,8 +86,8 @@ static int64_t count(const int64_t stone, const int blink)
     if (!blink)
         return 1;
     const int b = blink - 1;
-    if (stone < CACHESIZE && cache[stone][b])
-        return cache[stone][b];
+    if (stone < CACHESIZE && cache[b][stone])
+        return cache[b][stone];
     int64_t n = 0;
     int even;
     if (!stone)
@@ -103,7 +98,7 @@ static int64_t count(const int64_t stone, const int blink)
     } else
         n = count(stone * 2024, b);
     if (stone < CACHESIZE)
-        cache[stone][b] = n;
+        cache[b][stone] = n;
     return n;
 }
 
@@ -118,19 +113,21 @@ static int64_t change(const int blink)
 int main(void)
 {
     FILE *f = fopen(FNAME, "r");
-    if (!f) { fprintf(stderr, "File not found: %s\n", FNAME); return 1; }
+    if (!f) { fputs("File not found: "FNAME, stderr); return 1; }
     for (int i = 0; i < N && fscanf(f, "%"PRId64, &input[i]) == 1; ++i);
     fclose(f);
 
 #ifdef TIMER
-    starttimer();
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
+    memset(cache, 0, sizeof cache);
 #endif
 
-    printf("Part 1: %"PRId64"\n", change(BLINK1));  // example: 55312, input: 199986
-    printf("Part 2: %"PRId64"\n", change(BLINK2));  // example: 65601038650482, input: 236804088748754
+    // 199986 236804088748754
+    printf("%"PRIu64" %"PRIu64"\n", change(BLINK1), change(BLINK2));
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
-    return 0;
 }
