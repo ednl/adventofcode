@@ -13,15 +13,15 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 598 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 591 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
 #include <stdlib.h>    // lldiv
-#include <stdint.h>    // int64_t
-#include <inttypes.h>  // PRId64
+#include <stdint.h>    // uint64_t
+#include <inttypes.h>  // PRIu64
 #ifdef TIMER
     #include <string.h>  // memset
     #include "../startstoptimer.h"
@@ -33,32 +33,28 @@
 #define BLINK2 75
 #define CACHESIZE 1024
 
-typedef struct vec {
-    int64_t x, y;
-} Vec;
+static const uint64_t pow10[] = {
+    UINT64_C(1),   // 10^0: 1 digit
+    UINT64_C(10),  // 10^1: 2 digits, etc.
+    UINT64_C(100),
+    UINT64_C(1000),
+    UINT64_C(10000),
+    UINT64_C(100000),
+    UINT64_C(1000000),
+    UINT64_C(10000000),
+    UINT64_C(100000000),
+    UINT64_C(1000000000),
+    UINT64_C(10000000000),
+    UINT64_C(100000000000),
+    UINT64_C(1000000000000),
+    UINT64_C(10000000000000),
+    UINT64_C(100000000000000),
+    UINT64_C(1000000000000000),
+    UINT64_C(10000000000000000),
+    UINT64_C(100000000000000000),
+    UINT64_C(1000000000000000000)};  // 10^18: 19 digits (INT64_MAX=9223372036854775807: 19 digits)
 
-static const int64_t pow10[] = {
-    INT64_C(1),   // 10^0: 1 digit
-    INT64_C(10),  // 10^1: 2 digits, etc.
-    INT64_C(100),
-    INT64_C(1000),
-    INT64_C(10000),
-    INT64_C(100000),
-    INT64_C(1000000),
-    INT64_C(10000000),
-    INT64_C(100000000),
-    INT64_C(1000000000),
-    INT64_C(10000000000),
-    INT64_C(100000000000),
-    INT64_C(1000000000000),
-    INT64_C(10000000000000),
-    INT64_C(100000000000000),
-    INT64_C(1000000000000000),
-    INT64_C(10000000000000000),
-    INT64_C(100000000000000000),
-    INT64_C(1000000000000000000)};  // 10^18: 19 digits (INT64_MAX=9223372036854775807: 19 digits)
-
-static const int dig10[] = {
+static const unsigned dig10[] = {
                     19, 18,18,18,18,  // index=0 (19/20 digits) unreachable for int64_t
     17,17,17, 16,16,16, 15,15,15,15,
     14,14,14, 13,13,13, 12,12,12,12,
@@ -67,28 +63,28 @@ static const int dig10[] = {
      5, 5, 5,  4, 4, 4,  3, 3, 3, 3,
      2, 2, 2,  1, 1, 1,  0, 0, 0, 1};  // index=64 for x=0 => 1 digit
 
-static int64_t input[N];
-static int64_t cache[BLINK2][CACHESIZE];
+static uint64_t input[N];
+static uint64_t cache[BLINK2][CACHESIZE];
 
-static int digits(const int64_t x)
+static unsigned digits(const uint64_t x)
 {
-    const int approx = dig10[x ? __builtin_clzll(x) : 64];  // clz undefined for x=0
+    const unsigned approx = dig10[x ? __builtin_clzll(x) : 64];  // clz undefined for x=0
     return approx + (x >= pow10[approx]);
 }
 
-static lldiv_t split(const int64_t x, const int even)
+static lldiv_t split(const uint64_t x, const unsigned evendigitcount)
 {
-    return lldiv(x, pow10[even >> 1]);
+    return lldiv(x, pow10[evendigitcount >> 1]);
 }
 
-static int64_t count(const int64_t stone, int blink)
+static uint64_t count(const uint64_t stone, unsigned blink)
 {
     if (blink-- == 0)
         return 1;
     if (stone < CACHESIZE && cache[blink][stone])
         return cache[blink][stone];
-    int64_t n;
-    const int numdig = digits(stone);
+    uint64_t n;
+    const unsigned numdig = digits(stone);
     if ((numdig & 1) == 0) {  // even number of digits
         const lldiv_t lr = split(stone, numdig);
         n = count(lr.quot, blink) + count(lr.rem, blink);
@@ -101,10 +97,10 @@ static int64_t count(const int64_t stone, int blink)
     return n;
 }
 
-static int64_t change(const int blink)
+static uint64_t change(const unsigned blink)
 {
-    int64_t sum = 0;
-    for (int i = 0; i < N; ++i)
+    uint64_t sum = 0;
+    for (unsigned i = 0; i < N; ++i)
         sum += count(input[i], blink);
     return sum;
 }
@@ -113,7 +109,7 @@ int main(void)
 {
     FILE *f = fopen(FNAME, "r");
     if (!f) { fputs("File not found: "FNAME, stderr); return 1; }
-    for (int i = 0; i < N && fscanf(f, "%"PRId64, &input[i]) == 1; ++i);
+    for (unsigned i = 0; i < N && fscanf(f, "%"PRIu64, &input[i]) == 1; ++i);
     fclose(f);
 
 #ifdef TIMER
