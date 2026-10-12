@@ -5,37 +5,40 @@
  * By: E. Dronkert https://github.com/ednl
  *
  * Compile:
- *     cc -std=c99 -Wall -Wextra -pedantic 12.c
+ *     cc -std=c17 -Wall -Wextra -pedantic 12alt.c
  * Enable timer:
- *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 12.c
+ *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 12alt.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz)                    :  154 µs
- *     Mac Mini 2020 (M1 3.2 GHz)                       :  261 µs
- *     Raspberry Pi 5 (2.4 GHz)                         :  422 µs
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :  521 µs
- *     Raspberry Pi 4 (1.8 GHz)                         : 1026 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 100 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
-#include <stdint.h>   // uint8_t
+#include <stdint.h>  // uint64_t, uint8_t
 #include <stdbool.h>
 #ifdef TIMER
+    #include <string.h>  // memset
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 0
-#if EXAMPLE
-    #define FNAME "../aocinput/2024-12-example.txt"
-    #define N 10
-#else
-    #define FNAME "../aocinput/2024-12-input.txt"
-    #define N 140
-#endif
-#define SSIZE 128  // max needed for my input: 116
+#define FNAME "../aocinput/2024-12-input.txt"
+#define N 140
+#define STKSZ 128  // max needed for my input: 116
 
-// Orthogonal directions
+// Derived values
+#define COLS (N + 1)  // +newline
+#define FSIZE (N * COLS)  // input file size
+#define MAPSZ ((N + 2) * COLS)  // +border rows top and bottom
+#define SETSZ ((MAPSZ + 63) >> 6)  // how many u64 in bitset (= 34)
+#define BEG (COLS)
+#define END (BEG + FSIZE - 1)
+
+// Cardinal directions
 #define TOP (1u << 0)  // bit 0
 #define BTM (1u << 1)  // bit 1
 #define LFT (1u << 2)  // bit 2
@@ -51,15 +54,10 @@ typedef struct vec {
     int x, y;
 } Vec;
 
-typedef struct stack {
-    size_t len;
-    Vec mem[SSIZE];
-} Stack;
-
-static char map[N + 2][N + 3];    // input file +border
-static bool seen[N + 1][N + 1];   // explored nodes
-static uint8_t nb[N + 1][N + 1];  // neighbours (bits 0-3 set/not set)
-static Stack stack;
+static char map[MAPSZ];  // input file incl. newlines and border rows top+bottom
+static uint64_t seen[SETSZ];  // which destinations already visited? (part 1)
+static int stack[STKSZ];  // grid locations (index) still to process
+static int stacklen;
 
 // Add vectors in place ("by reference")
 static void add_r(Vec *const a, const Vec b)
@@ -68,85 +66,92 @@ static void add_r(Vec *const a, const Vec b)
     a->y += b.y;
 }
 
-// Save onto stack, return false if already seen or stack full
-static bool push(const int x, const int y)
+static void mark(const int ix)
 {
-    if (seen[x][y] || stack.len == SSIZE)
-        return false;
-    stack.mem[stack.len++] = (Vec){x, y};
-    return (seen[x][y] = true);
+    seen[ix >> 6] |= UINT64_C(1) << (ix & 63);
+}
+
+static bool ismarked(const int ix)
+{
+    return seen[ix >> 6] >> (ix & 63) & 1;
+}
+
+// Save onto stack if not seen yet
+// Assume stack always has room, needed for my input: 116
+static void push(const int ix)
+{
+    if (ismarked(ix))
+        return;
+    mark(ix);
+    stack[stacklen++] = ix;
 }
 
 // Remove from stack, set row/col, return false if stack was empty
-static bool pop(int *const restrict x, int *const restrict y)
+static bool pop(int *const ix)
 {
-    if (!stack.len)
+    if (!stacklen)
         return false;
-    const Vec val = stack.mem[--stack.len];
-    *x = val.x;
-    *y = val.y;
+    *ix = stack[--stacklen];
     return true;
 }
 
-// Explore plot with same plants starting from i,j
+// Explore plot with same plants starting from index ix
 // Return plot price for parts 1 and 2 together in one Vec
-static Vec price(int i, int j)
+static Vec price(int ix)
 {
+    const char plant = map[ix];
     int area = 0, perim = 0, corners = 0;  // number of corners is same as sides
-    seen[i][j] = true;
-    const char plant = map[i][j];
+    mark(ix);
     do {
-        ++area;  // every plant only counted once
+        area++;  // every plant only counted once
+        unsigned nb = 0;
         // Part 1, and neighbours inventory for part 2
-        if (map[i - 1][j] == plant) { nb[i][j] |= TOP; push(i - 1, j); } else ++perim;
-        if (map[i + 1][j] == plant) { nb[i][j] |= BTM; push(i + 1, j); } else ++perim;
-        if (map[i][j - 1] == plant) { nb[i][j] |= LFT; push(i, j - 1); } else ++perim;
-        if (map[i][j + 1] == plant) { nb[i][j] |= RGT; push(i, j + 1); } else ++perim;
+        if (map[ix - COLS] == plant) { nb |= TOP; push(ix - COLS); } else perim++;
+        if (map[ix + COLS] == plant) { nb |= BTM; push(ix + COLS); } else perim++;
+        if (map[ix - 1]    == plant) { nb |= LFT; push(ix - 1);    } else perim++;
+        if (map[ix + 1]    == plant) { nb |= RGT; push(ix + 1);    } else perim++;
         // Part 2
-        switch (nb[i][j] & TL) {
-            case 0: ++corners; break;
-            case TL: corners += map[i - 1][j - 1] != plant; break;
+        switch (nb & TL) {
+            case 0: corners++; break;
+            case TL: corners += map[ix - COLS - 1] != plant; break;
         }
-        switch (nb[i][j] & BL) {
-            case 0: ++corners; break;
-            case BL: corners += map[i + 1][j - 1] != plant; break;
+        switch (nb & TR) {
+            case 0: corners++; break;
+            case TR: corners += map[ix - COLS + 1] != plant; break;
         }
-        switch (nb[i][j] & TR) {
-            case 0: ++corners; break;
-            case TR: corners += map[i - 1][j + 1] != plant; break;
+        switch (nb & BL) {
+            case 0: corners++; break;
+            case BL: corners += map[ix + COLS - 1] != plant; break;
         }
-        switch (nb[i][j] & BR) {
-            case 0: ++corners; break;
-            case BR: corners += map[i + 1][j + 1] != plant; break;
+        switch (nb & BR) {
+            case 0: corners++; break;
+            case BR: corners += map[ix + COLS + 1] != plant; break;
         }
-    } while (pop(&i, &j));
-#if EXAMPLE
-    printf("%c: %2d x [%2d,%2d] = [%3d,%3d]\n", plant, area, perim, corners, area * perim, area * corners);
-#endif
+    } while (pop(&ix));
     return (Vec){area * perim, area * corners};
 }
 
 int main(void)
 {
-    FILE *f = fopen(FNAME, "r");  // binary mode needed for fread()
-    if (!f) { fprintf(stderr, "File not found: %s\n", FNAME); return 1; }
-    for (int i = 1; i <= N; ++i)
-        fgets(&map[i][1], N + 2, f);  // +\n\0
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) { fputs("File not found: "FNAME, stderr); return 1; }
+    fread(&map[BEG], FSIZE, 1, f);
     fclose(f);
 
 #ifdef TIMER
-    starttimer();
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
+    memset(seen, 0, sizeof seen);
 #endif
 
     Vec sum = {0};
-    for (int i = 1; i <= N; ++i)      // row value with borders
-        for (int j = 1; j <= N; ++j)  // col value with borders
-            if (!seen[i][j])          // new plot?
-                add_r(&sum, price(i, j));
-    printf("%d %d\n", sum.x, sum.y);  // example: 1930 1206, input: 1361494 830516
+    for (int i = BEG; i < END; ++i)
+        if ((map[i] & 64) && !ismarked(i))  // skip [^A-Z] (=newlines) and seen
+            add_r(&sum, price(i));
+    printf("%u %u\n", sum.x, sum.y);  // 1361494 830516
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
-    return 0;
 }
