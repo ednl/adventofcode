@@ -14,8 +14,8 @@
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 100 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 166 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 323 µs
  */
 
 #include <stdio.h>
@@ -104,8 +104,8 @@ static Vec price(int ix)
     mark(ix);
     do {
         area++;  // every plant only counted once
-        unsigned nb = 0;
         // Part 1, and neighbours inventory for part 2
+        unsigned nb = 0;
         if (map[ix - COLS] == plant) { nb |= TOP; push(ix - COLS); } else perim++;
         if (map[ix + COLS] == plant) { nb |= BTM; push(ix + COLS); } else perim++;
         if (map[ix - 1]    == plant) { nb |= LFT; push(ix - 1);    } else perim++;
