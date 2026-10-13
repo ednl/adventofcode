@@ -13,9 +13,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 100 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 166 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 323 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  77.8 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 166   µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 323   µs
  */
 
 #include <stdio.h>
@@ -39,10 +39,10 @@
 #define END (BEG + FSIZE - 1)
 
 // Cardinal directions
-#define TOP (1u << 0)  // bit 0
-#define BTM (1u << 1)  // bit 1
-#define LFT (1u << 2)  // bit 2
-#define RGT (1u << 3)  // bit 3
+#define TOP (1u << 0)
+#define BTM (1u << 1)
+#define LFT (1u << 2)
+#define RGT (1u << 3)
 
 // Diagonal directions
 #define TL (TOP | LFT)
@@ -111,21 +111,21 @@ static Vec price(int ix)
         if (map[ix - 1]    == plant) { nb |= LFT; push(ix - 1);    } else perim++;
         if (map[ix + 1]    == plant) { nb |= RGT; push(ix + 1);    } else perim++;
         // Part 2
-        switch (nb & TL) {
-            case 0: corners++; break;
-            case TL: corners += map[ix - COLS - 1] != plant; break;
+        switch (nb & TL) {  // top-left
+            case TL: if (map[ix - COLS - 1] == plant) break;
+            case 0: corners++;
         }
-        switch (nb & TR) {
-            case 0: corners++; break;
-            case TR: corners += map[ix - COLS + 1] != plant; break;
+        switch (nb & TR) {  // top-right
+            case TR: if (map[ix - COLS + 1] == plant) break;
+            case 0: corners++;
         }
-        switch (nb & BL) {
-            case 0: corners++; break;
-            case BL: corners += map[ix + COLS - 1] != plant; break;
+        switch (nb & BL) {  // bottom-left
+            case BL: if (map[ix + COLS - 1] == plant) break;
+            case 0: corners++;
         }
-        switch (nb & BR) {
-            case 0: corners++; break;
-            case BR: corners += map[ix + COLS + 1] != plant; break;
+        switch (nb & BR) {  // bottom-right
+            case BR: if (map[ix + COLS + 1] == plant) break;
+            case 0: corners++;
         }
     } while (pop(&ix));
     return (Vec){area * perim, area * corners};
