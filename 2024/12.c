@@ -16,7 +16,7 @@
  *     Macbook Pro 2024 (M4 4.4 GHz) :  77.8 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : 173   µs
  *     Raspberry Pi 5 (2.4 GHz)      : 334   µs
- * Minimum runtime measurements: (normal case order in switches)
+ * Minimum runtime measurements: (normal case order in switches, no fall-through)
  *     Macbook Pro 2024 (M4 4.4 GHz) : 100 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : 166 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 323 µs
@@ -50,8 +50,8 @@
 
 // Diagonal directions
 #define TL (TOP | LFT)
-#define BL (BTM | LFT)
 #define TR (TOP | RGT)
+#define BL (BTM | LFT)
 #define BR (BTM | RGT)
 
 typedef struct vec {
