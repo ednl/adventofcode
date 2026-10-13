@@ -8,32 +8,27 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 13.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 13.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz)                    :  3.13 µs
- *     Mac Mini 2020 (M1 3.2 GHz)                       :  5.2 µs
- *     Raspberry Pi 5 (2.4 GHz)                         : 11.5 µs
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 26.8 µs
- *     Raspberry Pi 4 (1.8 GHz)                         : 28.6 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 3.50 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
 #include <stdlib.h>    // lldiv_t
 #include <stdint.h>    // int64_t, INT64_C
-#include <inttypes.h>  // PRId64
+#include <inttypes.h>  // PRIu64
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 0
-#if EXAMPLE
-    #define FNAME "../aocinput/2024-13-example.txt"
-    #define N 4  // claw machines in example file
-#else
-    #define FNAME "../aocinput/2024-13-input.txt"
-    #define N 320  // claw machines in input file
-#endif
+#define FNAME "../aocinput/2024-13-input.txt"
+#define FSIZE (3<<13) // =24576, needed for my input: 20971 +1
+#define N 320  // claw machines in input file
 #define MAXPRESS 100
 #define CORRECTION INT64_C(10000000000000)
 
@@ -46,8 +41,16 @@ typedef struct claw {
     Vec a, b, p;
 } Claw;
 
-// Claw machines
-static Claw claw[N];
+static char input[FSIZE];
+static Claw claw[N];  // claw machines
+
+static unsigned readnum(const char **s)
+{
+    unsigned x = 0;
+    while (**s & 16)  // until ','=44 or '\n'=10
+        x = x * 10 + (*(*s)++ & 15);
+    return x;
+}
 
 // Matrix equation to solve for n,m:
 //   |ax bx|   |n|   |px|
@@ -82,19 +85,33 @@ static int64_t tokens(const int part)
 
 int main(void)
 {
-    FILE *f = fopen(FNAME, "r");
-    if (!f) { fprintf(stderr, "File not found: %s\n", FNAME); return 1; }
-    for (int i = 0; i < N; ++i)
-        fscanf(f, " Button A: X+%"PRId64", Y+%"PRId64" Button B: X+%"PRId64", Y+%"PRId64" Prize: X=%"PRId64", Y=%"PRId64,
-            &claw[i].a.x, &claw[i].a.y, &claw[i].b.x, &claw[i].b.y, &claw[i].p.x, &claw[i].p.y);
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) { fputs("File not found: "FNAME, stderr); return 1; }
+    fread(input, 1, sizeof input, f);  // read single bytes until EOF
     fclose(f);
 
 #ifdef TIMER
-    starttimer();
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
+    // Example claw entry:
+    // Button A: X+24, Y+19  (always 2 digits)
+    // Button B: X+32, Y+86
+    // Prize: X=1072, Y=2062  (3-5 digits each), followed by blank line or EOF
+    const char *c = input;
+    for (int i = 0; i < N; ++i) {
+        claw[i].a.x = *(c + 12) * 10 + *(c + 13) - 11 * '0';
+        claw[i].a.y = *(c + 18) * 10 + *(c + 19) - 11 * '0';
+        claw[i].b.x = *(c + 33) * 10 + *(c + 34) - 11 * '0';
+        claw[i].b.y = *(c + 39) * 10 + *(c + 40) - 11 * '0';
+        c += 51;
+        claw[i].p.x = readnum(&c); c += 4;
+        claw[i].p.y = readnum(&c); c += 2;
+    }
+
     // Part 1
-    printf("Part 1: %"PRId64"\n", tokens(1));  // example: 480, input: 29598
+    printf("%"PRIu64" ", tokens(1));  // 29598
 
     // Part 2
     // Correction for "a unit conversion error in your measurements"
@@ -102,10 +119,10 @@ int main(void)
         claw[i].p.x += CORRECTION;
         claw[i].p.y += CORRECTION;
     }
-    printf("Part 2: %"PRId64"\n", tokens(2));  // example: 875318608908, input: 93217456941970
+    printf("%"PRIu64"\n", tokens(2));  // 93217456941970
 
 #ifdef TIMER
-    printf("Time: %.0f ns\n", stoptimer_ns());
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
-    return 0;
 }
