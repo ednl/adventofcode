@@ -13,21 +13,21 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 2.15 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  2.15 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  3.58 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 10.92 µs
  */
 
 #include <stdio.h>
 #include <stdlib.h>    // lldiv_t
-#include <stdint.h>    // int64_t, INT64_C
+#include <stdint.h>    // int64_t
 #include <inttypes.h>  // PRIu64
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
 #define FNAME "../aocinput/2024-13-input.txt"
-#define FSIZE (3<<13)         // 24576, needed for my input: 20971 +2
+#define FSIZE (3<<13)         // 24576, needed for my input: 20971 (+1 to avoid UB from pointer out of bounds)
 #define CLAWS 320             // claw machines in input file
 #define PRESS 100             // part 1 condition
 #define CORR  10000000000000  // part 2 change
@@ -86,8 +86,8 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     //   |n|                           | by -bx|   |px|
     //   |m| = 1/(ax . by - ay . bx) . |-ay  ax| . |py|
     // =>
-    //   n = (by . px - bx . py) / (ax . by - ay . bx)
-    //   m = (ax . py - ay . px) / (ax . by - ay . bx)
+    //   n = (by . px - bx . py) / det
+    //   m = (ax . py - ay . px) / det
     // Restrictions: n,m integer >= 0. For part 1 also: n,m <= 100.
     int64_t part1 = 0, part2 = 0;
     for (int i = 0; i < CLAWS; ++i) {
