@@ -116,19 +116,19 @@ static Vec price(int ix)
         if (map[ix + 1]    == plant) { nb |= RGT; push(ix + 1);    } else perim++;
         // Part 2
         switch (nb & TL) {  // top-left
-            case TL: if (map[ix - COLS - 1] == plant) break;
+            case TL: if (map[ix - COLS - 1] == plant) break;  /* fall-through */
             case 0: corners++;
         }
         switch (nb & TR) {  // top-right
-            case TR: if (map[ix - COLS + 1] == plant) break;
+            case TR: if (map[ix - COLS + 1] == plant) break;  /* fall-through */
             case 0: corners++;
         }
         switch (nb & BL) {  // bottom-left
-            case BL: if (map[ix + COLS - 1] == plant) break;
+            case BL: if (map[ix + COLS - 1] == plant) break;  /* fall-through */
             case 0: corners++;
         }
         switch (nb & BR) {  // bottom-right
-            case BR: if (map[ix + COLS + 1] == plant) break;
+            case BR: if (map[ix + COLS + 1] == plant) break;  /* fall-through */
             case 0: corners++;
         }
     } while (pop(&ix));
