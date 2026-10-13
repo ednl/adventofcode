@@ -83,9 +83,10 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         c->b.x = *(s + 33) * 10 + *(s + 34) - 11 * '0';
         c->b.y = *(s + 39) * 10 + *(s + 40) - 11 * '0';
         s += 51;
+        // Part 1
         c->p1.x = readnum(&s); s += 4;
         c->p1.y = readnum(&s); s += 2;
-        // Part 2: correction for "a unit conversion error in your measurements"
+        // Part 2
         c->p2.x = c->p1.x + CORR;
         c->p2.y = c->p1.y + CORR;
     }

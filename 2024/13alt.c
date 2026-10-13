@@ -54,25 +54,31 @@ static void add_r(Vec *const a, const Vec b)
 
 static Vec tokens(const char **s)
 {
-    int64_t ax = *(*s + 12) * 10 + *(*s + 13) - 11 * '0';
-    int64_t ay = *(*s + 18) * 10 + *(*s + 19) - 11 * '0';
-    int64_t bx = *(*s + 33) * 10 + *(*s + 34) - 11 * '0';
-    int64_t by = *(*s + 39) * 10 + *(*s + 40) - 11 * '0';
+    // Parse
+    const int64_t ax = *(*s + 12) * 10 + *(*s + 13) - 11 * '0';
+    const int64_t ay = *(*s + 18) * 10 + *(*s + 19) - 11 * '0';
+    const int64_t bx = *(*s + 33) * 10 + *(*s + 34) - 11 * '0';
+    const int64_t by = *(*s + 39) * 10 + *(*s + 40) - 11 * '0';
     *s += 51;
     int64_t px = readnum(s); *s += 4;
     int64_t py = readnum(s); *s += 2;
 
-    int64_t det = ax * by - ay * bx;
+    // Common
+    const int64_t det = ax * by - ay * bx;
+
+    // Part 1
     lldiv_t n = lldiv(by * px - bx * py, det);
     lldiv_t m = lldiv(ax * py - ay * px, det);
-    int64_t part1 = !n.rem && !m.rem && n.quot <= PRESS && m.quot <= PRESS ? 3 * n.quot + m.quot : 0;
+    const int64_t part1 = !n.rem && !m.rem && n.quot <= PRESS && m.quot <= PRESS ? 3 * n.quot + m.quot : 0;
 
+    // Part 2
     px += CORR;
     py += CORR;
     n = lldiv(by * px - bx * py, det);
     m = lldiv(ax * py - ay * px, det);
-    int64_t part2 = !n.rem && !m.rem ? 3 * n.quot + m.quot : 0;
+    const int64_t part2 = !n.rem && !m.rem ? 3 * n.quot + m.quot : 0;
 
+    // Result
     return (Vec){part1, part2};
 }
 
