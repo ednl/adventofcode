@@ -16,6 +16,17 @@
  *     Macbook Pro 2024 (M4 4.4 GHz) :  2.15 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :  3.58 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 10.92 µs
+ *
+ * Matrix equation to solve for n,m:
+ *   |ax bx|   |n|   |px|
+ *   |ay by| . |m| = |py|
+ * Matrix inversion, or https://en.wikipedia.org/wiki/Cramer%27s_rule :
+ *   |n|                           | by -bx|   |px|
+ *   |m| = 1/(ax . by - ay . bx) . |-ay  ax| . |py|
+ * =>
+ *   n = (by . px - bx . py) / det
+ *   m = (ax . py - ay . px) / det
+ * Restrictions: n,m integer >= 0. For part 1 also: n,m <= 100.
  */
 
 #include <stdio.h>
@@ -79,25 +90,10 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         c->p2.y = c->p1.y + CORR;
     }
 
-    // Matrix equation to solve for n,m:
-    //   |ax bx|   |n|   |px|
-    //   |ay by| . |m| = |py|
-    // Matrix inversion, or https://en.wikipedia.org/wiki/Cramer%27s_rule :
-    //   |n|                           | by -bx|   |px|
-    //   |m| = 1/(ax . by - ay . bx) . |-ay  ax| . |py|
-    // =>
-    //   n = (by . px - bx . py) / det
-    //   m = (ax . py - ay . px) / det
-    // Restrictions: n,m integer >= 0. For part 1 also: n,m <= 100.
     int64_t part1 = 0, part2 = 0;
     for (int i = 0; i < CLAWS; ++i) {
         const Claw *const c = &claw[i];  // convenience pointer
-        // Determinant = divisor of inverted matrix, same for parts 1 and 2
-        // Must not be zero, but it never is for my input
         const int64_t det = c->a.x * c->b.y - c->a.y * c->b.x;
-        // Divisions must have no remainders, and quot<=100 for part 1
-        // For my input, every n and m that have no remainder also have non-negative quotients,
-        // (strictly positive, even) so no extra test for that
         lldiv_t n = lldiv(c->b.y * c->p1.x - c->b.x * c->p1.y, det);
         lldiv_t m = lldiv(c->a.x * c->p1.y - c->a.y * c->p1.x, det);
         if (!n.rem && !m.rem && n.quot <= PRESS && m.quot <= PRESS)
