@@ -4,168 +4,144 @@
  * https://adventofcode.com/2024/day/14
  * By: E. Dronkert https://github.com/ednl
  *
+ * Theory explained by /u/i_have_no_biscuits in
+ * https://www.reddit.com/r/adventofcode/comments/1he0asr/2024_day_14_part_2_why_have_fun_with_image/
+ *
+ * Speed tips by /u/wurlin_murlin in
+ * https://www.reddit.com/r/adventofcode/comments/1he0asr/2024_day_14_part_2_why_have_fun_with_image/m237y29/
+ * - Avoid costly variance calculation with running mean divisions. Instead use the basic definition.
+ * - Avoid storing all calculated positions back into the array on every loop, use local (register?) variable.
+ * - Avoid branch to get the non-negative remainder, instead add (positive) period before taking the modulus.
+ *
  * Compile:
  *     cc -std=c17 -Wall -Wextra -pedantic 14.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 14.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz)                    :  3.95 ms
- *     Mac Mini 2020 (M1 3.2 GHz)                       :  7.5 ms
- *     Raspberry Pi 5 (2.4 GHz)                         : 17.4 ms
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) : 17.8 ms
- *     Raspberry Pi 4 (1.8 GHz)                         : 44.5 ms
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 17.4 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
-#include <string.h>  // memset
+#include <limits.h>  // INT_MAX
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 0
-#if EXAMPLE
-    #define FNAME "../aocinput/2024-14-example.txt"
-    #define N 12  // lines in example file
-    #define X 11  // width
-    #define Y  7  // height
-#else
-    #define FNAME "../aocinput/2024-14-input.txt"
-    #define N 500  // lines in input file
-    #define X 101  // width
-    #define Y 103  // height
-#endif
+#define FNAME "../aocinput/2024-14-input.txt"
+#define FSIZE ((1<<13)|(1<<8))  // 8448, needed for my input: 8333 +1
+#define N 500  // robots
+#define X 101  // width
+#define Y 103  // height
 #define T 100  // part 1: 100 seconds
 
-typedef struct vec {
-    int x, y;
-} Vec;
+// Part 2: inv{a} (mod m) = b, if a*b = 1 (mod m)
+// inv{101} (mod 103) = 51, because 101*51 = 5151 = 1 (mod 103)
+// https://en.wikipedia.org/wiki/Modular_multiplicative_inverse
+#define INVX 51
 
-// Split map into 2x2=4 regions
-typedef union quad {
-    int a[4];     // access as array
-    int m[2][2];  // access as matrix
-} Quad;
+static char input[FSIZE];
+static int px[N];  // x-position
+static int py[N];  // y-position
+static int vx[N];  // x-velocity
+static int vy[N];  // y-velocity
 
-// Split map into 3x3=9 regions
-typedef union nine {
-    int a[9];     // access as array
-    int m[3][3];  // access as matrix
-} Nine;
-
-// Split map into 4x4=16 regions ("quad-quad")
-// typedef union qq {
-//     int a[16];    // access as array
-//     int m[4][4];  // access as matrix
-// } QQ;
-
-static Vec p[N];  // position
-static Vec v[N];  // velocity
-
-#if !EXAMPLE && !defined(TIMER)
-static void show(void)
+static int readnum(const char **s)
 {
-    char map[Y][X];
-    memset(map, '.', sizeof map);  // background
-    for (int i = 0; i < N; ++i)
-        if (map[p[i].y][p[i].x] == '.')  // no robots?
-            map[p[i].y][p[i].x] = '1';  // first robot
-        else
-            map[p[i].y][p[i].x]++;  // more robots
-    // Region of interest for my input
-    for (int i = 44; i < 77; ++i) {
-        for (int j = 35; j < 66; ++j)
-            putchar(map[i][j]);
-        putchar('\n');
+    int x = 0;
+    while (**s & 16)
+        x = x * 10 + (*(*s)++ & 15);
+    return x;
+}
+
+static int readint(const char **s)
+{
+    const int pos = **s & 16 ? 1 : ((*s)++, 0);
+    int x = 0;
+    while (**s & 16)
+        x = x * 10 + (*(*s)++ & 15);
+    return pos ? x : -x;
+}
+
+// Find timestep where set of coordinates (either x or y) has minimal variance
+static int clustered(const int *const restrict p, const int *const restrict v, const int mod)
+{
+    int tmin = -1, varmin = INT_MAX;
+    for (int t = 0; t < mod; ++t) {
+        int sum = 0, sum2 = 0;  // basic definition of variance only has add and mul inside the loop
+        // int mean = 0, M2 = 0;  // running mean version also has div and is 270 µs slower on M1
+        for (int i = 0; i < N; ++i) {
+            const int q = (p[i] + (v[i] + mod) * t) % mod;
+            sum += q;
+            sum2 += q * q;
+            // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford%27s_online_algorithm
+            // const int delta = q - mean;
+            // mean += delta / (i + 1);
+            // M2 += delta * (q - mean);
+        }
+        const int var = (sum2 - sum * sum / N) / N;
+        // const int var =  M2 / N;
+        if (var < varmin) {
+            varmin = var;
+            tmin = t;
+        }
     }
+    return tmin;
 }
-#endif
-
-// Non-negative remainder (for positive m)
-static int mod(const int a, const int m)
-{
-    const int b = a % m;
-    return b >= 0 ? b : b + m;
-}
-
-// Integer variance of distribution over 3x3=9 regions.
-// Experimental parameters: prevmax=2860, prv=37, fin=8048, fin/prv=217
-// so the target configuration is the first one with var3 above 3000.
-static int var3(void)
-{
-    Nine nine = {0};  // 9 regions
-    for (int i = 0; i < N; ++i)
-        nine.m[p[i].y / ((Y / 3) + 1)][p[i].x / ((X / 3) + 1)]++;  // divide by 35 (y) or 34 (x) to get region index
-    int var = 0;
-    for (int i = 0; i < 9; ++i) {
-        const int d = nine.a[i] - (N / 9);  // difference from mean 55
-        var += d * d;
-    }
-    return (var / 9);  // normalise for 9 regions
-}
-
-// Integer variance of distribution over 4x4=16 regions
-// Experimental parameters: prevmax=969, prv=29, fin=2318, fin/prv=79
-// so the target configuration is the first one with var4 above 1000.
-// static int var4(void)
-// {
-//     QQ qq = {0};  // 16 regions
-//     for (int i = 0; i < N; ++i)
-//         qq.m[p[i].y / ((Y >> 2) + 1)][p[i].x / ((X >> 2) + 1)]++;  // divide by 26 to get region index
-//     int var = 0;
-//     for (int i = 0; i < 16; ++i) {
-//         const int d = qq.a[i] - (N >> 4);  // difference from mean 31
-//         var += d * d;
-//     }
-//     return (var >> 4);  // normalise for 16 regions
-// }
 
 int main(void)
 {
-    FILE *f = fopen(FNAME, "r");
-    if (!f) { fprintf(stderr, "File not found: %s\n", FNAME); return 1; }
-    for (int i = 0; i < N; ++i)
-        fscanf(f, "p=%d,%d v=%d,%d ",
-            &p[i].x, &p[i].y, &v[i].x, &v[i].y);
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) { fputs("File not found: "FNAME, stderr); return 1; }
+    fread(input, 1, sizeof input, f);  // read single bytes until EOF
     fclose(f);
 
 #ifdef TIMER
-    starttimer();
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
+
+    const char *s = input;
+    for (int i = 0; i < N; ++i) {
+        s += 2;  // skip "p="
+        px[i] = readnum(&s); s++;  // skip ","
+        py[i] = readnum(&s); s += 3;  // skip " v="
+        vx[i] = readint(&s); s++;  // skip ","
+        vy[i] = readint(&s); s++;  // skip newline
+    }
 
     // Part 1
-    Quad quad = {0};
+    int quad[2][2] = {0};
     for (int i = 0; i < N; ++i) {
-        p[i].x = mod(p[i].x + v[i].x * T, X);  // 100 time steps in one
-        p[i].y = mod(p[i].y + v[i].y * T, Y);
-        if (p[i].x != (X >> 1) && p[i].y != (Y >> 1))
-            quad.m[p[i].y / ((Y >> 1) + 1)][p[i].x / ((X >> 1) + 1)]++;
+        const int qx = (px[i] + (vx[i] + X) * T) % X;
+        const int qy = (py[i] + (vy[i] + Y) * T) % Y;
+        if (qx != (X >> 1) && qy != (Y >> 1))  // skip central lines as per the puzzle description
+            quad[qy / ((Y >> 1) + 1)][qx / ((X >> 1) + 1)]++;
     }
-    int prod = 1;
-    for (int i = 0; i < 4; ++i)
-        prod *= quad.a[i];
-    printf("Part 1: %d\n", prod);  // example: 12, input: 221655456
+    const int prod = quad[0][0] * quad[0][1] * quad[1][0] * quad[1][1];
 
-#if !EXAMPLE
     // Part 2
-    // Experimentally found variance threshold; for my input the
-    // tree configuration has: var3=8048, the first one above 3000,
-    // or: var4=2318, the first one above 1000.
-    int sec = T;
-    for (; var3() < 3000; ++sec)
-        for (int i = 0; i < N; ++i) {
-            p[i].x = mod(p[i].x + v[i].x, X);  // single time step
-            p[i].y = mod(p[i].y + v[i].y, Y);
-        }
-    printf("Part 2: %d\n", sec);  // example: -, input: 7858
-#ifndef TIMER
-    show();
-#endif
-#endif
+    // x and y are independent
+    // period of px+t*vx is t=X
+    // period of py+t*vy is t=Y
+    // find tx in t=[0,X) where variance of px is minimal
+    // find ty in t=[0,Y) where variance of py is minimal
+    const int tx = clustered(px, vx, X);
+    const int ty = clustered(py, vy, Y);
+    // t = tx (mod X) => t = tx + k * X
+    // t = ty (mod Y) => tx + k * X = ty (mod Y) => k = invX * (ty - tx) (mod Y)
+    // => t = tx + (invX * (ty - tx) (mod Y)) * X
+    // where invX (mod Y) = pow(101,-1,103) = 51, because 101 * 51 = 5151 = 1 (mod 103)
+    const int t = tx + (INVX * (ty - tx + Y) % Y) * X;  // avoid negative ty-tx
+    printf("%u %u\n", prod, t);  // 221655456 7858
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
-    return 0;
 }
