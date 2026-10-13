@@ -95,10 +95,7 @@ starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
-    // Example claw entry:
-    // Button A: X+24, Y+19  (always 2 digits)
-    // Button B: X+32, Y+86
-    // Prize: X=1072, Y=2062  (3-5 digits each), followed by blank line or EOF
+    // Parse input
     const char *c = input;
     for (int i = 0; i < N; ++i) {
         claw[i].a.x = *(c + 12) * 10 + *(c + 13) - 11 * '0';
