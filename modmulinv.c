@@ -8,7 +8,8 @@
 
 // Modular multiplicative inverse
 // https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Modular_integers
-static bool inverse(const int64_t a, const int64_t m, int64_t *const restrict gcd, int64_t *const restrict inv)
+static bool inverse(const int64_t a, const int64_t m,
+    int64_t *const restrict gcd, int64_t *const restrict inv)
 {
     int64_t t = 0, tnew = 1;
     int64_t r = m, rnew = a;
@@ -34,8 +35,12 @@ int main(int argc, char *argv[])
     }
     int64_t gcd, inv;
     const bool res = inverse(a, m, &gcd, &inv);
-    printf("%"PRId64" is%s invertible (mod %"PRId64")\n", a, res ? "" : " not", m);
-    printf("%s(%"PRId64",%"PRId64") = %"PRId64"\n", res ? "inv" : "gcd", a, m, res ? inv : gcd);
-    printf("    %"PRId64" * %"PRId64" = %"PRId64" = %"PRId64" (mod %"PRId64")\n", a, inv, a * inv, gcd, m);
-    printf("    %#"PRIx64" * %#"PRIx64" = %#"PRIx64" = %#"PRIx64" (mod %#"PRIx64")\n", a, inv, a * inv, gcd, m);
+    printf("%"PRId64" is%s invertible (mod %"PRId64")\n",
+        a, res ? "" : " not", m);
+    printf("%s(%"PRId64",%"PRId64") = %"PRId64"\n",
+        res ? "inv" : "gcd", a, m, res ? inv : gcd);
+    printf("    %"PRId64" * %"PRId64" = %"PRId64" = %"PRId64" (mod %"PRId64")\n",
+        a, inv, a * inv, gcd, m);
+    printf("    %#"PRIx64" * %#"PRIx64" = %#"PRIx64" = %#"PRIx64" (mod %#"PRIx64")\n",
+        a, inv, a * inv, gcd, m);
 }
