@@ -63,11 +63,14 @@ static int readnum(const char **s)
 // Signed
 static int readint(const char **s)
 {
-    const int sgn = **s & 16 ? 1 : ((*s)++, -1);
+    const int pos = **s & 16 ? 1 : ((*s)++, 0);
     int x = 0;
     while (**s & 16)
         x = x * 10 + (*(*s)++ & 15);
-    return x * sgn;
+    return pos ? x : -x;
+    // Alternative might be faster on modern cpus:
+    // const int sgn = **s & 16 ? 1 : ((*s)++, -1);
+    // return x * sgn;
 }
 
 // Find timestep where set of coordinates (either x or y) has minimal variance
