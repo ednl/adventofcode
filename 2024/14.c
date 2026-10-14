@@ -22,7 +22,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  17.4 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  17.3 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :  24.9 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 106.5 µs
  */
@@ -120,10 +120,10 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     // Part 1
     int quad[2][2] = {0};
     for (int i = 0; i < N; ++i) {
-        const int qx = (px[i] + (vx[i] + X) * T) % X;
-        const int qy = (py[i] + (vy[i] + Y) * T) % Y;
-        if (qx != (X >> 1) && qy != (Y >> 1))  // skip central lines as per the puzzle description
-            quad[qy / ((Y >> 1) + 1)][qx / ((X >> 1) + 1)]++;
+        const int qx = (px[i] + (vx[i] + X) * T) % X - (X >> 1);  // centre around middle
+        const int qy = (py[i] + (vy[i] + Y) * T) % Y - (Y >> 1);
+        if (qx && qy)  // skip middle lines
+            quad[qx > 0][qy > 0]++;
     }
     const int prod = quad[0][0] * quad[0][1] * quad[1][0] * quad[1][1];
 
@@ -139,7 +139,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     // t = ty (mod Y) => tx + k * X = ty (mod Y) => k = invX * (ty - tx) (mod Y)
     // => t = tx + (invX * (ty - tx) (mod Y)) * X
     // where invX (mod Y) = pow(101,-1,103) = 51, because 101 * 51 = 5151 = 1 (mod 103)
-    const int t = tx + (INVX * (ty - tx + Y) % Y) * X;  // avoid negative ty-tx
+    const int t = tx + (INVX * (ty - tx + Y) % Y) * X;  // +Y to preempt negative ty-tx
     printf("%u %u\n", prod, t);  // 221655456 7858
 
 #ifdef TIMER
