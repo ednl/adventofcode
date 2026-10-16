@@ -8,23 +8,35 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 17.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 17.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz)                    :  1.79 µs
- *     Mac Mini 2020 (M1 3.2 GHz)                       :  2.9  µs
- *     Macbook Air 2013 (Core i5 Haswell 4250U 1.3 GHz) :  9.1  µs
- *     Raspberry Pi 5 (2.4 GHz)                         :  9.8  µs
- *     Raspberry Pi 4 (1.8 GHz)                         : 26.9  µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 0.47 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
 #include <stdint.h>    // uint64_t, UINT64_C
 #include <inttypes.h>  // PRIu64, PRIo64
-#include "../aocinput/2024-17-input.h"  // input as CSV string called 'input'
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
+
+#define FNAME "../aocinput/2024-17-input.txt"
+#define FSIZE 256  // needed for my input: 91 +1
+
+static char input[FSIZE];
+
+static unsigned readnum(const char **s)
+{
+    unsigned x = 0;
+    while (**s & 16)  // until newline
+        x = x * 10 + (*(*s)++ & 15);
+    return x;
+}
 
 // Output prog value as octal with digits separated by commas.
 static char *out(uint64_t x)
@@ -42,11 +54,11 @@ static char *out(uint64_t x)
 }
 
 // Interpret CSV line as mumber with big-endian octal digits.
-static uint64_t inp(const char *csv)
+static uint64_t readcsv(const char *s)
 {
-    uint64_t x = *csv++ & 15;
-    while (*csv++ == ',')
-        x = x << 3 | (*csv++ & 15);
+    uint64_t x = *s++ & 15;
+    while (*s++ == ',')
+        x = x << 3 | (*s++ & 15);
     return x;
 }
 
@@ -87,15 +99,27 @@ static uint64_t rev(const uint64_t prog, const uint64_t a, const int octlen)
 
 int main(void)
 {
+
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) return 1;
+    fread(input, 1, FSIZE, f);
+    fclose(f);
+
 #ifdef TIMER
-    starttimer();
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
-    printf("%s\n", out(run(35200350)));  // 2,7,4,7,2,1,7,5,1
-    printf("%"PRIu64"\n", rev(inp(input), 0, 1));  // 37221274271220
+    const char *s = input + 12;  // skip "Register A: "
+    const unsigned regA = readnum(&s);
+    s += 39;  // skip until CSV
+    const uint64_t prog = readcsv(s);
+
+    // 2,7,4,7,2,1,7,5,1 37221274271220
+    printf("%s %"PRIu64"\n", out(run(regA)), rev(prog, 0, 1));
 
 #ifdef TIMER
-    printf("Time: %.0f ns\n", stoptimer_ns());
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
-    return 0;
 }
