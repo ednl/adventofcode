@@ -8,116 +8,167 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 18.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 18.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 20.2 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
-#include <string.h>
+#include <string.h>  // memset
+#include <stdint.h>  // uint8_t
 #include <stdbool.h>
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
-#define STR_HELPER(x) #x
-#define STR(x) STR_HELPER(x)
+// Input file
+#define FNAME "../aocinput/2024-18-input.txt"
+#define FSIZE (5<<12)    // =20480, needed for my input: 19727 +1
+#define BYTES 3450       // lines in input file
+#define QBITS 8          // needed for my input: 7 ((1<<7) > 94)
 
-#define EXAMPLE 1
-#if EXAMPLE
-    #define FNAME "../aocinput/2024-18-example.txt"
-    #define FSIZE 100
-    #define N 25
-    #define M 12
-    #define DIM 7
-    #define QSIZE 1024
-#else
-    #define FNAME "../aocinput/2024-18-input.txt"
-    #define FSIZE 20000
-    #define N 3450
-    #define M 1024
-    #define DIM 71
-    #define QSIZE 1024
-#endif
+// Puzzle parameters
+#define T 1024           // time (bytes dropped) for part 1
+#define N 71             // RAM grid width and height
 
-typedef struct vec {
-    int x, y;
-} Vec;
+// Derived values
+#define M   (N + 2)      // map width/height with border
+#define BEG (M + 1)      // top left of memory grid
+#define END (N * M + N)  // bottom right of memory grid
+#define QSIZE (1u << QBITS)
+#define QMASK (QSIZE - 1)
 
-static const Vec dir[4] = {{1,0},{0,1},{-1,0},{0,-1}};
-static const Vec error = {-1,-1};
+// Solution parameters
+#define CORRUPT 1        // byte was dropped here
+#define TOPRGHT 2        // connected to top-right half
+#define BOTLEFT 4        // connected to bottom left half
+#define BLOCKED 7        // blocking the way from start to end
+#define SEEN    8        // processed by part 1 BFS
 
-static Vec queue[QSIZE];
-static int qhead, qtail, qlen;
+static const int nb4[] = {1, M, -1, -M};
+static const int nb8[] = {-(M + 1), -M, -(M - 1), -1, 1, M - 1, M, M + 1};
 
 static char input[FSIZE];
-static Vec bytes[N];
-static char grid[DIM][DIM];
-static bool seen[DIM][DIM];
+static unsigned byte[BYTES];
+static uint8_t map[M * M];
+static unsigned qdata[QSIZE];
+static unsigned qhead, qtail;
 
-static void enqueue(const Vec pos)
+// Assume queue is never full (needed for my input: 94)
+static void enq(const unsigned val)
 {
-    if (qlen == QSIZE)
-        return;
-    queue[qhead++] = pos;
-    if (qhead == QSIZE)
-        qhead = 0;
-    qlen++;
+    qdata[qhead++] = val;
+    qhead &= QMASK;
 }
 
-static Vec dequeue(void)
+// Assume queue is never full (or else head==tail)
+static bool deq(unsigned *const val)
 {
-    if (qlen == 0)
-        return error;
-    qlen--;
-    const int i = qtail;
-    if (++qtail == QSIZE)
-        qtail = 0;
-    return queue[i];
+    if (qhead == qtail)
+        return false;
+    *val = qdata[qtail++];
+    qtail &= QMASK;
+    return true;
 }
 
-static bool isequal(const Vec a, const Vec b)
+static unsigned readnum(const char **s)
 {
-    return a.x == b.x && a.y == b.y;
+    unsigned x = 0;
+    while (**s & 16)  // until comma or newline
+        x = x * 10 + (*(*s)++ & 15);
+    return x;
+}
+
+static unsigned bfs(void)
+{
+    unsigned ixlen = BEG << 16, ix, len;
+    map[BEG] |= SEEN;
+    do {
+        ix = ixlen >> 16;
+        len = ixlen & ((1u<<16) - 1);
+        if (ix == END)
+            return len;
+        for (unsigned i = 0; i < 4; ++i) {
+            const unsigned k = ix + nb4[i];
+            if (!(map[k] & (SEEN | CORRUPT))) {
+                map[k] |= SEEN;
+                enq(k << 16 | (len + 1));
+            }
+        }
+    } while (deq(&ixlen));
+    return 0;
+}
+
+static void flood(const unsigned ix, const unsigned side)
+{
+    for (unsigned i = 0; i < 8; ++i) {
+        const unsigned k = ix + nb8[i];
+        if ((map[k] & 7) == CORRUPT) {  // unconnected byte
+            map[k] |= side;
+            flood(k, side);
+        }
+    }
+}
+
+static bool drop(const unsigned ix)
+{
+    map[ix] |= CORRUPT;
+    for (unsigned i = 0; i < 8; ++i)
+        map[ix] |= map[ix + nb8[i]];
+    switch (map[ix] & 7) {
+        case CORRUPT: return false;
+        case BLOCKED: return true;
+    }
+    flood(ix, map[ix] & (TOPRGHT | BOTLEFT));
+    return false;
 }
 
 int main(void)
 {
-    // Read input file
-    FILE *f = fopen(FNAME, "rb");  // fread requires binary mode
-    if (!f) { fputs("File not found.\n", stderr); return 1; }
-    fread(input, sizeof input, 1, f);  // read whole file at once
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) { fputs("File not found: "FNAME, stderr); return 1; }
+    fread(input, 1, FSIZE, f);  // read single bytes until EOF
     fclose(f);
 
 #ifdef TIMER
-    starttimer();
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
+    memset(map, 0, sizeof map);
+    qhead = qtail = 0;
 #endif
 
-    const char *c = input;
-    for (int i = 0; i < N; ++i) {
-        int x = *c++ & 15;
-        if (*c != ',')
-            x = x * 10 + (*c++ & 15);
-        ++c;
-        int y = *c++ & 15;
-        if (*c != '\n')
-            y = y * 10 + (*c++ & 15);
-        ++c;
-        bytes[i] = (Vec){x, y};
+    memset(map, TOPRGHT | CORRUPT, M);
+    memset(&map[(M - 1) * M], BOTLEFT | CORRUPT, M);
+    for (int i = M - 1; i < (M - 1) * M; i += M) {
+        map[i] = TOPRGHT | CORRUPT;
+        map[i + 1] = BOTLEFT | CORRUPT;
     }
-    memset(grid, '.', sizeof grid);
-    for (int i = 0; i < M; ++i)
-        grid[bytes[i].y][bytes[i].x] = '#';
-    for (int i = 0; i < DIM; ++i)
-        printf("%."STR(DIM)"s\n", grid[i]);
-    Vec pos = {0};
-    const Vec goal = {DIM - 1, DIM - 1};
+    const char *s = input;
+    for (unsigned i = 0; *s; ++i) {
+        const unsigned x = readnum(&s); s++;  // skip comma
+        const unsigned y = readnum(&s); s++;  // skip newline
+        byte[i] = ((y + 1) * M) + x + 1;  // +borders
+    }
+
+    // Part 1
+    unsigned t = 0;
+    for (; t < T; ++t)
+        drop(byte[t]);
+    printf("%u ", bfs());  // 286
+
+    // Part 2
+    for (; t < BYTES; ++t)
+        if (drop(byte[t]))
+            break;
+    printf("%u,%u\n", byte[t] % M - 1, byte[t] / M - 1);  // 20,64
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
-    return 0;
 }
