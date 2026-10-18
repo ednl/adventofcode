@@ -13,9 +13,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 20.2 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  20.2 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  32.4 µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 103.3 µs
  */
 
 #include <stdio.h>
@@ -50,13 +50,14 @@
 #define BLOCKED 7        // blocking the way from start to end
 #define SEEN    8        // processed by part 1 BFS
 
+// Flat array neighbour deltas
 static const int nb4[] = {1, M, -1, -M};
 static const int nb8[] = {-(M + 1), -M, -(M - 1), -1, 1, M - 1, M, M + 1};
 
 static char input[FSIZE];
 static unsigned byte[BYTES];
 static uint8_t map[M * M];
-static unsigned qdata[QSIZE];
+static unsigned qdata[QSIZE];  // queue of index and length as u16 x2 = u32
 static unsigned qhead, qtail;
 
 // Assume queue is never full (needed for my input: 94)
@@ -104,6 +105,7 @@ static unsigned bfs(void)
     return 0;
 }
 
+// Connect neighbouring unconnected bytes to either top-right or bottom-left
 static void flood(const unsigned ix, const unsigned side)
 {
     for (unsigned i = 0; i < 8; ++i) {
@@ -115,6 +117,7 @@ static void flood(const unsigned ix, const unsigned side)
     }
 }
 
+// Drop one byte on the memory grid
 static bool drop(const unsigned ix)
 {
     map[ix] |= CORRUPT;
