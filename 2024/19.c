@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 1892 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 1870 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
@@ -47,7 +47,6 @@ typedef struct towelbycolour {
 static const uint8_t hash[] = {['b' & 31]=0, ['g' & 31]=1, ['r' & 31]=2, ['u' & 31]=3, ['w' & 31]=4};
 
 static char input[FSIZE];
-static char data[FSIZE];
 static Str towel[TOWELS];
 static Str design[DESIGNS];
 static TowelByColour selection[COLOURS];
@@ -105,23 +104,22 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
     // Parse
-    memcpy(data, input, sizeof data);
-    char *s = data;
+    char *s = input;
     for (Str *t = towel;; *s = '\0', s += 2, t++) {
         t->s = s;
         while (*s & 64)
             s++;
         t->len = s - t->s;
-        if (*s == '\n')
+        if (*(s + 1) != ' ')
             break;
     }
     *s = '\0';
     s += 2;
-    for (Str *t = design; *s; *s++ = '\0', t++) {
-        t->s = s;
+    for (Str *d = design; *s; *s++ = '\0', d++) {
+        d->s = s;
         while (*s & 64)
             s++;
-        t->len = s - t->s;
+        d->len = s - d->s;
     }
 
     // Index towels by initial colour
