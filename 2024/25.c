@@ -41,9 +41,9 @@ static u32 lck[N2], key[N2];
 static u32 getpat(const char *s)
 {
     u32 pat = 0;
-    for (u32 i = 0; i < 29; ++i)
+    for (u32 i = 0; i < 29; ++i)  // or 32 if it helps vectorisation
         pat |= ((*(s + i) & 1) << i);
-    return pat & MASK56;  // discard every 6th and last 2 bits
+    return pat & MASK56;  // reset every 6th and last 2 bits
 }
 
 int main(void)
