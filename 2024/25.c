@@ -13,14 +13,13 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  4.87 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) :  4.52 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    :  6.87 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 19.8  µs
  */
 
 #include <stdio.h>
-#include <string.h>  // memcpy
-#include <stdint.h>  // uint64_t, uint32_t, UINT64_C
+#include <stdint.h>  // uint32_t
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
@@ -32,24 +31,19 @@
 #define ROWLEN (M + 1)                 // 5 chars +newline
 #define PATLEN ((M + 2) * ROWLEN + 1)  // +2 rows at top/bottom, +empty line
 #define FSIZE  (N * PATLEN - 1)        // -1: no trailing empty line
-#define MASK56 UINT64_C(0xfbefbef8)    // 0b11111011111011111011111011111000
+#define MASK56 0x1f7df7dfu             // 0001 1111 0111 1101 1111 0111 1101 1111
 
 typedef uint32_t u32;
-typedef uint64_t u64;
-
 static char input[FSIZE];
-static u32 lock[N2], key[N2];
+static u32 lck[N2], key[N2];
 
-// Parse 4x8=32 bytes to 32 bits, discard every 6th and last 2
+// Parse 32 bytes to 32 bits, discard every 6th and last 2
 static u32 getpat(const char *s)
 {
-    u64 pat = 0, data;
-    for (u32 i = 0; i < 4; s += 8, ++i) {
-        memcpy(&data, s, 8);
-        for (u32 j = 0; j < 8; data >>= 8, ++j)
-            pat = pat << 1 | (data & 1);
-    }
-    return (u32)(pat & MASK56);
+    u32 pat = 0;
+    for (u32 i = 0; i < 32; ++i)
+        pat |= ((*(s + i) & 1) << i);
+    return pat & MASK56;
 }
 
 int main(void)
@@ -66,17 +60,17 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 
     // Parse
     const char *s = input;
-    for (u32 i = 0, nl = 0, nk = 0; i < N; s += PATLEN, ++i)
+    for (u32 i = 0, l = 0, k = 0; i < N; s += PATLEN, ++i)
         if (*s & 1)
-            lock[nl++] = getpat(s + ROWLEN);
+            lck[l++] = getpat(s + ROWLEN);
         else
-            key[nk++] = getpat(s + ROWLEN);
+            key[k++] = getpat(s + ROWLEN);
 
     // Try every lock/key combo
     u32 fit = 0;
     for (u32 i = 0; i < N2; ++i)
         for (u32 j = 0; j < N2; ++j)
-            fit += !(lock[i] & key[j]);
+            fit += !(lck[i] & key[j]);
     printf("%u\n", fit);  // 3284
 
 #ifdef TIMER
