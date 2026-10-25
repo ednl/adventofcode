@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 5.42 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 4.87 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
@@ -29,9 +29,9 @@
 #define N      (4000 >> 3)             // lines+1 in input file divided by 8 lines per pattern
 #define N2     (N >> 1)                // half locks, half keys
 #define M      5                       // 5x5 grid of '#' or '.': fits in 32-bit integer as bit pattern
-#define ROWLEN (M + 1)                 // 5 cols +newline
+#define ROWLEN (M + 1)                 // 5 chars +newline
 #define PATLEN ((M + 2) * ROWLEN + 1)  // +2 rows at top/bottom, +empty line
-#define FSIZE  (N * PATLEN - 1)        // no trailing empty line
+#define FSIZE  (N * PATLEN - 1)        // -1: no trailing empty line
 #define MASK56 UINT64_C(0xfbefbef8)    // 0b11111011111011111011111011111000
 
 typedef uint32_t u32;
@@ -40,6 +40,7 @@ typedef uint64_t u64;
 static char input[FSIZE];
 static u32 lock[N2], key[N2];
 
+// Parse 4x8=32 bytes to 32 bits, discard every 6th and last 2
 static u32 getpat(const char *s)
 {
     u64 pat = 0, data;
@@ -63,17 +64,18 @@ starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
-    u32 locks = 0, keys = 0;
+    // Parse
     const char *s = input;
-    for (u32 i = 0; i < N; s += PATLEN, ++i)
+    for (u32 i = 0, nl = 0, nk = 0; i < N; s += PATLEN, ++i)
         if (*s & 1)
-            lock[locks++] = getpat(s + ROWLEN);
+            lock[nl++] = getpat(s + ROWLEN);
         else
-            key[keys++] = getpat(s + ROWLEN);
+            key[nk++] = getpat(s + ROWLEN);
 
+    // Try every lock/key combo
     u32 fit = 0;
-    for (u32 i = 0; i < locks; ++i)
-        for (u32 j = 0; j < keys; ++j)
+    for (u32 i = 0; i < N2; ++i)
+        for (u32 j = 0; j < N2; ++j)
             fit += !(lock[i] & key[j]);
     printf("%u\n", fit);  // 3284
 
