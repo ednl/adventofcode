@@ -14,7 +14,7 @@
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) :  4.52 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :  6.87 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    :  6.93 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 19.8  µs
  */
 
@@ -37,13 +37,13 @@ typedef uint32_t u32;
 static char input[FSIZE];
 static u32 lck[N2], key[N2];
 
-// Parse 32 bytes to 32 bits, discard every 6th and last 2
+// Parse 29 bytes to 29 bits
 static u32 getpat(const char *s)
 {
     u32 pat = 0;
-    for (u32 i = 0; i < 32; ++i)
+    for (u32 i = 0; i < 29; ++i)
         pat |= ((*(s + i) & 1) << i);
-    return pat & MASK56;
+    return pat & MASK56;  // discard every 6th and last 2 bits
 }
 
 int main(void)
