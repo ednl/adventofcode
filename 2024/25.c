@@ -25,12 +25,13 @@
 #endif
 
 #define FNAME "../aocinput/2024-25-input.txt"
-#define N      (4000 >> 3)             // lines+1 in input file divided by 8 lines per pattern
-#define N2     (N >> 1)                // half locks, half keys
-#define M      5                       // 5x5 grid of '#' or '.': fits in 32-bit integer as bit pattern
+#define N 500  // lines in input file +1 divided by 8 lines per pattern
+#define M 5    // 5x5 grid of '#' or '.': fits in 32-bit integer as bit pattern
+
 #define ROWLEN (M + 1)                 // 5 chars +newline
 #define PATLEN ((M + 2) * ROWLEN + 1)  // +2 rows at top/bottom, +empty line
 #define FSIZE  (N * PATLEN - 1)        // -1: no trailing empty line
+#define N2     (N >> 1)                // half locks, half keys
 #define MASK56 0x1f7df7dfu             // 0001 1111 0111 1101 1111 0111 1101 1111
 
 typedef uint32_t u32;
@@ -42,7 +43,7 @@ static u32 getpat(const char *s)
 {
     u32 pat = 0;
     for (u32 i = 0; i < 29; ++i)  // or 32 if it helps vectorisation
-        pat |= ((*(s + i) & 1) << i);
+        pat |= (*s++ & 1) << i;
     return pat & MASK56;  // reset every 6th and last 2 bits
 }
 
