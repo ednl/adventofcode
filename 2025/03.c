@@ -19,30 +19,23 @@
  */
 
 #include <stdio.h>
-#include <stdint.h>    // int64_t
-#include <inttypes.h>  // PRId64
+#include <stdint.h>    // uint64_t
+#include <inttypes.h>  // PRIu64
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 0
-#if EXAMPLE
-    #define FNAME "../aocinput/2025-03-example.txt"
-    #define ROWS 4
-    #define COLS 15
-#else
-    #define FNAME "../aocinput/2025-03-input.txt"
-    #define ROWS 200
-    #define COLS 100
-#endif
+#define FNAME "../aocinput/2025-03-input.txt"
+#define ROWS 200
+#define COLS 100
 
 static char input[ROWS][COLS + 1];  // +'\n'
 
-static int64_t joltage(const int len)
+static uint64_t joltage(const int len)
 {
-    int64_t sum = 0;
+    uint64_t sum = 0;
     for (int i = 0; i < ROWS; ++i) {  // process all rows separately
-        int64_t num = 0;  // len-digit number on this row
+        uint64_t num = 0;  // len-digit number on this row
         for (int key = -1, last = COLS - len; last < COLS; ++last) {  // count digits 1..len
             char max = 0;  // best value found
             for (int j = key + 1; j <= last; ++j)  // leave room for remaining digits
@@ -57,8 +50,8 @@ static int64_t joltage(const int len)
 
 int main(void)
 {
-    FILE *f = fopen(FNAME, "rb");  // fread requires binary mode
-    if (!f) { fprintf(stderr, "File not found: %s\n", FNAME); return 1; }
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) { fputs("File not found: "FNAME, stderr); return 1; }
     fread(input, sizeof input, 1, f);  // read whole file at once
     fclose(f);
 
@@ -67,9 +60,9 @@ starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
-    printf("%"PRId64" %"PRId64"\n",
-        joltage(2),    // example: 357, input: 17324
-        joltage(12));  // example: 3121910778619, input: 171846613143331
+    printf("%"PRIu64" %"PRIu64"\n",
+        joltage(2),    // 17324
+        joltage(12));  // 171846613143331
 
 #ifdef TIMER
 }
