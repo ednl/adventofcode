@@ -21,21 +21,15 @@
 #include <stdio.h>
 #include <stdlib.h>    // lldiv, lldiv_t
 #include <stdint.h>    // int64_t
-#include <inttypes.h>  // PRId64
-#include <stdbool.h>   // bool, true
+#include <inttypes.h>  // PRIu64
+#include <stdbool.h>
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 0
-#if EXAMPLE == 1
-    #define FNAME "../aocinput/2025-02-example.txt"
-    #define N 11  // ranges in example file
-#else
-    #define FNAME "../aocinput/2025-02-input.txt"
-    #define N 30  // ranges in input file
-#endif
-#define FSIZE 512  // large enough to hold input (or example)
+#define FNAME "../aocinput/2025-02-input.txt"
+#define N 30  // ranges in input file
+#define FSIZE 512  // needed for my input: 401
 
 #define MAXDIGITS 10  // max digits of any number in input is 10
 #define MAXPARTLEN (MAXDIGITS >> 1) // so in 2 parts that's partlen 5
@@ -84,8 +78,8 @@ static int64_t prev(int64_t val, const int partlen)
 int main(void)
 {
     // Read file from disk
-    FILE *f = fopen(FNAME, "rb");  // fread requires binary mode
-    if (!f) { fprintf(stderr, "File not found: "FNAME"\n"); return 1; }
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) { fputs("File not found: "FNAME, stderr); return 1; }
     fread(input, 1, sizeof input, f);  // read single bytes until EOF
     fclose(f);
 
@@ -95,12 +89,12 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
     // Parse ranges
-    const char *c = input;
+    const char *s = input;
     for (int i = 0; i < N; i++) {
-        for (int j = 0, k; j < 2; j++, c++) {
-            int64_t x = *c++ & 15;
-            for (k = 1; *c >= '0' && *c <= '9'; k++)
-                x = x * 10 + (*c++ & 15);
+        for (int j = 0, k; j < 2; ++s, ++j) {  // skip non-digit
+            int64_t x = 0;
+            for (k = 0; *s & 16; ++k)  // until '-', ',' or '\n'
+                x = x * 10 + (*s++ & 15);
             range[i][j] = x;
             digits[i][j] = k;
         }
@@ -149,7 +143,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
                         sum2 -= rangesum;
         }
     }
-    printf("%"PRId64" %"PRId64"\n", sum1, sum2);  // example: 1227775554 4174379265, input: 30323879646 43872163557
+    printf("%"PRIu64" %"PRIu64"\n", sum1, sum2);  // 30323879646 43872163557
 
 #ifdef TIMER
 }
