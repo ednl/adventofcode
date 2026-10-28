@@ -13,9 +13,9 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  9.4 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 13.0 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 34.4 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 8.99 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
@@ -23,14 +23,8 @@
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 0
-#if EXAMPLE == 1
-    #define FNAME "../aocinput/2025-01-example.txt"
-    #define FSIZE 38  // example file size in bytes
-#else
-    #define FNAME "../aocinput/2025-01-input.txt"
-    #define FSIZE 19650 // input file size in bytes
-#endif
+#define FNAME "../aocinput/2025-01-input.txt"
+#define FSIZE (5<<12) // =20480, needed for my input: 19650 +1
 
 #define START 50  // dial starts at 50
 #define SIZE 100  // dial goes from 0 to 99
@@ -42,13 +36,12 @@ typedef struct dial {
 } Dial;
 
 static char input[FSIZE];
-static const char *const end = input + FSIZE;
 
 int main(void)
 {
-    FILE *f = fopen(FNAME, "rb");  // fread requires binary mode
-    if (!f) { fprintf(stderr, "File not found: "FNAME"\n"); return 1; }
-    fread(input, sizeof input, 1, f);  // read whole file at once
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) { fputs("File not found: "FNAME, stderr); return 1; }
+    fread(input, 1, sizeof input, f);  // read single bytes until EOF
     fclose(f);
 
 #ifdef TIMER
@@ -62,13 +55,12 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         .full = START / SIZE,
         .zero = START % SIZE == 0,
     };
-    for (const char *c = input; c != end; ++c) {  // also skip newline
+    for (const char *s = input; *s; ++s) {  // skip newline
         // L = anti-clockwise = negative, R = clockwise = positive
-        const int dir = (*c++ & 3) - 1;  // 'L'=-1, 'R'=1
-        // Convert ascii to int
-        int turn = *c++ & 15;
-        while (*c != '\n')
-            turn = turn * 10 + (*c++ & 15);
+        const int dir = (*s & 3) - 1;  // 'L'=-1, 'R'=1
+        int turn = 0;
+        while (*++s & 16)  // until newline
+            turn = turn * 10 + (*s & 15);
         // Save old dial, set new dial
         const Dial old = cur;
         cur.dial += turn * dir;  // unconstrained dial value
@@ -108,7 +100,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
             // (=select first row for R, last row for L)
             zero2 += !old.zero;
     }
-    printf("%d %d\n", zero1, zero2);  // example: 3 6, input: 1180 6892
+    printf("%u %u\n", zero1, zero2);  // 1180 6892
 
 #ifdef TIMER
 }
