@@ -13,7 +13,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 31.4 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 31.3 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
  *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
@@ -44,7 +44,7 @@ static const int ofs[] = {0, 1, 2, COLS, COLS + 2, COLS * 2, COLS * 2 + 1, COLS 
 
 static char grid[GSIZE];
 static uint8_t nb[GSIZE];
-static int q[N * N];
+static int q[N * N / 2];
 
 int main(void)
 {
