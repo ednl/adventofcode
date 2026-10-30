@@ -15,7 +15,7 @@
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 31.3 µs
  *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
- *     Raspberry Pi 5 (2.4 GHz)      : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : 98.4 µs
  */
 
 #include <stdio.h>
@@ -31,10 +31,10 @@
 
 // Derived values
 #define COLS  (N + 1)            // +newline
-#define FSIZE (N * COLS)
+#define FSIZE (N * COLS)         // file size
 #define BEG   (COLS + 1)         // +top border row, +left border col
 #define END   (BEG + FSIZE - 1)  // -last newline
-#define GSIZE (END + COLS)
+#define GSIZE (END + COLS)       // grid size
 
 // Puzzle parameters
 #define PAPER '@'  // paper roll
