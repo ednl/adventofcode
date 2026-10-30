@@ -19,22 +19,26 @@
  */
 
 #include <stdio.h>
-#include <string.h>  // memset
 #include <stdint.h>  // uint8_t, UINT8_MAX
 #ifdef TIMER
+    #include <string.h>  // memset
     #include "../startstoptimer.h"
 #endif
 
+// Input parameters
 #define FNAME "../aocinput/2025-04-input.txt"
-#define N 140      // square grid dimension in input file
-#define PAPER '@'  // paper roll
-#define BOXED  4   // 4 or more neighbours = unreachable for the forklift
+#define N 140  // square grid dimension in input file
 
-#define COLS  (N + 1)  // +newline
+// Derived values
+#define COLS  (N + 1)            // +newline
 #define FSIZE (N * COLS)
-#define BEG   (COLS + 1)  // +top border row +left border col
+#define BEG   (COLS + 1)         // +top border row, +left border col
 #define END   (BEG + FSIZE - 1)  // -last newline
 #define GSIZE (END + COLS)
+
+// Puzzle parameters
+#define PAPER '@'  // paper roll
+#define BOXED  4   // 4 or more neighbours = unreachable for the forklift
 
 static const int ofs[] = {0, 1, 2, COLS, COLS + 2, COLS * 2, COLS * 2 + 1, COLS * 2 + 2};
 
@@ -52,21 +56,23 @@ int main(void)
 #ifdef TIMER
 starttimer();
 for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
+    memset(nb, 0, sizeof nb);
 #endif
 
-    memset(nb, 0, sizeof nb);
-    for (int i = 0; i < 8; ++i) {
+    // Count neighbours, vectorised
+    for (int i = 0; i < 8; ++i) {  // 8 neighbours
         const char *g = &grid[ofs[i]];
         for (int j = BEG; j < END; ++g, ++j)
             nb[j] += *g == PAPER;
     }
+    // Spaces high enough value to not matter
     for (int i = BEG; i < END; ++i)
         nb[i] = grid[i] == PAPER ? nb[i] : UINT8_MAX;
 
     // Part 1
     int head = 0, tail = 0;
     for (int i = BEG; i < END; ++i) {
-        q[head] = i;
+        q[head] = i;  // branchless
         head += nb[i] < BOXED;
     }
     printf("%u ", head);  // 1495
@@ -74,7 +80,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     // Part 2
     while (tail < head) {
         const int base = q[tail++] - BEG;
-        for (int i = 0; i < 8; ++i) {
+        for (int i = 0; i < 8; ++i) {  // 8 neighbours
             const int ix = base + ofs[i];
             q[head] = ix;
             head += nb[ix]-- == BOXED;
