@@ -8,12 +8,14 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 12.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 12.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  4.04 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :  7.79 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 17.4  µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 1.85 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
@@ -23,8 +25,8 @@
 
 // Input file params (program does not work on example file)
 #define FNAME "../aocinput/2025-12-input.txt"
-#define SHAPES 6  // number of shapes in input file
-#define TREES 1000  // number of trees in input file
+#define SHAPES 6    // shapes in input file
+#define TREES 1000  // trees in input file
 #define FSIZE ((SHAPES << 4) + TREES * 25)  // 16 char per shape, 25 char per tree
 
 typedef struct vec {
@@ -37,7 +39,7 @@ static Vec shape, tree;
 // Read 2-digit base 10 number at s
 static int readnum(const char *s)
 {
-    return (*s & 15) * 10 + (*(s + 1) & 15);
+    return *s * 10 + *(s + 1) - 11 * '0';
 }
 
 // Sum of elements
@@ -60,14 +62,14 @@ static int dot(const Vec a, const Vec b)
 
 int main(void)
 {
-    // Read input file from disk
     FILE *f = fopen(FNAME, "rb");  // fread requires binary mode
-    if (!f) { fprintf(stderr, "File not found: %s\n", FNAME); return 1; }
+    if (!f) { fputs("File not found: "FNAME, stderr); return 1; }
     fread(input, sizeof input, 1, f);  // read whole file at once
     fclose(f);
 
 #ifdef TIMER
-    starttimer();
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
     // Count parts (=minimum area) per shape
@@ -99,11 +101,12 @@ int main(void)
             ++maybe;
         }// else
             // Impossible to fit even with perfect, gapless tiling
-            // ++never;
+            // ++never;  // = TREES - always - maybe
     }
-    printf("%d %d\n", always, maybe);  // input: 521 0
+    printf("%u %u\n", always, maybe);  // 521 0
 
 #ifdef TIMER
-    printf("Time: %.0f ns\n", stoptimer_ns());  // NB: nanoseconds
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
 }
