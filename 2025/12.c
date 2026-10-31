@@ -80,7 +80,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
             shape.x[i] += *c == '#';
     }
 
-    int always = 0, maybe = 0;
+    int always = 0, never = 0;
     for (int i = 0; i < TREES; ++i) {
 
         // Parse tree
@@ -95,15 +95,15 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         if (sum(tree) <= blocks) {
             // All presents will fit under the tree even with 3x3 block tiling
             ++always;
-        } else if (dot(shape, tree) <= w * h) {
+        } else if (dot(shape, tree) > w * h) {
+            // Impossible to fit even with perfect, gapless tiling
+            ++never;
+        } //else
             // Perfectly interlocked presents will fit under the tree
             // Finding that tiling is an NP-hard problem
-            ++maybe;
-        }// else
-            // Impossible to fit even with perfect, gapless tiling
-            // ++never;  // = TREES - always - maybe
+            // ++maybe;  // maybe = TREES - always - never
     }
-    printf("%u %u\n", always, maybe);  // 521 0
+    printf("%u %u\n", always, never);  // 521 469
 
 #ifdef TIMER
 }
