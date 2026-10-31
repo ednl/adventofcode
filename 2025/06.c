@@ -8,12 +8,14 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 06.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 06.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 22 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 45 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 79 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 11.0 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
@@ -24,18 +26,10 @@
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 0
-#if EXAMPLE == 1
-    #define FNAME "../aocinput/2025-06-example.txt"
-    #define ROWS 3   // 3 rows of numbers
-    #define COLS 4   // 4 cols of numbers
-    #define LLEN 16  // line length
-#else
-    #define FNAME "../aocinput/2025-06-input.txt"
-    #define ROWS 4     // 4 rows of numbers
-    #define COLS 1000  // 1000 cols of numbers
-    #define LLEN 3740  // line length
-#endif
+#define FNAME "../aocinput/2025-06-input.txt"
+#define ROWS 4     // 4 rows of numbers
+#define COLS 1000  // 1000 cols of numbers
+#define LLEN 3740  // line length
 #define DATASIZE (ROWS * LLEN)
 #define FSIZE ((ROWS + 1) * LLEN)  // +1 row of operations
 
@@ -48,7 +42,7 @@ static int readnum(const char *s, const int step)
 {
     for (; *s == ' '; s += step);  // skip spaces
     int x = 0;
-    for (; *s >= '0' && *s <= '9'; s += step)  // terminated by space or newline or operator
+    for (; *s & 16; s += step)  // terminated by space or newline or operator
         x = x * 10 + (*s & 15);
     return x;
 }
@@ -75,37 +69,32 @@ static int64_t pivot(const bool ispart2)
 
 int main(void)
 {
-    // Read input file from disk
     FILE *f = fopen(FNAME, "rb");  // fread requires binary mode
-    if (!f) { fprintf(stderr, "File not found: %s\n", FNAME); return 1; }
+    if (!f) { fputs("File not found: "FNAME, stderr); return 1; }
     fread(input, sizeof input, 1, f);  // read whole file at once
     fclose(f);
 
 #ifdef TIMER
-    starttimer();
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
     // Find operators and grouped data column start
-    {
-        const char *pc = input + DATASIZE;  // skip data
-        grp[0] = input;
-        mul[0] = *pc++ == '*';
-        for (int i = 1; i < COLS; ++i) {
-            for (; *pc == ' '; ++pc);  // skip spaces
-            grp[i] = pc - DATASIZE;
-            mul[i] = *pc++ == '*';
-        }
-        grp[COLS] = input + LLEN;
+    const char *pc = input + DATASIZE;  // skip data
+    grp[0] = input;
+    mul[0] = *pc++ == '*';
+    for (int i = 1; i < COLS; ++i) {
+        for (; *pc == ' '; ++pc);  // skip spaces
+        grp[i] = pc - DATASIZE;
+        mul[i] = *pc++ == '*';
     }
+    grp[COLS] = input + LLEN;
 
-    // example | input
-    // --------+--------------
-    // 4277556 | 4648618073226
-    // 3263827 | 7329921182115
-    printf("%"PRIu64"\n%"PRIu64"\n", pivot(0), pivot(1));
+    // 4648618073226 7329921182115
+    printf("%"PRIu64" %"PRIu64"\n", pivot(0), pivot(1));
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
-    return 0;
 }
