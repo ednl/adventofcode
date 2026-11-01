@@ -36,7 +36,8 @@ static uint64_t joltage(const int len)
     uint64_t sum = 0;
     for (int i = 0; i < ROWS; ++i) {  // process all rows separately
         uint64_t num = 0;  // len-digit number on this row
-        for (int key = -1, last = COLS - len; last < COLS; ++last) {  // count digits 1..len
+        int key = -1;
+        for (int last = COLS - len; last < COLS; ++last) {  // count digits 1..len
             char max = 0;  // best value found
             for (int j = key + 1; j <= last; ++j)  // leave room for remaining digits
                 if (input[i][j] > max && (max = input[i][(key = j)]) == '9')
