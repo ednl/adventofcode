@@ -29,7 +29,7 @@
 #define ROWS 200
 #define COLS 100
 
-static char input[ROWS][COLS + 1];  // +'\n'
+static char grid[ROWS][COLS + 1];  // +newline
 
 static uint64_t joltage(const int len)
 {
@@ -40,7 +40,7 @@ static uint64_t joltage(const int len)
         for (int last = COLS - len; last < COLS; ++last) {  // count digits 1..len
             char max = 0;  // best value found
             for (int j = key + 1; j <= last; ++j)  // leave room for remaining digits
-                if (input[i][j] > max && (max = input[i][(key = j)]) == '9')
+                if (grid[i][j] > max && (max = grid[i][(key = j)]) == '9')
                     break;  // can't get higher than '9'
             num = num * 10 + (max & 15);
         }
@@ -53,7 +53,7 @@ int main(void)
 {
     FILE *f = fopen(FNAME, "rb");
     if (!f) { fputs("File not found: "FNAME, stderr); return 1; }
-    fread(input, sizeof input, 1, f);  // read whole file at once
+    fread(grid, sizeof grid, 1, f);  // read whole file at once
     fclose(f);
 
 #ifdef TIMER
