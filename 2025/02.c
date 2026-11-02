@@ -28,28 +28,27 @@
 #endif
 
 #define FNAME "../aocinput/2025-02-input.txt"
-#define N 30  // ranges in input file
 #define FSIZE 512  // needed for my input: 401
+#define RANGES 30  // ranges in input file
+#define DIGITS 10  // max digits of any number in input is 10
+#define PARTLEN ((DIGITS >> 1) + 1) // so in 2 parts that's max 5 digits (limit=6)
 
-#define MAXDIGITS 10  // max digits of any number in input is 10
-#define MAXPARTLEN (MAXDIGITS >> 1) // so in 2 parts that's partlen 5
-
-static const int64_t pow10[MAXDIGITS + 1] = {
-    INT64_C(1),   // 10^0: 1 digit
-    INT64_C(10),  // 10^1: 2 digits, etc.
-    INT64_C(100),
-    INT64_C(1000),
-    INT64_C(10000),
-    INT64_C(100000),
-    INT64_C(1000000),
-    INT64_C(10000000),
-    INT64_C(100000000),
-    INT64_C(1000000000),
-    INT64_C(10000000000)};  // 10^10: 11 digits (INT64_MAX=9223372036854775807: 19 digits)
+static const int64_t pow10[DIGITS + 1] = {
+    1,   // 10^0: 1 digit
+    10,  // 10^1: 2 digits, etc.
+    100,
+    1000,
+    10000,
+    100000,
+    1000000,
+    10000000,
+    100000000,
+    1000000000,    // 10^9 : 10 digits (last one < 2^31)
+    10000000000};  // 10^10: 11 digits (INT64_MAX=9223372036854775807: 19 digits)
 
 static char input[FSIZE];
-static int64_t range[N][2];
-static int8_t digits[N][2];
+static int64_t range[RANGES][2];
+static int8_t digits[RANGES][2];
 
 // Smallest number with 'partlen' digits in base 10 which repeated is at least 'val'
 static int64_t next(int64_t val, const int partlen)
@@ -77,7 +76,6 @@ static int64_t prev(int64_t val, const int partlen)
 
 int main(void)
 {
-    // Read file from disk
     FILE *f = fopen(FNAME, "rb");
     if (!f) { fputs("File not found: "FNAME, stderr); return 1; }
     fread(input, 1, sizeof input, f);  // read single bytes until EOF
@@ -90,7 +88,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 
     // Parse ranges
     const char *s = input;
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < RANGES; i++) {
         for (int j = 0, k; j < 2; ++s, ++j) {  // skip non-digit
             int64_t x = 0;
             for (k = 0; *s & 16; ++k)  // until '-', ',' or '\n'
@@ -102,8 +100,8 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 
     // Evaluate ranges
     int64_t sum1 = 0, sum2 = 0;
-    for (int i = 0; i < N; ++i) {
-        bool haspartlen[MAXPARTLEN + 1] = {0};  // partial sum for each partlen 1..5
+    for (int i = 0; i < RANGES; ++i) {
+        bool haspartlen[PARTLEN] = {0};  // partial sum for each partlen 1..5
         for (int partcount = 2; partcount <= digits[i][1]; ++partcount) {
             const int n = digits[i][0] + (digits[i][0] % partcount != 0);
             const int m = digits[i][1] - (digits[i][1] % partcount != 0);
@@ -138,7 +136,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
             //     2*2=4 : 45-82 includes 5555, 6666, 7777
             //     4*1=4 :  5- 7 includes 5555, 6666, 7777
             if (partlen == 1 && !(n & 1))  // no odd lengths because multiples would be 6, 9 etc. and we don't have those
-                for (int j = 2; j <= MAXPARTLEN; ++j)  // max partlen is 5
+                for (int j = 2; j < PARTLEN; ++j)  // max partlen is 5
                     if (haspartlen[j])
                         sum2 -= rangesum;
         }
