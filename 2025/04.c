@@ -69,6 +69,26 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     for (int i = BEG; i < END; ++i)
         nb[i] = grid[i] == PAPER ? nb[i] : UINT8_MAX;
 
+    // int hist[9] = {0};
+    // for (int i = BEG; i < END; ++i)
+    //     if (grid[i] == PAPER)
+    //         hist[nb[i]]++;
+    // int tot = 0;
+    // for (int i = 0; i < 9; ++i) {
+    //     tot += hist[i];
+    //     printf("%d: %4d %5d\n", i, hist[i], tot);
+    // }
+    //
+    // 0:    0     0
+    // 1:   60    60
+    // 2:  341   401
+    // 3: 1094  1495
+    // 4: 2388  3883
+    // 5: 3430  7313
+    // 6: 3320 10633
+    // 7: 1782 12415
+    // 8:  426 12841
+
     // Part 1
     int head = 0, tail = 0;
     for (int i = BEG; i < END; ++i) {
