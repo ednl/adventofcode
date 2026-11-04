@@ -19,12 +19,11 @@ with open('../aocinput/2025-04-input.txt') as f:
     state = (np.array([list(i.strip()) for i in f]) == '@').astype(np.uint8)
 
 kernel = np.ones((3, 3), dtype=np.uint8)
-kernel[1, 1] = 0
 
 def forklift():
     global state
     nb = convolve2d(state, kernel, mode='same')  # neighbour count per cell
-    state &= nb > 3       # leave rolls that have more than 3 neighbours
+    state &= nb > 4       # leave rolls that have more than 3 neighbours (+self)
     return np.sum(state)  # new number of paper rolls
 
 t2 = monotonic_ns()
