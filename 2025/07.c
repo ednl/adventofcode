@@ -19,8 +19,8 @@
  */
 
 #include <stdio.h>
-#include <stdint.h>    // int64_t
-#include <inttypes.h>  // PRId64
+#include <stdint.h>    // uint64_t
+#include <inttypes.h>  // PRIu64
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
@@ -30,6 +30,9 @@
 #define M (N + 1)      // grid rows
 #define HALF (N >> 1)  // col index of 'S', also number of splitter rows (ex: 7, inp: 70)
 #define SPLIT '^'
+
+typedef uint32_t u32;
+typedef uint64_t u64;
 
 // M rows, M-1 columns +newline
 static char grid[M][M];
@@ -48,25 +51,25 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 
     // Partial vertical sums of the Plinko game
     // https://en.wikipedia.org/wiki/Galton_board
-    uint64_t galton[N] = {0};
+    u64 galton[N] = {0};
     galton[HALF] = 1;  // start with one tachyon beam at 'S'
 
     // Pascal's Triangle but with columns for every x-coordinate,
     // not just a hex grid for the nodes (splitters or plinko pegs)
-    unsigned splits = 0;                             // part 1: number of splitters hit with a beam
-    int col = HALF, end = HALF + 1;                  // start/stop columns of Pascal's triangle
-    for (int i = 2; i < M; i += 2, --col, ++end)     // peg row on grid
-        for (int j = col; j < end; j += 2)           // only look at triangle, not whole square
+    u32 splits = 0;                                  // part 1: number of splitters hit with a beam
+    u32 col = HALF, end = HALF + 1;                  // start/stop columns of Pascal's triangle
+    for (u32 i = 2; i < M; --col, ++end, i += 2)     // peg row on grid
+        for (u32 j = col; j < end; j += 2)           // only look at triangle, not whole square
             if (grid[i][j] == SPLIT && galton[j]) {  // splitter and beam in this column?
-                ++splits;                            // part 1: beam has hit a splitter
+                splits++;                            // part 1: beam has hit a splitter
                 galton[j - 1] += galton[j];          // may already have value
                 galton[j + 1] += galton[j];          // may already have value
                 galton[j] = 0;                       // peg shadow
             }
 
     // Part 2: all possible tachyon beam paths
-    uint64_t worlds = 0;
-    for (int j = 0; j < N; ++j)
+    u64 worlds = 0;
+    for (u32 j = 0; j < N; ++j)
         worlds += galton[j];
     printf("%u %"PRIu64"\n", splits, worlds);  // 1598 4509723641302
 
@@ -74,8 +77,8 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     // Simpler and faster but impossible to combine with part 1
     // for (int i = 0; i < N; ++i)
     //     galton[i] = 1;
-    // for (int i = N - 1, beg = 1, end = N - 1; i > 0; i -= 2, ++beg, --end)
-    //     for (int j = beg; j < end; j += 2)
+    // for (int i = N - 1, col = 1, end = N - 1; i > 0; i -= 2, ++col, --end)
+    //     for (int j = col; j < end; j += 2)
     //         if (grid[i][j] == SPLIT)
     //             galton[j] = galton[j - 1] + galton[j + 1];
     // printf("%"PRIu64"\n", galton[HALF]);  // 4509723641302
