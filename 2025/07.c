@@ -58,12 +58,12 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     // not just a hex grid for the nodes (splitters or plinko pegs)
     u32 splits = 0;                                  // part 1: number of splitters hit with a beam
     u32 col = HALF, end = HALF + 1;                  // start/stop columns of Pascal's triangle
-    for (u32 i = 2; i < M; --col, ++end, i += 2)     // peg row on grid
+    for (u32 i = 2; i < M; col--, end++, i += 2)     // peg row on grid
         for (u32 j = col; j < end; j += 2)           // only look at triangle, not whole square
             if (grid[i][j] == SPLIT && galton[j]) {  // splitter and beam in this column?
                 splits++;                            // part 1: beam has hit a splitter
-                galton[j - 1] += galton[j];          // may already have value
-                galton[j + 1] += galton[j];          // may already have value
+                galton[j - 1] += galton[j];          // (may already have value)
+                galton[j + 1] += galton[j];          // (may already have value)
                 galton[j] = 0;                       // peg shadow
             }
 
@@ -77,7 +77,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     // Simpler and faster but impossible to combine with part 1
     // for (int i = 0; i < N; ++i)
     //     galton[i] = 1;
-    // for (int i = N - 1, col = 1, end = N - 1; i > 0; i -= 2, ++col, --end)
+    // for (int i = N - 1, col = 1, end = N - 1; i > 0; col++, end--, i -= 2)
     //     for (int j = col; j < end; j += 2)
     //         if (grid[i][j] == SPLIT)
     //             galton[j] = galton[j - 1] + galton[j + 1];
