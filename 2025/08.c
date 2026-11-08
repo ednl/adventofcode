@@ -11,7 +11,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 10.2 ms
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 10.1 ms
  *     Mac Mini 2020 (M1 3.2 GHz)    : 17.2 ms
  *     Raspberry Pi 5 (2.4 GHz)      : 38   ms
  */
@@ -20,7 +20,7 @@
 #include <stdlib.h>    // malloc, free
 #include <string.h>    // memcpy
 #include <stdint.h>    // int64_t
-#include <inttypes.h>  // PRId64
+#include <inttypes.h>  // PRIu64
 #include <stdbool.h>
 #include "../topn.h"   // topn
 #ifdef TIMER
@@ -37,7 +37,7 @@
 #define INITCOUNT 8
 
 typedef struct vec {
-    int x, y, z;
+    int64_t x, y, z;
 } Vec;
 
 typedef struct pair {
@@ -58,9 +58,9 @@ static int circuitsize[CIRCUITS];  // separate array to sort for part 1
 static int circuitcount;  // max=CIRCUITS
 static int circuitid[N];  // circuit ID per junction box index
 
-static int readnum(const char **const s)
+static int64_t readnum(const char **const s)
 {
-    int x = 0;
+    int64_t x = 0;
     while (**s & 16)  // until comma or newline
         x = x * 10 + (*(*s)++ & 15);
     (*s)++;  // skip comma or newline
@@ -74,7 +74,7 @@ static Vec sub(const Vec a, const Vec b)
 
 static int64_t sqrsum(const Vec a)
 {
-    return (int64_t)a.x * a.x + (int64_t)a.y * a.y + (int64_t)a.z * a.z;
+    return a.x * a.x + a.y * a.y + a.z * a.z;
 }
 
 static int64_t sqrdist(const int i, const int j)
@@ -230,7 +230,7 @@ static int64_t addpairs(int i, const int end)
 #ifdef DEBUG
     printf("i=%d\n", i - 1);
 #endif
-    return size == N ? (int64_t)junctionbox[pair[i - 1].index[0]].x * junctionbox[pair[i - 1].index[1]].x : 0;
+    return size == N ? junctionbox[pair[i - 1].index[0]].x * junctionbox[pair[i - 1].index[1]].x : 0;
 }
 
 int main(void)
