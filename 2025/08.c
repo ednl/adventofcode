@@ -11,7 +11,7 @@
  * Get minimum runtime from timer output in bash:
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) : 10.3 ms
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 10.2 ms
  *     Mac Mini 2020 (M1 3.2 GHz)    : 17.2 ms
  *     Raspberry Pi 5 (2.4 GHz)      : 38   ms
  */
@@ -27,16 +27,10 @@
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 0
-#if EXAMPLE == 1
-    #define FNAME "../aocinput/2025-08-example.txt"
-    #define N 20  // junction boxes
-    #define M 10  // closest pairs to connect for part 1
-#else
-    #define FNAME "../aocinput/2025-08-input.txt"
-    #define N 1000  // junction boxes
-    #define M 1000  // closest pairs to connect for part 1
-#endif
+#define FNAME "../aocinput/2025-08-input.txt"
+#define N 1000  // junction boxes (= lines in input file)
+#define FSIZE (N * 3 * (5 + 1))  // max 5 digits +comma or newline
+#define M 1000  // closest pairs to connect for part 1
 #define PAIRS ((N - 1) * N >> 1)  // lower/upper triangle count of N by N matrix
 #define SORTPAIRS 5500  // max needed for my input: 5491
 #define CIRCUITS (N >> 1)  // max needed for my input: 298
@@ -56,12 +50,22 @@ typedef struct circuit {
     int len, size;
 } Circuit;
 
+static char input[FSIZE];
 static Vec junctionbox[N];
 static Pair pair[PAIRS];
 static Circuit circuit[CIRCUITS];
 static int circuitsize[CIRCUITS];  // separate array to sort for part 1
 static int circuitcount;  // max=CIRCUITS
 static int circuitid[N];  // circuit ID per junction box index
+
+static int readnum(const char **const s)
+{
+    int x = 0;
+    while (**s & 16)  // until comma or newline
+        x = x * 10 + (*(*s)++ & 15);
+    (*s)++;  // skip comma or newline
+    return x;
+}
 
 static Vec sub(const Vec a, const Vec b)
 {
@@ -231,25 +235,33 @@ static int64_t addpairs(int i, const int end)
 
 int main(void)
 {
-    // Read input file from disk
-    FILE *f = fopen(FNAME, "r");
-    if (!f) { fprintf(stderr, "File not found: %s\n", FNAME); return 1; }
-    for (int i = 0, x, y, z; i < N && fscanf(f, "%d,%d,%d", &x, &y, &z) == 3; ++i)
-        junctionbox[i] = (Vec){x, y, z};
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) { fputs("File not found: "FNAME, stderr); return 1; }
+    fread(input, 1, sizeof input, f);  // read single bytes until EOF
     fclose(f);
 
 #ifdef TIMER
     starttimer();
 #endif
 
+    const char *s = input;
+    for (int i = 0; i < N; ++i) {
+        junctionbox[i].x = readnum(&s);
+        junctionbox[i].y = readnum(&s);
+        junctionbox[i].z = readnum(&s);
+    }
+
     // Distance between unique index pairs
     for (int i = 0, m = 0; i < N - 1; ++i)
         for (int j = i + 1; j < N; ++j)
             pair[m++] = (Pair){sqrdist(i, j), {i, j}};
+
     // Sort a limited number of connected pairs by distance ascending
     topn(pair, SORTPAIRS, PAIRS, sizeof *pair, cmpdist);
+
     // Add first M connected pairs with shortest distance
     addpairs(0, M);
+
     {  // Find 3 largest circuit sizes
         int k = 0;
         for (int i = 0; i < circuitcount; ++i)
@@ -257,15 +269,15 @@ int main(void)
                 circuitsize[k++] = circuit[i].len;
         topn(circuitsize, 3, k, sizeof *circuitsize, desc);
     }
-    printf("Part 1: %d\n", circuitsize[0] * circuitsize[1] * circuitsize[2]);  // example: 40, input: 163548
-    printf("Part 2: %"PRId64"\n", addpairs(M, PAIRS));  // example: 25272, input: 772452514
+
+    printf("%u %"PRIu64"\n",
+        circuitsize[0] * circuitsize[1] * circuitsize[2],  // 163548
+        addpairs(M, PAIRS));  // 772452514
 
 #ifdef TIMER
     printf("Time: %.0f us\n", stoptimer_us());
 #endif
 
-    // Cleanup
     for (int i = 0; i < circuitcount; ++i)
         free(circuit[i].box);
-    return 0;
 }
