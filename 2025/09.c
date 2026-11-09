@@ -8,44 +8,46 @@
  *     cc -std=c17 -Wall -Wextra -pedantic 09.c
  * Enable timer:
  *     cc -O3 -march=native -mtune=native -DTIMER ../startstoptimer.c 09.c
+ * Test output with timer enabled:
+ *     ./a.out | tail -n1
  * Get minimum runtime from timer output in bash:
- *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out|tail -n1|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
+ *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
- *     Macbook Pro 2024 (M4 4.4 GHz) :  32 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    :  50 µs
- *     Raspberry Pi 5 (2.4 GHz)      : 128 µs
+ *     Macbook Pro 2024 (M4 4.4 GHz) : 6.35 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : ? µs
+ *     Raspberry Pi 5 (2.4 GHz)      : ? µs
  */
 
 #include <stdio.h>
 #include <stdlib.h>    // abs
 #include <stdint.h>    // int64_t
-#include <inttypes.h>  // PRId64
-#include <limits.h>    // INT_MAX
-#include <stdbool.h>
+#include <inttypes.h>  // PRIu64
 #ifdef TIMER
     #include "../startstoptimer.h"
 #endif
 
-#define EXAMPLE 0
-#if EXAMPLE == 1
-    #define FNAME "../aocinput/2025-09-example.txt"
-    #define N 8
-#else
-    #define FNAME "../aocinput/2025-09-input.txt"
-    #define N 496
-#endif
+#define FNAME "../aocinput/2025-09-input.txt"
+#define N 512  // points, needed for my input: 496
+#define FSIZE (512 * 2 * (5 + 1))  // max 5 digits, needed for my input: 5766
 
 typedef struct vec {
     int x, y;
 } Vec;
 
-typedef struct box {
-    Vec min, max;
-} Box;
+static char input[FSIZE];
 
 // Red tiles are consecutive nodes of a closed, non-intersecting path
 // with alternating horizontal and vertical edges
-static Vec red[N + 1];  // +1 to close the loop with value 0 repeated
+static Vec red[N];
+
+static int readnum(const char **const s)
+{
+    int x = 0;
+    while (**s & 16)  // until comma or newline
+        x = x * 10 + (*(*s)++ & 15);
+    (*s)++;  // skip comma or newline
+    return x;
+}
 
 // Integer rectangle area with borders, from any two points
 static int64_t rectarea(const Vec a, const Vec b)
@@ -55,28 +57,38 @@ static int64_t rectarea(const Vec a, const Vec b)
 
 int main(void)
 {
-    // Read input file from disk
-    FILE *f = fopen(FNAME, "r");
-    if (!f) { fprintf(stderr, "File not found: %s\n", FNAME); return 1; }
-    for (int i = 0, x, y; i < N && fscanf(f, "%d,%d", &x, &y) == 2; ++i)
-        red[i] = (Vec){x, y};
+    FILE *f = fopen(FNAME, "rb");
+    if (!f) { fputs("File not found: "FNAME"\n", stderr); return 1; }
+    fread(input, 1, sizeof input, f);  // read single bytes until EOF
     fclose(f);
 
 #ifdef TIMER
-    starttimer();
+starttimer();
+for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
-    // Part 1
-    int64_t largest = 0;
-    for (int i = 0; i < N - 1; ++i)
-        for (int j = i + 1; j < N; ++j) {  // every unique combination of red tiles
-                const int64_t area = rectarea(red[i], red[j]);
-                if (area > largest)
-                    largest = area;
-            }
-    printf("Part 1: %"PRId64"\n", largest);  // example: 50, input: 4739623064
+    int n = 0;
+    for (const char *s = input; *s; n++) {
+        red[n].x = readnum(&s);
+        red[n].y = readnum(&s);
+    }
 
-#if !EXAMPLE
+    // Part 1
+    // Looked at data: mostly a circle, so try opposite points
+    // with arbitrary margin (bandwidth)
+    const int bw = 32;
+    int64_t largest = 0;
+    for (int i = bw, k = i + (n - bw) / 2; i < n; ++i) {
+        for (int j = i - bw; j < i; ++j) {
+            const int64_t area = rectarea(red[j], red[k]);
+            if (area > largest)
+                largest = area;
+        }
+        if (++k == n)
+            k = 0;
+    }
+    printf("%"PRIu64" ", largest);  // 4739623064
+
     // Part 2
     // Looked at data: large jump in x for two points, making a gap into a circle
     // Vec corner1 = red[248];  // large jump to the right from prev to here
@@ -87,19 +99,12 @@ int main(void)
         const Vec a = red[k];
         int i = k + 200;  // opposite vertical quadrant
         for (; red[i].x < a.x; ++i);
-        int ymin = red[i].y;
-        int j = k + 2;  // first with dy!=0 from corner
-        int xmin = red[j].x;
-        bool movedcloser = false;
-        while (red[j].y >= ymin) {
-            if (red[j].x >= xmin) {
-                const int64_t area = rectarea(a, red[j]);
-                if (area > largest)
-                    largest = area;
-            }
-            ++j;
-            if ((!movedcloser && red[j].x < xmin) || (movedcloser && red[j].x > xmin))
-                xmin = red[j].x;
+        const int ymin = red[i].y;
+        // from first with dy!=0 from corner
+        for (int j = k + 2; red[j].y >= ymin; ++j) {
+            const int64_t area = rectarea(a, red[j]);
+            if (area > largest)
+                largest = area;
         }
     }
     {
@@ -107,26 +112,18 @@ int main(void)
         const Vec a = red[k];
         int i = k - 200;  // opposite vertical quadrant
         for (; red[i].x < a.x; --i);
-        int ymax = red[i].y;
-        int j = k - 2;  // first with dy!=0 from corner
-        int xmin = red[j].x;
-        bool movedcloser = false;
-        while (red[j].y <= ymax) {
-            if (red[j].x >= xmin) {
-                const int64_t area = rectarea(a, red[j]);
-                if (area > largest)
-                    largest = area;
-            }
-            --j;
-            if ((!movedcloser && red[j].x < xmin) || (movedcloser && red[j].x > xmin))
-                xmin = red[j].x;
+        const int ymax = red[i].y;
+        // from first with dy!=0 from corner
+        for (int j = k - 2; red[j].y <= ymax; --j) {
+            const int64_t area = rectarea(a, red[j]);
+            if (area > largest)
+                largest = area;
         }
     }
-    printf("Part 2: %"PRId64"\n", largest);  // example: 24, input: 1654141440
-#endif
+    printf("%"PRIu64"\n", largest);  // 1654141440
 
 #ifdef TIMER
-    printf("Time: %.0f us\n", stoptimer_us());
+}
+fprintf(stderr, "Time: %.0f ns\n", stoptimer_us());  // 1000 loops: µs=ns
 #endif
-    return 0;
 }
