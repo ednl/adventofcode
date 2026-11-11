@@ -95,8 +95,8 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     }
 
     // Part 1
-    const u32 out = name[hash("out")];
     const u32 you = name[hash("you")];
+    const u32 out = name[hash("out")];
     resetcache();  // must init at program start because "not cached" = -1
     printf("%u ", paths(you, out));  // 670
 
