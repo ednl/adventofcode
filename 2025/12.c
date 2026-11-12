@@ -27,7 +27,7 @@
 #define FNAME "../aocinput/2025-12-input.txt"
 #define SHAPES 6    // shapes in input file
 #define TREES 1000  // trees in input file
-#define FSIZE ((SHAPES << 4) + TREES * 25)  // 16 char per shape, 25 char per tree
+#define FSIZE (SHAPES * 16 + TREES * 25)  // 16 char per shape, 25 char per tree
 
 typedef struct vec {
     int x[SHAPES];
@@ -80,7 +80,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
             shape.x[i] += *c == '#';
     }
 
-    int always = 0, never = 0;
+    int always = 0, never = 0, maybe = 0;
     for (int i = 0; i < TREES; ++i) {
 
         // Parse tree
@@ -98,12 +98,12 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         } else if (dot(shape, tree) > w * h) {
             // Impossible to fit even with perfect, gapless tiling
             ++never;
-        } //else
+        } else
             // Perfectly interlocked presents will fit under the tree
             // Finding that tiling is an NP-hard problem
-            // ++maybe;  // maybe = TREES - always - never
+            ++maybe;  // maybe = TREES - always - never
     }
-    printf("%u %u\n", always, never);  // 521 469
+    printf("%u %u %u\n", always, maybe, never);  // 521 0 479
 
 #ifdef TIMER
 }
