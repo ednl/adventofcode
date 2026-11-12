@@ -51,7 +51,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         const unsigned shapes =
               (s[7] + s[10] + s[13] + s[16] + s[19] + s[22]) * 90
             + (s[8] + s[11] + s[14] + s[17] + s[20] + s[23]) * 9
-            - '0' * 66 * 9;
+            - 11 * '0' * 6 * 9;
         sure += blocks >= shapes;
     }
     printf("%u\n", sure);  // 521
