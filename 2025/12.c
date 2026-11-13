@@ -80,8 +80,7 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         for (unsigned j = 0; j < (3U * 3 + 2); ++j)  // shape size 3x3 + 2x newline
             shape.x[i] += *s++;
     for (unsigned i = 0; i < SHAPES; ++i)
-        // x := (434 - x) / 11
-        shape.x[i] = ((9U * '.' + 2 * '\n') - shape.x[i]) / ('.' - '#');
+        shape.x[i] = ((9U * '.' + 2 * '\n') - shape.x[i]) / ('.' - '#');  // (434 - x) / 11
 
     Vec tree;
     int always = 0, never = 0, maybe = 0;
