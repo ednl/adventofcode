@@ -14,7 +14,7 @@
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 1.85 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 4.16 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 3.97 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 8.13 µs
  */
 
@@ -27,14 +27,15 @@
 #define FNAME "../aocinput/2025-12-input.txt"
 #define SHAPES 6    // shapes in input file
 #define TREES 1000  // trees in input file
-#define FSIZE (SHAPES * 16 + TREES * 25)  // 16 char per shape, 25 char per tree
+#define SHAPECHARS 16  // 16 chars per shape in input file, incl. newlines
+#define TREECHARS  25  // 25 chars per tree in input file, incl. newline
+#define FSIZE (SHAPES * SHAPECHARS + TREES * TREECHARS)
 
 typedef struct vec {
     int x[SHAPES];
 } Vec;
 
 static char input[FSIZE];
-static Vec shape, tree;
 
 // Read 2-digit base 10 number at s
 static int readnum(const char *s)
@@ -73,22 +74,26 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 #endif
 
     // Count parts (=minimum area) per shape
-    const char *c = input;
-    for (int i = 0; i < SHAPES; ++i, ++c) {
-        c += 3;  // skip digit, ':', newline
-        for (int j = 0; j < 12; ++j, ++c)
-            shape.x[i] += *c == '#';
-    }
+    Vec shape = {0};
+    const char *s = input;
+    for (int i = 0; i < SHAPES; ++i)
+        for (int j = 0; j < SHAPECHARS; ++j)
+            shape.x[i] += *s++;
+    for (int i = 0; i < SHAPES; ++i)
+        // x := (575 - x) / 11
+        shape.x[i] = (('0' + SHAPES - 1 + ':' + 9 * '.' + 5 * '\n')
+            - shape.x[i]) / ('.' - '#');
 
+    Vec tree;
     int always = 0, never = 0, maybe = 0;
     for (int i = 0; i < TREES; ++i) {
 
         // Parse tree
-        const int w = readnum(c);
-        const int h = readnum(c + 3);
-        c += 7;  // skip two digits, 'x', two digits, ':', space
-        for (int j = 0; j < SHAPES; ++j, c += 3)  // skip 2 digits, space/newline
-            tree.x[j] = readnum(c);
+        const int w = readnum(s);
+        const int h = readnum(s + 3);
+        s += 7;  // skip two digits, 'x', two digits, ':', space
+        for (int j = 0; j < SHAPES; s += 3, ++j)  // skip 2 digits, space/newline
+            tree.x[j] = readnum(s);
 
         // Evaluate tree
         const int blocks = (w / 3) * (h / 3);  // round down before multiplying
