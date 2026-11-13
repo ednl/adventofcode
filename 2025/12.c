@@ -14,7 +14,7 @@
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 1.84 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 3.96 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 3.75 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 8.18 µs
  */
 
@@ -27,36 +27,36 @@
 #define FNAME "../aocinput/2025-12-input.txt"
 #define SHAPES 6    // shapes in input file
 #define TREES 1000  // trees in input file
-#define SHAPECHARS 16  // 16 chars per shape in input file, incl. newlines
-#define TREECHARS  25  // 25 chars per tree in input file, incl. newline
-#define FSIZE (SHAPES * SHAPECHARS + TREES * TREECHARS)
+// 16 chars per shape in input file, incl. newlines
+// 25 chars per tree in input file, incl. newline
+#define FSIZE (SHAPES * 16 + TREES * 25)
 
 typedef struct vec {
-    int x[SHAPES];
+    unsigned x[SHAPES];
 } Vec;
 
 static char input[FSIZE];
 
 // Read 2-digit base 10 number at s
-static int readnum(const char *s)
+static unsigned readnum(const char *s)
 {
     return *s * 10 + *(s + 1) - 11 * '0';
 }
 
 // Sum of elements
-static int sum(const Vec a)
+static unsigned sum(const Vec a)
 {
-    int val = 0;
-    for (int i = 0; i < SHAPES; ++i)
+    unsigned val = 0;
+    for (unsigned i = 0; i < SHAPES; ++i)
         val += a.x[i];
     return val;
 }
 
 // Sum of element-wise product
-static int dot(const Vec a, const Vec b)
+static unsigned dot(const Vec a, const Vec b)
 {
-    int val = 0;
-    for (int i = 0; i < SHAPES; ++i)
+    unsigned val = 0;
+    for (unsigned i = 0; i < SHAPES; ++i)
         val += a.x[i] * b.x[i];
     return val;
 }
@@ -76,12 +76,12 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     // Count parts (=minimum area) per shape
     Vec shape = {0};
     const char *s = input + 3;  // skip digit, ":\n"
-    for (int i = 0; i < SHAPES; s += 5, ++i)  // skip "\n\n", digit, ":\n"
-        for (int j = 0; j < (3 * 4 - 1); ++j)  // 11
+    for (unsigned i = 0; i < SHAPES; s += 5, ++i)  // skip "\n\n", digit, ":\n"
+        for (unsigned j = 0; j < (3U * 3 + 2); ++j)  // shape size 3x3 + 2x newline
             shape.x[i] += *s++;
-    for (int i = 0; i < SHAPES; ++i)
+    for (unsigned i = 0; i < SHAPES; ++i)
         // x := (434 - x) / 11
-        shape.x[i] = ((9 * '.' + 2 * '\n') - shape.x[i]) / ('.' - '#');
+        shape.x[i] = ((9U * '.' + 2 * '\n') - shape.x[i]) / ('.' - '#');
 
     Vec tree;
     int always = 0, never = 0, maybe = 0;
@@ -89,14 +89,14 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     for (int i = 0; i < TREES; ++i) {
 
         // Parse tree
-        const int w = readnum(s);
-        const int h = readnum(s + 3);
+        const unsigned w = readnum(s);
+        const unsigned h = readnum(s + 3);
         s += 7;  // skip two digits, 'x', two digits, ':', space
-        for (int j = 0; j < SHAPES; s += 3, ++j)  // skip 2 digits, space/newline
+        for (unsigned j = 0; j < SHAPES; s += 3, ++j)  // skip 2 digits, space/newline
             tree.x[j] = readnum(s);
 
         // Evaluate tree
-        const int blocks = (w / 3) * (h / 3);  // round down before multiplying
+        const unsigned blocks = (w / 3) * (h / 3);  // round down before multiplying
         if (sum(tree) <= blocks) {
             // All presents will fit under the tree even with 3x3 block tiling
             always++;
