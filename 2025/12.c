@@ -31,32 +31,34 @@
 // 25 chars per tree in input file, incl. newline
 #define FSIZE (SHAPES * 16 + TREES * 25)
 
+typedef unsigned u32;
+
 typedef struct vec {
-    unsigned x[SHAPES];
+    u32 x[SHAPES];
 } Vec;
 
 static char input[FSIZE];
 
 // Read 2-digit base 10 number at s
-static unsigned readnum(const char *s)
+static u32 readnum(const char *s)
 {
     return *s * 10 + *(s + 1) - 11 * '0';
 }
 
 // Sum of elements
-static unsigned sum(const Vec a)
+static u32 sum(const Vec a)
 {
-    unsigned val = 0;
-    for (unsigned i = 0; i < SHAPES; ++i)
+    u32 val = 0;
+    for (u32 i = 0; i < SHAPES; ++i)
         val += a.x[i];
     return val;
 }
 
 // Sum of element-wise product
-static unsigned dot(const Vec a, const Vec b)
+static u32 dot(const Vec a, const Vec b)
 {
-    unsigned val = 0;
-    for (unsigned i = 0; i < SHAPES; ++i)
+    u32 val = 0;
+    for (u32 i = 0; i < SHAPES; ++i)
         val += a.x[i] * b.x[i];
     return val;
 }
@@ -76,10 +78,10 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     // Count parts (=minimum area) per shape
     Vec shape = {0};
     const char *s = input + 3;  // skip digit, ":\n"
-    for (unsigned i = 0; i < SHAPES; s += 5, ++i)  // skip "\n\n", digit, ":\n"
-        for (unsigned j = 0; j < (3U * 3 + 2); ++j)  // shape size 3x3 + 2x newline
+    for (u32 i = 0; i < SHAPES; s += 5, ++i)  // skip "\n\n", digit, ":\n"
+        for (u32 j = 0; j < (3U * 3 + 2); ++j)  // shape size 3x3 + 2x newline
             shape.x[i] += *s++;
-    for (unsigned i = 0; i < SHAPES; ++i)
+    for (u32 i = 0; i < SHAPES; ++i)
         shape.x[i] = ((9U * '.' + 2 * '\n') - shape.x[i]) / ('.' - '#');  // (434 - x) / 11
 
     Vec tree;
@@ -88,14 +90,14 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
     for (int i = 0; i < TREES; ++i) {
 
         // Parse tree
-        const unsigned w = readnum(s);
-        const unsigned h = readnum(s + 3);
+        const u32 w = readnum(s);
+        const u32 h = readnum(s + 3);
         s += 7;  // skip two digits, 'x', two digits, ':', space
-        for (unsigned j = 0; j < SHAPES; s += 3, ++j)  // skip 2 digits, space/newline
+        for (u32 j = 0; j < SHAPES; s += 3, ++j)  // skip 2 digits, space/newline
             tree.x[j] = readnum(s);
 
         // Evaluate tree
-        const unsigned blocks = (w / 3) * (h / 3);  // round down before multiplying
+        const u32 blocks = (w / 3) * (h / 3);  // round down before multiplying
         if (sum(tree) <= blocks) {
             // All presents will fit under the tree even with 3x3 block tiling
             always++;
