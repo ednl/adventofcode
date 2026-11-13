@@ -14,7 +14,7 @@
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 1.84 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 3.97 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 3.96 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 8.18 µs
  */
 
@@ -75,17 +75,17 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
 
     // Count parts (=minimum area) per shape
     Vec shape = {0};
-    const char *s = input;
-    for (int i = 0; i < SHAPES; ++i)
-        for (int j = 0; j < SHAPECHARS; ++j)
+    const char *s = input + 3;  // skip digit, ":\n"
+    for (int i = 0; i < SHAPES; s += 5, ++i)  // skip "\n\n", digit, ":\n"
+        for (int j = 0; j < (3 * 4 - 1); ++j)  // 11
             shape.x[i] += *s++;
     for (int i = 0; i < SHAPES; ++i)
-        // x := (575 - x) / 11
-        shape.x[i] = (('0' + SHAPES - 1 + ':' + 9 * '.' + 5 * '\n')
-            - shape.x[i]) / ('.' - '#');
+        // x := (434 - x) / 11
+        shape.x[i] = ((9 * '.' + 2 * '\n') - shape.x[i]) / ('.' - '#');
 
     Vec tree;
     int always = 0, never = 0, maybe = 0;
+    s -= 3;  // correct for overshooting
     for (int i = 0; i < TREES; ++i) {
 
         // Parse tree
