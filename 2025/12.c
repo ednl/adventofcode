@@ -94,14 +94,14 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
         const int blocks = (w / 3) * (h / 3);  // round down before multiplying
         if (sum(tree) <= blocks) {
             // All presents will fit under the tree even with 3x3 block tiling
-            ++always;
+            always++;
         } else if (dot(shape, tree) > w * h) {
             // Impossible to fit even with perfect, gapless tiling
-            ++never;
+            never++;
         } else
             // Perfectly interlocked presents will fit under the tree
             // Finding that tiling is an NP-hard problem
-            ++maybe;  // maybe = TREES - always - never
+            maybe++;  // maybe = TREES - always - never
     }
     printf("%u %u %u\n", always, maybe, never);  // 521 0 479
 
