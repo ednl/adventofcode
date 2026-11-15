@@ -113,7 +113,7 @@ static bool evolve(int * const value)
 int main(void)
 {
 #if !SHOW
-    starttimer_q();  // don't warn about performance mode on RPi
+    starttimer();
 #endif
 
     if (!read()) {

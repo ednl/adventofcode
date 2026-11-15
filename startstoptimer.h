@@ -2,11 +2,11 @@
 #define STARTSTOPTIMER_H
 
 // Record current time as start time
-void starttimer_q(void);
+void starttimer(void);
 
 // Record current time as start time
 // Warn on Debian-based Linux (e.g. Raspberry Pi OS) if not running at max performance
-void starttimer(void);
+void starttimer_warn(void);
 
 // Time difference in nanoseconds between now and last call to starttimer()
 double stoptimer_ns(void);

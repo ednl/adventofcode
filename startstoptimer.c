@@ -31,14 +31,14 @@ static double sst_stop(const double factor)
 }
 
 // Record current time as start time
-void starttimer_q(void)
+void starttimer(void)
 {
     clock_gettime(CLOCK_MONOTONIC_RAW, &sst_t0);
 }
 
 // Record current time as start time
 // Warn on Debian-based Linux (e.g. Raspberry Pi OS) if not running at max performance
-void starttimer(void)
+void starttimer_warn(void)
 {
     FILE *f = fopen("/sys/devices/system/cpu/cpufreq/policy0/scaling_governor", "r");
     if (f) {
@@ -49,7 +49,7 @@ void starttimer(void)
                 "  Setting will be restored to default 'ondemand' at reboot.\n");
         fclose(f);
     }
-    starttimer_q();
+    starttimer();
 }
 
 // Time difference in nanoseconds between now and last call to starttimer()
