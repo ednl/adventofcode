@@ -24,7 +24,7 @@
 #endif
 
 #define FNAME "../aocinput/2026-01-input.txt"
-#define FSIZE (5<<12) // =20480, needed for my input: ?
+#define FSIZE (1<<12)  // needed for my input: ?
 
 static char input[FSIZE];
 
