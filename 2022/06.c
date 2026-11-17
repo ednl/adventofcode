@@ -14,7 +14,7 @@
  *     m=99999999;for((i=0;i<20000;++i));do t=$(./a.out 2>&1 1>/dev/null|awk '{print $2}');((t<m))&&m=$t&&echo "$m ($i)";done
  * Minimum runtime measurements:
  *     Macbook Pro 2024 (M4 4.4 GHz) : 1.51 µs
- *     Mac Mini 2020 (M1 3.2 GHz)    : 2.43 µs
+ *     Mac Mini 2020 (M1 3.2 GHz)    : 2.42 µs
  *     Raspberry Pi 5 (2.4 GHz)      : 4.76 µs
  */
 
@@ -52,14 +52,14 @@ for (int TIMERLOOP = 0; TIMERLOOP < 1000; ++TIMERLOOP) {
             i = *k + 1;
         *k = j++;
     }
-    printf("%d ", j);  // 1542
+    printf("%u ", j);  // 1542
     while (j - i < LEN2) {
         int *const k = &seen[(int)input[j]];
         if (*k >= i)
             i = *k + 1;
         *k = j++;
     }
-    printf("%d\n", j);  // 3153
+    printf("%u\n", j);  // 3153
 
 #ifdef TIMER
 }
