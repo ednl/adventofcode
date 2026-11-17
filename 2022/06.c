@@ -35,8 +35,8 @@ static int seen['z' + 1];
 int main(void)
 {
     FILE *f = fopen(FNAME, "rb");
-    if (!f) return 1;
-    fread(input, FSIZE, 1, f);
+    if (!f) { fputs("File not found: "FNAME"\n", stderr); return 1; }
+    fread(input, sizeof input, 1, f);  // read whole file at once
     fclose(f);
 
 #ifdef TIMER
