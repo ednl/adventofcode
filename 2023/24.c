@@ -134,7 +134,7 @@ int main(void)
         (int64_t)(round(sp * bc.x + sq * ca.x + sr * ab.x)),
         (int64_t)(round(sp * bc.y + sq * ca.y + sr * ab.y)),
         (int64_t)(round(sp * bc.z + sq * ca.z + sr * ab.z))};
-    printf("%lld %lld %lld\n", s.x, s.y, s.z);
+    printf("s=(%lld,%lld,%lld)\n", s.x, s.y, s.z);
     v[i] = sub(v[i], s);
     v[j] = sub(v[j], s);
     const Vec vv = cross(v[i], v[j]);
@@ -146,10 +146,10 @@ int main(void)
         rp * v[i].x - rq * v[j].x + rr * vv.x,
         rp * v[i].y - rq * v[j].y + rr * vv.y,
         rp * v[i].z - rq * v[j].z + rr * vv.z};
-    printf("%lld %lld %lld\n", r.x, r.y, r.z);
+    printf("r=(%lld,%lld,%lld)\n", r.x, r.y, r.z);
     printf("S=%lld\n", vv2);
-    printf("%lld %lld %lld\n", r.x / vv2, r.y / vv2, r.z / vv2);
-    printf("%lld %lld %lld\n", r.x % vv2, r.y % vv2, r.z % vv2);
+    printf("r div S =(%lld,%lld,%lld)\n", r.x / vv2, r.y / vv2, r.z / vv2);
+    printf("r mod S =(%lld,%lld,%lld)\n", r.x % vv2, r.y % vv2, r.z % vv2);
 
     return 0;
 }
