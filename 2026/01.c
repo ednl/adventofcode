@@ -24,7 +24,7 @@
 #endif
 
 #define FNAME "../aocinput/2026-01-input.txt"
-#define FSIZE (1<<12)  // needed for my input: ?
+#define FSIZE (1U<<12)  // 4096, needed for my input: ?
 
 static char input[FSIZE];
 
@@ -32,7 +32,8 @@ int main(void)
 {
     FILE *f = fopen(FNAME, "rb");
     if (!f) { fputs("File not found: "FNAME"\n", stderr); return 1; }
-    fread(input, 1, sizeof input, f);  // read single bytes until EOF
+    // fread(input, sizeof input, 1, f);  // read whole file at once
+    // fread(input, 1, sizeof input, f);  // read single bytes until EOF
     fclose(f);
 
 #ifdef TIMER
